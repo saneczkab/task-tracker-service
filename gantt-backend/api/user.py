@@ -10,25 +10,25 @@ async def get_current_user(authorization: str = Header(...)):
     pass
 
 
-@router.get("/user/{user_id}")
+@router.get("/api/user/{user_id}")
 def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
     """Получить всю инфу о пользователе(никнейм, почта, команды)"""
     pass
 
 
-@router.post("/user/new")
+@router.post("/api/user/new")
 def create_user():
     """Зарегистрировать пользователя"""
     pass
 
 
-@router.patch("/user/{user_id}")
+@router.patch("/api/user/{user_id}")
 def update_user(user_id: int, current_user: dict = Depends(get_current_user)):
     """Частично обновить данные о пользователе user_id"""
     pass
 
 
-@router.delete("/user/{user_id}")
+@router.delete("/api/user/{user_id}")
 def delete_user(user_id: int, current_user: dict = Depends(get_current_user)):
     """Удалить юзер user_id"""
     pass
