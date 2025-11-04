@@ -49,12 +49,6 @@ def create_project(team_id: int, project_data: ProjectCreate, current_user: User
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="У вас нет прав на создание проектов в этой команде")
 
-    project = data_base.query(Project).filter(Project.team_id == team_id, Project.name == project_data.name).first()
-
-    if project:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail="В данной команде уже есть проект с таким названием")
-
     new_project = Project(name=project_data.name, team_id=team_id)
 
     data_base.add(new_project)
@@ -85,13 +79,6 @@ def update_project(proj_id: int, project_update_data: ProjectUpdate, current_use
 
     if project_update_data.name is not None:
         if project_update_data.name != project.name:
-            existing_project = data_base.query(Project).filter(Project.team_id == project.team.id,
-                                                               Project.name == project_update_data.name,
-                                                               Project.id != proj_id).first()
-            if existing_project:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                                    detail="Проект с таким названием уже существует в команде")
-
             project.name = project_update_data.name
 
     data_base.commit()
