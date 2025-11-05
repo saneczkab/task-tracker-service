@@ -2,7 +2,7 @@ from typing import List
 
 from sqlalchemy.orm import Session
 from core.db import get_db
-from models import Project, User, Team, UserTeam
+from models import Project, User, Team, UserTeam, Stream
 from schemas.project import ProjectResponse, ProjectCreate, ProjectUpdate
 from .auth import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -106,5 +106,6 @@ def delete_project(proj_id: int, current_user: User = Depends(get_current_user),
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="У вас нет прав на удаление проекта в этой команде")
 
+    data_base.query(Stream).filter(Stream.project_id == proj_id).delete(synchronize_session=False)
     data_base.delete(project)
     data_base.commit()

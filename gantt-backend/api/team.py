@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 
 from core.db import get_db
+from models import Project, Stream
 from models.team import Team, UserTeam
 from models.user import User
 from schemas.team import UserWithRoleResponse, TeamCreate, TeamUpdate
@@ -106,7 +107,7 @@ def update_team(team_id: int, update_data: TeamUpdate, current_user: User = Depe
                     new_member = UserTeam(
                         user_id=new_user.id,
                         team_id=team_id,
-                        role_id=1
+                        role_id=2
                     )
                     data_base.add(new_member)
             else:
@@ -148,7 +149,13 @@ def delete_team(team_id: int, current_user: User = Depends(get_current_user), da
     if user_team.role_id != 2:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="У вас нет прав на удаление команды")
 
-    data_base.query(UserTeam).filter(UserTeam.team_id == team_id).delete()
-    data_base.query(Team).filter(Team.id == team.id).delete()
+    projects = data_base.query(Project).filter(Project.team_id == team_id).all()
+    project_ids = [proj.id for proj in projects]
+    if project_ids:
+        data_base.query(Stream).filter(Stream.project_id.in_(project_ids)).delete(synchronize_session=False)
+        data_base.query(Project).filter(Project.id.in_(project_ids)).delete(synchronize_session=False)
+
+    data_base.query(UserTeam).filter(UserTeam.team_id == team_id).delete(synchronize_session=False)
+    data_base.query(Team).filter(Team.id == team.id).delete(synchronize_session=False)
 
     data_base.commit()
