@@ -1,5 +1,7 @@
 import {useEffect, useState} from "react";
 import { Button } from "@mui/material";
+import Sidebar from "../../components/ui/Sidebar.jsx";
+import Topbar from "../../components/ui/Topbar.jsx";
 
 const Dashboard = () => {
     const [authToken, setAuthToken] = useState("");
@@ -15,17 +17,26 @@ const Dashboard = () => {
     }
 
     return (
-        <div>
-            <h1>Главная страница</h1>
-            <p>Токен: {authToken ? authToken : 'Пользователь не авторизован'}</p>
+        <div className="min-h-screen flex flex-col">
+            <Topbar/>
 
-            {authToken && (
-                <Button
-                    variant="contained"
-                    onClick={handleLogout}>
-                    Выйти</Button>
-            )}
+            <div className="flex flex-1">
+                <Sidebar />
+
+                <main className="flex-1 p-6">
+                    <h1>Главная страница</h1>
+                    <p>Токен: {authToken ? authToken : 'Пользователь не авторизован'}</p>
+
+                    {authToken && (
+                        <Button
+                            variant="contained"
+                            onClick={handleLogout}>
+                            Выйти</Button>
+                    )}
+                </main>
+            </div>
         </div>
+
     )
 }
 
