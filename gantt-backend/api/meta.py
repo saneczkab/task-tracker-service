@@ -1,36 +1,43 @@
-from email.header import Header
+from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from api.auth import get_current_user
+from core.db import get_db
+from models.meta import Status, Priority, ConnectionType
+from schemas.meta import StatusResponse, PriorityResponse, ConnectionTypeResponse
 
 router = APIRouter()
 
 
-async def get_current_user(authorization: str = Header(...)):
-    """Получение текущего пользователя из токена"""
-    pass
-
-
-@router.get("/team/{team_id}/taskStatuses")
-def get_team_statuses(team_id: int, current_user: dict = Depends(get_current_user)):
+@router.get("/api/taskStatuses", response_model=List[StatusResponse], status_code=status.HTTP_200_OK)
+def get_team_statuses(data_base: Session = Depends(get_db)):
     """Получить все статусы в команде team_id"""
-    pass
+    statuses = data_base.query(Status).all()
+
+    return statuses
 
 
-@router.get("/team/{team_id}/priorities")
-def get_team_priorities(team_id: int, current_user: dict = Depends(get_current_user)):
+@router.get("/api/priorities", response_model=List[PriorityResponse], status_code=status.HTTP_200_OK)
+def get_team_priorities(data_base: Session = Depends(get_db)):
     """Получить все приоритеты в команде team_id"""
-    pass
+    priorities = data_base.query(Priority).all()
+
+    return priorities
+
+
+@router.get("/api/connectionTypes", response_model=List[ConnectionTypeResponse], status_code=status.HTTP_200_OK)
+def get_connection_types(data_base: Session = Depends(get_db)):
+    """Получить все типы связей"""
+    connections = data_base.query(ConnectionType).all()
+
+    return connections
 
 
 @router.get("/team/{team_id}/tags")
 def get_team_tags(team_id: int, current_user: dict = Depends(get_current_user)):
     """Получить все теги команды team_id"""
-    pass
-
-
-@router.get("/connectionTypes")
-def get_connection_types():
-    """Получить все типы связей"""
     pass
 
 

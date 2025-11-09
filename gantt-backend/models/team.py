@@ -11,6 +11,9 @@ class Team(Base):
 
     user_teams = relationship("UserTeam", back_populates="team")
     projects = relationship("Project", back_populates="team")
+    statuses = relationship("TaskStatus", backref="team")
+    priorities = relationship("Priority", backref="team")
+    connections = relationship("ConnectionType", backref="team")
 
 
 class UserTeam(Base):

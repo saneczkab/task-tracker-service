@@ -49,12 +49,6 @@ def get_user(user_id: int, current_user: User = Depends(get_current_user), data_
     }
 
 
-@router.post("/api/user/new")
-def create_user():
-    """Зарегистрировать пользователя"""
-    pass
-
-
 @router.patch("/api/user/{user_id}")
 def update_user(user_id: int, current_user: User = Depends(get_current_user),
                 data_base: Session = Depends(get_db)):
