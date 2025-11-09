@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from models.user import Base
+from models.base import Base
 
 
 class Stream(Base):

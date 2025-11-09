@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-
-Base = declarative_base()
+from models.base import Base
 
 
 class Task(Base):
@@ -14,4 +12,5 @@ class Task(Base):
     status_id = Column(Integer, nullable=False)
     priority_id = Column(Integer, nullable=False)
 
-    stream = relationship("Stream", back_populates="tasks")
+    # TODO: fix
+    # stream = relationship("Stream", back_populates="tasks")
