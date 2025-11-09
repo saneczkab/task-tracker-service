@@ -3,8 +3,7 @@ import { Tooltip, IconButton, TextField,  List, ListItem, ListItemButton, ListIt
     Button, CircularProgress, Box }
     from "@mui/material";
 import {
-    Add as AddIcon, Close as CloseIcon, Save as SaveIcon, Delete as DeleteIcon,
-    Folder as FolderIcon, FolderOpen as FolderOpenIcon, Stream as StreamIcon, ListAlt as ListAltIcon,
+    Close as CloseIcon, Save as SaveIcon, Delete as DeleteIcon, ListAlt as ListAltIcon,
     ViewKanban as ViewKanbanIcon, Edit as EditIcon, ExpandMore, ExpandLess
 } from "@mui/icons-material";
 import TeamEdit from "./TeamEdit.jsx";
