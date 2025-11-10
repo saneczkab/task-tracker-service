@@ -8,9 +8,9 @@ class Task(Base):
     id = Column(Integer, primary_key=True)
     stream_id = Column(Integer, ForeignKey("Streams.id"), nullable=False)
     name = Column(String, nullable=False, index=True)
-    description = Column(String, nullable=False)
-    status_id = Column(Integer, nullable=False)
-    priority_id = Column(Integer, nullable=False)
+    description = Column(String, nullable=True)
+    status_id = Column(Integer, nullable=True)
+    priority_id = Column(Integer, nullable=True)
 
     # TODO: fix
     # stream = relationship("Stream", back_populates="tasks")

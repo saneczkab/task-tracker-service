@@ -20,9 +20,9 @@ class TaskUpdate(BaseModel):
 class TaskResponse(BaseModel):
     id: int
     name: str
-    description: str
-    status_id: int
-    priority_id: int
+    description: Optional[str] = None
+    status_id: Optional[int] = None
+    priority_id: Optional[int] = None
     stream_id: int
 
     class Config:
