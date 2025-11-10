@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from core.db import get_db
 from models import Project, UserTeam, User, Stream
+from models.meta import UserTask
 from models.task import Task
 from schemas.task import TaskResponse, TaskCreate, TaskUpdate
 from .auth import get_current_user
@@ -50,6 +51,12 @@ def get_stream_tasks(stream_id: int, current_user: User = Depends(get_current_us
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="У вас нет доступа к стриму")
 
     tasks = data_base.query(Task).filter(Task.stream_id == stream.id).all()
+
+    for task in tasks:
+        assignee = data_base.query(UserTask).filter(UserTask.task_id == task.id).first()
+        if assignee:
+            user = data_base.query(User).filter(User.id == assignee.user_id).first()
+            task.assignee_email = user.email if user else None
 
     return tasks
 

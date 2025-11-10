@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List
 
 from pydantic import BaseModel
@@ -24,6 +25,10 @@ class TaskResponse(BaseModel):
     status_id: Optional[int] = None
     priority_id: Optional[int] = None
     stream_id: int
+    start_date: Optional[datetime] = None
+    deadline: Optional[datetime] = None
+    assignee_email: Optional[str] = None
+    # TODO: multiple user responsible
 
     class Config:
         from_attributes = True
