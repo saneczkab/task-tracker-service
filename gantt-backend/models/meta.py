@@ -3,13 +3,13 @@ from models.base import Base
 
 
 class Status(Base):
-    __tablename__ = "Statuses"
+    __tablename__ = "Status"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
 
 
 class Priority(Base):
-    __tablename__ = "Priorities"
+    __tablename__ = "Priority"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
 
