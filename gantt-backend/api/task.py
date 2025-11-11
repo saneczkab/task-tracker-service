@@ -86,9 +86,21 @@ def create_task(stream_id: int, task_data: TaskCreate, current_user: User = Depe
         stream_id=stream_id,
         status_id=task_data.status_id,
         priority_id=task_data.priority_id,
+        start_date=task_data.start_date,
+        deadline=task_data.deadline
     )
 
     data_base.add(task)
+    data_base.flush()
+
+    assignee_id = data_base.query(User.id).filter(User.email == task_data.assignee_email).first() if task_data.assignee_email else None
+    if assignee_id:
+        user_task = UserTask(
+            user_id=assignee_id.id,
+            task_id=task.id
+        )
+        data_base.add(user_task)
+
     data_base.commit()
     data_base.refresh(task)
 
@@ -127,6 +139,22 @@ def update_task(task_id: int, task_update_data: TaskUpdate, current_user: User =
     if task_update_data.priority_id is not None:
         task.priority_id = task_update_data.priority_id
 
+    task.start_date = task_update_data.start_date
+    task.deadline = task_update_data.deadline
+
+    if task_update_data.assignee_email is not None:
+        assigning_user = data_base.query(User).filter(User.email == task_update_data.assignee_email).first()
+        if assigning_user:
+            user_task = UserTask(
+                user_id=data_base.query(User.id).filter(User.email == task_update_data.assignee_email).first().id,
+                task_id=task_id
+            )
+            data_base.add(user_task)
+
+        old_user_task = data_base.query(UserTask).filter(UserTask.task_id == task_id).first()
+        if old_user_task:
+            data_base.delete(old_user_task)
+
     data_base.commit()
     data_base.refresh(task)
 
@@ -151,6 +179,10 @@ def delete_task(task_id: int, current_user: User = Depends(get_current_user), da
 
     if user_team.role_id != 2:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="У вас нет прав на удаление задачи")
+
+    user_task = data_base.query(UserTask).filter(UserTask.task_id == task_id).first()
+    if user_task:
+        data_base.delete(user_task)
 
     data_base.delete(task)
     data_base.commit()

@@ -7,8 +7,12 @@ from pydantic import BaseModel
 class TaskCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    status_id: int
-    priority_id: int
+    status_id: Optional[int]
+    priority_id: Optional[int]
+    assignee_email: Optional[str] = None  # TODO: multiple user responsible
+    start_date: Optional[datetime] = None
+    deadline: Optional[datetime] = None
+
 
 
 class TaskUpdate(BaseModel):
@@ -16,7 +20,9 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     status_id: Optional[int] = None
     priority_id: Optional[int] = None
-
+    assignee_email: Optional[str] = None  # TODO: multiple user responsible
+    start_date: Optional[datetime] = None
+    deadline: Optional[datetime] = None
 
 class TaskResponse(BaseModel):
     id: int
