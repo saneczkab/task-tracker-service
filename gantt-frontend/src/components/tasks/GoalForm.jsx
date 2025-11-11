@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import FormRow from "./FormRow.jsx";
+import { toInputDate, toInputTime, toISOStringOrNull } from "../../utils/datetime.js";
 
 const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
     const navigate = useNavigate();
@@ -12,34 +13,6 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
     const [deadlineTime, setDeadlineTime] = useState("");
 
     const isEdit = Boolean(goal?.id);
-
-    const toInputDate = (value) => {
-        if (!value) {
-            return "";
-        }
-
-        const datetime = new Date(value);
-        return `${datetime.getFullYear()}-${String(datetime.getMonth() + 1).padStart(2, "0")}-${String(datetime.getDate()).padStart(2, "0")}`;
-    };
-
-    const toInputTime = (value) => {
-        if (!value) {
-            return "";
-        }
-
-        const datetime = new Date(value);
-        return `${String(datetime.getHours()).padStart(2, "0")}:${String(datetime.getMinutes()).padStart(2, "0")}`;
-    };
-
-    const toISOStringOrNull = (dateStr, timeStr) => {
-        if (!dateStr) {
-            return null;
-        }
-
-        const combined = `${dateStr}T${timeStr || "00:00"}`;
-        const date = new Date(combined);
-        return Number.isNaN(date.getTime()) ? null : date.toISOString();
-    };
 
     useEffect(() => {
         if (!open) {
