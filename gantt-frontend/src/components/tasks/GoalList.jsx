@@ -123,123 +123,121 @@ const GoalList = ({ streamId }) => {
     }
 
     return (
-        goals.length > 0 ? (
-            <div>
-                <TableContainer
-                    component={ Paper }
-                    sx={{ borderRadius: 2, overflow: 'hidden', mt: 1 }}>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell
-                                    sx={{
-                                        backgroundColor: '#EDEDED',
-                                        fontWeight: 'bold',
-                                        // borderRight: '1px solid rgba(0,0,0,0.12)'
-                                    }}
-                                >Название
-                                </TableCell>
-
-                                <TableCell
-                                    sx={{
-                                        backgroundColor: '#EDEDED',
-                                        fontWeight: 'bold',
-                                        // borderRight: '1px solid rgba(0,0,0,0.12)'
-                                    }}
-                                >Дедлайн
-                                </TableCell>
-                            </TableRow>
-                        </TableHead>
-
-                        <TableBody>
-                            {
-                                goals.map(goal => (
-                                    <TableRow
-                                        key={goal.id}
-                                        sx={{
-                                            "&:hover": { backgroundColor: "#fafafa" },
-                                            "& .goal-actions": { opacity: 0, transition: "opacity 0.2s" },
-                                            "&:hover .goal-actions": { opacity: 1 },
-                                        }}
-                                    >
+        <>
+            {
+                goals.length > 0 ? (
+                    <div>
+                        <TableContainer
+                            component={ Paper }
+                            sx={{ borderRadius: 2, overflow: 'hidden', mt: 1 }}>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow>
                                         <TableCell
-                                            // sx={{ borderRight: '1px solid rgba(0,0,0,0.12)' }}
-                                        >
-                                            {goal.name}
+                                            sx={{
+                                                backgroundColor: '#EDEDED',
+                                                fontWeight: 'bold',
+                                                // borderRight: '1px solid rgba(0,0,0,0.12)'
+                                            }}
+                                        >Название
                                         </TableCell>
 
-                                        <TableCell sx={{
-                                            // borderRight: "1px solid rgba(0,0,0,0.12)",
-                                            position: "relative",
-                                            pr: 5
-                                        }}>
-                                            {goal.deadline ? new Date(goal.deadline).toLocaleString() : "-"}
-
-                                            <IconButton
-                                                size="small"
-                                                onClick={e => openMenu(e, goal.id)}
-                                                className="goal-actions"
-                                                sx={{
-                                                    position: "absolute",
-                                                    right: 8,
-                                                    top: "50%",
-                                                    transform: "translateY(-50%)"
-                                                }}>
-                                                <MoreVertIcon fontSize="small" />
-                                            </IconButton>
+                                        <TableCell
+                                            sx={{
+                                                backgroundColor: '#EDEDED',
+                                                fontWeight: 'bold',
+                                                // borderRight: '1px solid rgba(0,0,0,0.12)'
+                                            }}
+                                        >Дедлайн
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            }
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                                </TableHead>
 
-                <Menu
-                    anchorEl={menuAnchorEl}
-                    open={Boolean(menuAnchorEl)}
-                    onClose={closeMenu}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                >
-                    <MenuItem onClick={handleEdit}>Редактировать</MenuItem>
+                                <TableBody>
+                                    {
+                                        goals.map(goal => (
+                                            <TableRow
+                                                key={goal.id}
+                                                sx={{
+                                                    "&:hover": { backgroundColor: "#fafafa" },
+                                                    "& .goal-actions": { opacity: 0, transition: "opacity 0.2s" },
+                                                    "&:hover .goal-actions": { opacity: 1 },
+                                                }}
+                                            >
+                                                <TableCell
+                                                    // sx={{ borderRight: '1px solid rgba(0,0,0,0.12)' }}
+                                                >
+                                                    {goal.name}
+                                                </TableCell>
 
-                    <MenuItem onClick={() => deleteGoal(menuGoalId)}>
-                        {deletingGoalId === menuGoalId ? <CircularProgress size={16} /> : "Удалить"}
-                    </MenuItem>
-                </Menu>
+                                                <TableCell sx={{
+                                                    // borderRight: "1px solid rgba(0,0,0,0.12)",
+                                                    position: "relative",
+                                                    pr: 5
+                                                }}>
+                                                    {goal.deadline ? new Date(goal.deadline).toLocaleString() : "-"}
 
-                <div style={{ marginTop: 8, display: "flex" }}>
-                    <Button variant="text" size="small" onClick={handleCreate}>
-                        Добавить цель
-                    </Button>
-                </div>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={e => openMenu(e, goal.id)}
+                                                        className="goal-actions"
+                                                        sx={{
+                                                            position: "absolute",
+                                                            right: 8,
+                                                            top: "50%",
+                                                            transform: "translateY(-50%)"
+                                                        }}>
+                                                        <MoreVertIcon fontSize="small" />
+                                                    </IconButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    }
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
 
-                <GoalForm
-                    open={formOpen}
-                    onClose={() => setFormOpen(false)}
-                    streamId={streamId}
-                    goal={selectedGoal}
-                    onSaved={handleSaved}
-                />
-            </div>
-        ) : (
-            <div>Цели не заданы. Создайте цель!
-                <div style={{ marginTop: 8, display: "flex" }}>
-                    <Button variant="text" size="small" onClick={handleCreate}>
-                        Добавить цель
-                    </Button>
-                </div>
+                        <Menu
+                            anchorEl={menuAnchorEl}
+                            open={Boolean(menuAnchorEl)}
+                            onClose={closeMenu}
+                            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        >
+                            <MenuItem onClick={handleEdit}>Редактировать</MenuItem>
 
-                <GoalForm
-                    open={formOpen}
-                    onClose={() => setFormOpen(false)}
-                    streamId={streamId}
-                    goal={selectedGoal}
-                    onSaved={handleSaved}
-                />
-            </div>
-        )
+                            <MenuItem onClick={() => deleteGoal(menuGoalId)}>
+                                {deletingGoalId === menuGoalId ? <CircularProgress size={16} /> : "Удалить"}
+                            </MenuItem>
+                        </Menu>
+
+                        <div style={{ marginTop: 8, display: "flex" }}>
+                            <Button variant="text" size="small" onClick={handleCreate}>
+                                Добавить цель
+                            </Button>
+                        </div>
+
+                    </div>
+                ) : (
+                    <div>Цели не заданы. Создайте цель!
+                        <div style={{ marginTop: 8, display: "flex" }}>
+                            <Button variant="text" size="small" onClick={handleCreate}>
+                                Добавить цель
+                            </Button>
+                        </div>
+
+                    </div>
+                )
+            }
+
+            <GoalForm
+                open={formOpen}
+                onClose={() => setFormOpen(false)}
+                streamId={streamId}
+                goal={selectedGoal}
+                onSaved={handleSaved}
+            />
+        </>
     )
 }
 

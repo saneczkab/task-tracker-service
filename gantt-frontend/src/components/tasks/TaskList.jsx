@@ -158,170 +158,182 @@ const TaskList = ({ streamId }) => {
         return <CircularProgress size={32} />;
     }
 
-    if (tasks.length === 0) {
-        return (
-            <div>
-                Задачи не заданы. Создайте задачу!
-                <div style={{ marginTop: 8, display: "flex" }}>
-                    <Button
-                        variant="text"
-                        size="small"
-                        onClick={handleCreate}
-                    >Добавить задачу
-                    </Button>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div>
-            <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: "hidden" }}>
-                <Table size="small">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell
-                                sx={{
-                                    backgroundColor: "#EDEDED",
-                                    fontWeight: "bold",
-                                    // borderRight: "1px solid rgba(0,0,0,0.12)"
-                                }}
-                            >Название
-                            </TableCell>
+        <>
+            {
+                tasks.length > 0 ? (
+                    <div>
+                        <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: "hidden" }}>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell
+                                            sx={{
+                                                backgroundColor: "#EDEDED",
+                                                fontWeight: "bold",
+                                                // borderRight: "1px solid rgba(0,0,0,0.12)"
+                                            }}
+                                        >Название
+                                        </TableCell>
 
-                            <TableCell
-                                sx={{
-                                    backgroundColor: "#EDEDED",
-                                    fontWeight: "bold",
-                                    // borderRight: "1px solid rgba(0,0,0,0.12)"
-                                }}
-                            >Исполнитель
-                            </TableCell>
+                                        <TableCell
+                                            sx={{
+                                                backgroundColor: "#EDEDED",
+                                                fontWeight: "bold",
+                                                // borderRight: "1px solid rgba(0,0,0,0.12)"
+                                            }}
+                                        >Исполнитель
+                                        </TableCell>
 
-                            <TableCell
-                                sx={{
-                                    backgroundColor: "#EDEDED",
-                                    fontWeight: "bold",
-                                    // borderRight: "1px solid rgba(0,0,0,0.12)"
-                                }}
-                            >Статус
-                            </TableCell>
+                                        <TableCell
+                                            sx={{
+                                                backgroundColor: "#EDEDED",
+                                                fontWeight: "bold",
+                                                // borderRight: "1px solid rgba(0,0,0,0.12)"
+                                            }}
+                                        >Статус
+                                        </TableCell>
 
-                            <TableCell
-                                sx={{
-                                    backgroundColor: "#EDEDED",
-                                    fontWeight: "bold",
-                                    // borderRight: "1px solid rgba(0,0,0,0.12)"
-                                }}
-                            >Приоритет
-                            </TableCell>
+                                        <TableCell
+                                            sx={{
+                                                backgroundColor: "#EDEDED",
+                                                fontWeight: "bold",
+                                                // borderRight: "1px solid rgba(0,0,0,0.12)"
+                                            }}
+                                        >Приоритет
+                                        </TableCell>
 
-                            <TableCell
-                                sx={{
-                                    backgroundColor: "#EDEDED",
-                                    fontWeight: "bold",
-                                    // borderRight: "1px solid rgba(0,0,0,0.12)"
-                                }}
-                            >Дата начала
-                            </TableCell>
+                                        <TableCell
+                                            sx={{
+                                                backgroundColor: "#EDEDED",
+                                                fontWeight: "bold",
+                                                // borderRight: "1px solid rgba(0,0,0,0.12)"
+                                            }}
+                                        >Дата начала
+                                        </TableCell>
 
-                            <TableCell
-                                sx={{
-                                    backgroundColor: "#EDEDED",
-                                    fontWeight: "bold",
-                                    // borderRight: "1px solid rgba(0,0,0,0.12)"
-                                }}
-                            >Дедлайн
-                            </TableCell>
-                        </TableRow>
-                    </TableHead>
+                                        <TableCell
+                                            sx={{
+                                                backgroundColor: "#EDEDED",
+                                                fontWeight: "bold",
+                                                // borderRight: "1px solid rgba(0,0,0,0.12)"
+                                            }}
+                                        >Дедлайн
+                                        </TableCell>
+                                    </TableRow>
+                                </TableHead>
 
-                    <TableBody>
-                        {(tasks || []).map((task) => (
-                            <TableRow
-                                key={task.id}
-                                sx={{
-                                    "&:hover": { backgroundColor: "#fafafa" },
-                                    "& .task-actions": { opacity: 0, transition: "opacity 0.2s" },
-                                    "&:hover .task-actions": { opacity: 1 },
-                                }}
+                                <TableBody>
+                                    {(tasks || []).map((task) => (
+                                        <TableRow
+                                            key={task.id}
+                                            sx={{
+                                                "&:hover": { backgroundColor: "#fafafa" },
+                                                "& .task-actions": { opacity: 0, transition: "opacity 0.2s" },
+                                                "&:hover .task-actions": { opacity: 1 },
+                                            }}
+                                        >
+                                            <TableCell
+                                                // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
+                                            >
+                                                {task.name}
+                                            </TableCell>
+
+                                            <TableCell
+                                                // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
+                                            >
+                                                {task.assignee_email || "-"}
+                                            </TableCell>
+
+                                            <TableCell
+                                                // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
+                                            >
+                                                {task.status_id ? statusMap[task.status_id] : "-"}
+                                            </TableCell>
+
+                                            <TableCell
+                                                // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
+                                            >
+                                                {task.priority_id ? priorityMap[task.priority_id] : "-"}
+                                            </TableCell>
+
+                                            <TableCell
+                                                // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
+                                            >
+                                                {task.start_date ? new Date(task.start_date).toLocaleString() : "-"}
+                                            </TableCell>
+
+                                            <TableCell
+                                                sx={{
+                                                    // borderRight: "1px solid rgba(0,0,0,0.12)",
+                                                    position: "relative",
+                                                    pr: 5
+                                                }}
+                                            >
+                                                {task.deadline ? new Date(task.deadline).toLocaleString() : "-"}
+
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => openMenu(e, task.id)}
+                                                    className="task-actions"
+                                                    sx={{
+                                                        position: "absolute",
+                                                        right: 8,
+                                                        top: "50%",
+                                                        transform: "translateY(-50%)"
+                                                    }}
+                                                >
+                                                    <MoreVertIcon fontSize="small" />
+                                                </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+
+                        <Menu
+                            anchorEl={menuAnchorEl}
+                            open={Boolean(menuAnchorEl)}
+                            onClose={closeMenu}
+                            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                            transformOrigin={{ vertical: "top", horizontal: "right" }}
+                        >
+                            <MenuItem
+                                onClick={handleEdit}
+                            >Редактировать
+                            </MenuItem>
+
+                            <MenuItem
+                                onClick={handleDelete}
+                            >Удалить
+                            </MenuItem>
+                        </Menu>
+
+                        <div style={{ marginTop: 8, display: "flex" }}>
+                            <Button
+                                variant="text"
+                                size="small"
+                                onClick={handleCreate}
                             >
-                                <TableCell
-                                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                                >
-                                    {task.name}
-                                </TableCell>
-
-                                <TableCell
-                                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                                >
-                                    {task.assignee_email || "-"}
-                                </TableCell>
-
-                                <TableCell
-                                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                                >
-                                    {task.status_id ? statusMap[task.status_id] : "-"}
-                                </TableCell>
-
-                                <TableCell
-                                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                                >
-                                    {task.priority_id ? priorityMap[task.priority_id] : "-"}
-                                </TableCell>
-
-                                <TableCell
-                                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                                >
-                                    {task.start_date ? new Date(task.start_date).toLocaleString() : "-"}
-                                </TableCell>
-
-                                <TableCell
-                                    sx={{
-                                        // borderRight: "1px solid rgba(0,0,0,0.12)",
-                                        position: "relative",
-                                        pr: 5
-                                    }}
-                                >
-                                    {task.deadline ? new Date(task.deadline).toLocaleString() : "-"}
-
-                                    <IconButton
-                                        size="small"
-                                        onClick={(e) => openMenu(e, task.id)}
-                                        className="task-actions"
-                                        sx={{
-                                            position: "absolute",
-                                            right: 8,
-                                            top: "50%",
-                                            transform: "translateY(-50%)"
-                                        }}
-                                    >
-                                        <MoreVertIcon fontSize="small" />
-                                    </IconButton>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-
-            <Menu
-                anchorEl={menuAnchorEl}
-                open={Boolean(menuAnchorEl)}
-                onClose={closeMenu}
-                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
-            >
-                <MenuItem
-                    onClick={handleEdit}
-                >Редактировать
-                </MenuItem>
-
-                <MenuItem
-                    onClick={handleDelete}
-                >Удалить
-                </MenuItem>
-            </Menu>
+                                Добавить задачу
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        Задачи не заданы. Создайте задачу!
+                        <div style={{ marginTop: 8, display: "flex" }}>
+                            <Button
+                                variant="text"
+                                size="small"
+                                onClick={handleCreate}
+                            >Добавить задачу
+                            </Button>
+                        </div>
+                    </div>
+                )
+            }
 
             <TaskForm
                 open={formOpen}
@@ -335,17 +347,7 @@ const TaskList = ({ streamId }) => {
                     loadAll();
                 }}
             />
-
-            <div style={{ marginTop: 8, display: "flex" }}>
-                <Button
-                    variant="text"
-                    size="small"
-                    onClick={handleCreate}
-                >
-                    Добавить задачу
-                </Button>
-            </div>
-        </div>
+        </>
     );
 }
 
