@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, FormControl, Select,
     MenuItem, Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import FormRow from "./FormRow.jsx";
 
 const Row = ({ label, children }) => (
     <Box
@@ -203,7 +204,7 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
             <DialogTitle>{isEdit ? "Редактировать задачу" : "Добавить задачу"}</DialogTitle>
             <DialogContent dividers>
                 <Box component="form" onSubmit={handleSubmit} sx={{ display: "grid", gap: 1 }}>
-                    <Row label="Название">
+                    <FormRow label="Название">
                         <TextField
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -213,9 +214,9 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
                             placeholder="Введите название"
                             required
                         />
-                    </Row>
+                    </FormRow>
 
-                    <Row label="Исполнитель (email)">
+                    <FormRow label="Исполнитель (email)">
                         <TextField
                             value={assigneeEmail}
                             onChange={(e) => setAssigneeEmail(e.target.value)}
@@ -225,9 +226,9 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
                             fullWidth
                             placeholder="user@example.com"
                         />
-                    </Row>
+                    </FormRow>
 
-                    <Row label="Статус">
+                    <FormRow label="Статус">
                         <FormControl fullWidth size="small">
                             <Select
                                 value={statusId === "" ? "" : Number(statusId)}
@@ -240,9 +241,9 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
                                 ))}
                             </Select>
                         </FormControl>
-                    </Row>
+                    </FormRow>
 
-                    <Row label="Приоритет">
+                    <FormRow label="Приоритет">
                         <FormControl fullWidth size="small">
                             <Select
                                 value={priorityId === "" ? "" : Number(priorityId)}
@@ -255,9 +256,9 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
                                 ))}
                             </Select>
                         </FormControl>
-                    </Row>
+                    </FormRow>
 
-                    <Row label="Дата начала">
+                    <FormRow label="Дата начала">
                         <div style={{ display: "flex", gap: 1 }}>
                             <TextField
                                 type="date"
@@ -274,9 +275,9 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
                                 sx={{ minWidth: 140 }}
                             />
                         </div>
-                    </Row>
+                    </FormRow>
 
-                    <Row label="Дедлайн">
+                    <FormRow label="Дедлайн">
                         <div style={{ display: "flex", gap: 1 }}>
                             <TextField
                                 type="date"
@@ -293,7 +294,7 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
                                 sx={{ minWidth: 140 }}
                             />
                         </div>
-                    </Row>
+                    </FormRow>
                 </Box>
             </DialogContent>
 

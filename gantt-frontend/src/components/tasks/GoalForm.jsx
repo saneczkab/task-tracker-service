@@ -1,42 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import FormRow from "./FormRow.jsx";
 
-const Row = ({ label, children }) => (
-    <Box
-        sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "220px 1fr" },
-            alignItems: "center",
-            gap: 2,
-            px: 1.5,
-            py: 1,
-            borderRadius: 1,
 
-            "&:hover": { backgroundColor: "#EDEDED" },
-
-            "& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
-                borderColor: "transparent"
-            },
-            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                borderColor: "transparent"
-            },
-            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: "transparent"
-            }
-        }}
-    >
-        <Typography
-            sx={{
-                color: "text.secondary",
-                fontFamily: '"Roboto Flex","Roboto",sans-serif',
-                fontWeight: 700
-            }}
-        >{label}
-        </Typography>
-        <Box>{children}</Box>
-    </Box>
-);
 
 const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
     const navigate = useNavigate();
@@ -140,7 +107,7 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
                     }}
                     sx={{ display: "grid", gap: 1 }}
                 >
-                    <Row label="Название">
+                    <FormRow label="Название">
                         <TextField
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -150,9 +117,9 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
                             placeholder="Введите название"
                             required
                         />
-                    </Row>
+                    </FormRow>
 
-                    <Row label="Дедлайн">
+                    <FormRow label="Дедлайн">
                         <div style={{ display: "flex", gap: 4 }}>
                             <TextField
                                 type="date"
@@ -169,7 +136,7 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
                                 sx={{ minWidth: 140 }}
                             />
                         </div>
-                    </Row>
+                    </FormRow>
                 </Box>
             </DialogContent>
 
