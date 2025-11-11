@@ -42,7 +42,7 @@ const StreamPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-white">
             <Topbar />
             <div className="flex flex-1">
                 <Sidebar teamId={teamId} />

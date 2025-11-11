@@ -129,7 +129,12 @@ const GoalList = ({ streamId }) => {
                     <div>
                         <TableContainer
                             component={ Paper }
-                            sx={{ borderRadius: 2, overflow: 'hidden', mt: 1 }}>
+                            sx={{
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                mt: 1,
+                                border: "1px solid black"
+                        }}>
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>

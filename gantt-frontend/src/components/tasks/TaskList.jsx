@@ -163,7 +163,14 @@ const TaskList = ({ streamId }) => {
             {
                 tasks.length > 0 ? (
                     <div>
-                        <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: "hidden" }}>
+                        <TableContainer
+                            component={Paper}
+                            sx={{
+                                borderRadius: 2,
+                                overflow: "hidden",
+                                mt: 1,
+                                border: "1px solid black"
+                        }}>
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
