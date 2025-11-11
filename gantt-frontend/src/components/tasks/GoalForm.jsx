@@ -3,8 +3,6 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, B
 import { useNavigate } from "react-router-dom";
 import FormRow from "./FormRow.jsx";
 
-
-
 const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
     const navigate = useNavigate();
     const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
