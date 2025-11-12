@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from models.user import Base
+from models.base import Base
 
 
 class Team(Base):
@@ -11,6 +11,10 @@ class Team(Base):
 
     user_teams = relationship("UserTeam", back_populates="team")
     projects = relationship("Project", back_populates="team")
+    # TODO: fix
+    # statuses = relationship("TaskStatus", backref="team")
+    # priorities = relationship("Priority", backref="team")
+    # connections = relationship("ConnectionType", backref="team")
 
 
 class UserTeam(Base):

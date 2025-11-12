@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class GoalCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    deadline: datetime
+    deadline: Optional[datetime] = None
 
 
 class GoalUpdate(BaseModel):
@@ -19,7 +19,7 @@ class GoalResponse(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
-    deadline: datetime
+    deadline: Optional[datetime] = None
     stream_id: int
 
     class Config:
