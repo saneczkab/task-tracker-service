@@ -2,7 +2,7 @@ import typing
 import fastapi
 from sqlalchemy import orm
 from app.core import db
-from app.models import project, user, team, stream
+from app.models import project, user, team, stream, task, goal
 from app.schemas import project as project_schemas
 from app.api import auth
 
@@ -97,23 +97,28 @@ def update_project(proj_id: int, project_update_data: project_schemas.ProjectUpd
 @router.delete("/api/project/{proj_id}", status_code=fastapi.status.HTTP_204_NO_CONTENT)
 def delete_project(proj_id: int, current_user: user.User = fastapi.Depends(auth.get_current_user),
                    data_base: orm.Session = fastapi.Depends(db.get_db)):
-    """Удалить проект proj_id"""
     project_obj = data_base.query(project.Project).filter(project.Project.id == proj_id).first()
-
     if not project_obj:
-        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_404_NOT_FOUND, detail="Проект не найден")
+        raise fastapi.HTTPException(404, "Проект не найден")
 
-    user_team = data_base.query(team.UserTeam).filter(team.UserTeam.user_id == current_user.id,
-                                                      team.UserTeam.team_id == project_obj.team_id).first()
+    user_team = data_base.query(team.UserTeam).filter(
+        team.UserTeam.user_id == current_user.id,
+        team.UserTeam.team_id == project_obj.team_id
+    ).first()
 
     if not user_team:
-        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_403_FORBIDDEN,
-                                    detail="Вы должны состоять в команде проекта")
+        raise fastapi.HTTPException(403, "Вы должны состоять в команде проекта")
 
     if user_team.role_id != 2:
-        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_403_FORBIDDEN,
-                                    detail="У вас нет прав на удаление проекта в этой команде")
+        raise fastapi.HTTPException(403, "У вас нет прав на удаление проекта")
 
-    data_base.query(stream.Stream).filter(stream.Stream.project_id == proj_id).delete(synchronize_session=False)
+    streams = data_base.query(stream.Stream).filter(stream.Stream.project_id == proj_id).all()
+    stream_ids = [s.id for s in streams]
+
+    if stream_ids:
+        data_base.query(task.Task).filter(task.Task.stream_id.in_(stream_ids)).delete(synchronize_session=False)
+        data_base.query(goal.Goal).filter(goal.Goal.stream_id.in_(stream_ids)).delete(synchronize_session=False)
+        data_base.query(stream.Stream).filter(stream.Stream.project_id == proj_id).delete(synchronize_session=False)
+
     data_base.delete(project_obj)
     data_base.commit()

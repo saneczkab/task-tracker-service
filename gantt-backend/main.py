@@ -11,8 +11,11 @@ from app.api.goal import router as goal_router
 from app.api.user import router as user_router
 from app.api.task import router as task_router
 from app.api.meta import router as meta_router
+from app.core import middleware
 
 app = fastapi.FastAPI(title="Task Tracker API")
+app.middleware("http")(middleware.auth_middleware)
+
 app.include_router(auth_router)
 app.include_router(team_router)
 

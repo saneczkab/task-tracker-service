@@ -131,17 +131,25 @@ def update_task(task_id: int, task_update_data: task_schemas.TaskUpdate,
     task_obj.deadline = task_update_data.deadline
 
     if task_update_data.assignee_email is not None:
-        assigning_user = data_base.query(user.User).filter(user.User.email == task_update_data.assignee_email).first()
-        if assigning_user:
-            user_task = meta.UserTask(
-                user_id=assigning_user.id,
-                task_id=task_id
-            )
-            data_base.add(user_task)
+        assigning_user = data_base.query(user.User).filter(
+            user.User.email == task_update_data.assignee_email
+        ).first()
 
-        old_user_task = data_base.query(meta.UserTask).filter(meta.UserTask.task_id == task_id).first()
+        if not assigning_user:
+            raise fastapi.HTTPException(status_code=404, detail="Ответственный не найден")
+
+        old_user_task = data_base.query(meta.UserTask).filter(
+            meta.UserTask.task_id == task_id
+        ).first()
+
         if old_user_task:
             data_base.delete(old_user_task)
+
+        new_user_task = meta.UserTask(
+            user_id=assigning_user.id,
+            task_id=task_id
+        )
+        data_base.add(new_user_task)
 
     data_base.commit()
     data_base.refresh(task_obj)
