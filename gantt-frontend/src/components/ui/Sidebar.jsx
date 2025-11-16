@@ -7,8 +7,11 @@ import {
     ViewKanban as ViewKanbanIcon, Edit as EditIcon, ExpandMore, ExpandLess
 } from "@mui/icons-material";
 import TeamEdit from "./TeamEdit.jsx";
+import { useNavigate } from "react-router-dom";
 
-const Sidebar = ({ projects = [], teamId }) => {
+const Sidebar = ({ teamId }) => {
+    const navigate = useNavigate();
+
     const [isTeamEditOpen, setIsTeamEditOpen] = useState(false);
     const [teamName, setTeamName] = useState("Команда");
 
@@ -31,16 +34,34 @@ const Sidebar = ({ projects = [], teamId }) => {
     const [uiProjects, setUiProjects] = useState([]);
 
     useEffect(() => {
-        setUiProjects(
-            (projects || []).map((proj) => ({
-                ...proj,
-                open: false,
-                streams: [],
-                isStreamsLoaded: false,
-                isStreamsLoading: false
-            }))
-        );
-    }, [projects]);
+        if (!teamId) return;
+        fetchProjects();
+    }, [teamId]);
+
+    const fetchProjects = async () => {
+        const token = window.localStorage.getItem("auth_token");
+
+        try {
+            const res = await fetch(`/api/team/${teamId}/projects`, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json",
+                    "Authorization": token
+                }
+            });
+
+            if (res.status === 404) {
+                navigate("/error/404");
+                return;
+            }
+
+            const text = await res.text();
+            const parsed = JSON.parse(text);
+            setUiProjects(parsed);
+        } catch {
+            // TODO
+        }
+    };
 
     const addNewProject = async () => {
         let name = newProjName.trim() || "Новый проект";
@@ -165,7 +186,7 @@ const Sidebar = ({ projects = [], teamId }) => {
                 proj.id === projectId
                     ? {
                         ...proj,
-                        streams: proj.streams.map((s) =>
+                        streams: (proj.streams || []).map((s) =>
                             s.id === streamId ? { ...s, open: !s.open } : s
                         )
                     }
@@ -518,7 +539,7 @@ const Sidebar = ({ projects = [], teamId }) => {
                                     </ListItem>
                                 )}
 
-                                {proj.streams.map((stream) => (
+                                {(proj.streams || []).map((stream) => (
                                     <div key={stream.id}>
                                         <ListItem
                                             disablePadding
@@ -635,7 +656,7 @@ const Sidebar = ({ projects = [], teamId }) => {
                                         <Collapse in={stream.open} unmountOnExit>
                                             <List component="div" disablePadding dense>
                                                 <ListItem disablePadding sx={{ pl: 4 }}>
-                                                    <ListItemButton component="a" href="/">
+                                                    <ListItemButton component="a" href={`/team/${teamId}/stream/${stream.id}`}>
                                                         <ListItemIcon>
                                                             <ListAltIcon fontSize="small" />
                                                         </ListItemIcon>
