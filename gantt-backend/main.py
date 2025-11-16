@@ -2,18 +2,17 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(__file__))
+import fastapi
+from app.api.auth import router as auth_router
+from app.api.team import router as team_router
+from app.api.project import router as project_router
+from app.api.stream import router as stream_router
+from app.api.goal import router as goal_router
+from app.api.user import router as user_router
+from app.api.task import router as task_router
+from app.api.meta import router as meta_router
 
-from fastapi import FastAPI
-from api.auth import router as auth_router
-from api.team import router as team_router
-from api.project import router as project_router
-from api.stream import router as stream_router
-from api.goal import router as goal_router
-from api.user import router as user_router
-from api.task import router as task_router
-from api.meta import router as meta_router
-
-app = FastAPI(title="Task Tracker API")
+app = fastapi.FastAPI(title="Task Tracker API")
 app.include_router(auth_router)
 app.include_router(team_router)
 
