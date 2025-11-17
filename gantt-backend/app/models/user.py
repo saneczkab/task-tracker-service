@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, orm
 from app.models import base
 
 
@@ -10,4 +9,5 @@ class User(base.Base):
     nickname = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
 
-    user_teams = relationship("UserTeam", back_populates="user")
+    user_teams = orm.relationship("UserTeam", back_populates="user")
+    assigned_tasks = orm.relationship("UserTask", back_populates="user")

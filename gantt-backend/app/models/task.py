@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, orm
+
 from app.models import base
 
 
@@ -12,3 +13,5 @@ class Task(base.Base):
     priority_id = Column(Integer, nullable=True)
     start_date = Column(DateTime, nullable=True)
     deadline = Column(DateTime, nullable=True)
+
+    assigned_users = orm.relationship("UserTask", back_populates="task")

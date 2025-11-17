@@ -27,7 +27,14 @@ def get_project_tasks(proj_id: int, current_user: user.User = fastapi.Depends(au
     tasks = []
 
     for stream_obj in project_obj.streams:
-        tasks.extend(stream_obj.tasks)
+        stream_tasks = data_base.query(task.Task).options(
+            orm.joinedload(task.Task.assigned_users).joinedload(meta.UserTask.user)).filter(
+            task.Task.stream_id == stream_obj.id).all()
+        tasks.extend(stream_tasks)
+        for task_obj in stream_tasks:
+            if task_obj.assigned_users:
+                task_obj.assignee_email = task_obj.assigned_users[0].user.email
+            tasks.append(task_obj)
 
     return tasks
 
@@ -49,7 +56,13 @@ def get_stream_tasks(stream_id: int, current_user: user.User = fastapi.Depends(a
     if not user_team:
         raise fastapi.HTTPException(status_code=fastapi.status.HTTP_403_FORBIDDEN, detail="У вас нет доступа к стриму")
 
-    tasks = data_base.query(task.Task).filter(task.Task.stream_id == stream_obj.id).all()
+    tasks = data_base.query(task.Task).options(
+        orm.joinedload(task.Task.assigned_users).joinedload(meta.UserTask.user)).filter(
+        task.Task.stream_id == stream_obj.id).all()
+
+    for task_obj in tasks:
+        if task_obj.assigned_users:
+            task_obj.assignee_email = task_obj.assigned_users[0].user.email
 
     return tasks
 
@@ -87,8 +100,24 @@ def create_task(stream_id: int, task_data: task_schemas.TaskCreate,
     )
 
     data_base.add(task_obj)
+
+    if task_data.assignee_email is not None:
+        assignee_user = data_base.query(user.User).filter(user.User.email == task_data.assignee_email).first()
+
+        if not assignee_user:
+            raise fastapi.HTTPException(status_code=fastapi.status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+
+        user_task = meta.UserTask(
+            user_id=assignee_user.id,
+            task_id=task_obj.id
+        )
+        data_base.add(user_task)
+
     data_base.commit()
     data_base.refresh(task_obj)
+
+    if task_obj.assigned_users:
+        task_obj.assignee_email = task_obj.assigned_users[0].user.email
 
     return task_obj
 
@@ -115,38 +144,34 @@ def update_task(task_id: int, task_update_data: task_schemas.TaskUpdate,
         raise fastapi.HTTPException(status_code=fastapi.status.HTTP_403_FORBIDDEN,
                                     detail="У вас нет прав на редактирование задачи")
 
-    if task_update_data.name is not None:
+    if task_update_data.name:
         task_obj.name = task_update_data.name
 
-    if task_update_data.description is not None:
+    if task_update_data.description:
         task_obj.description = task_update_data.description
 
-    if task_update_data.status_id is not None:
+    if task_update_data.status_id:
         task_obj.status_id = task_update_data.status_id
 
-    if task_update_data.priority_id is not None:
+    if task_update_data.priority_id:
         task_obj.priority_id = task_update_data.priority_id
 
     task_obj.start_date = task_update_data.start_date
     task_obj.deadline = task_update_data.deadline
 
-    if task_update_data.assignee_email is not None:
-        assigning_user = data_base.query(user.User).filter(
-            user.User.email == task_update_data.assignee_email
-        ).first()
+    old_user_task = data_base.query(meta.UserTask).filter(meta.UserTask.task_id == task_id).first()
 
-        if not assigning_user:
-            raise fastapi.HTTPException(status_code=404, detail="Ответственный не найден")
+    if old_user_task:
+        data_base.delete(old_user_task)
 
-        old_user_task = data_base.query(meta.UserTask).filter(
-            meta.UserTask.task_id == task_id
-        ).first()
+    if task_update_data.assignee_email:
+        assignee_user = data_base.query(user.User).filter(user.User.email == task_update_data.assignee_email).first()
 
-        if old_user_task:
-            data_base.delete(old_user_task)
+        if not assignee_user:
+            raise fastapi.HTTPException(status_code=404, detail="Пользователь не найден")
 
         new_user_task = meta.UserTask(
-            user_id=assigning_user.id,
+            user_id=assignee_user.id,
             task_id=task_id
         )
         data_base.add(new_user_task)
