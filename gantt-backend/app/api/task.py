@@ -100,6 +100,7 @@ def create_task(stream_id: int, task_data: task_schemas.TaskCreate,
     )
 
     data_base.add(task_obj)
+    data_base.flush()
 
     if task_data.assignee_email is not None:
         assignee_user = data_base.query(user.User).filter(user.User.email == task_data.assignee_email).first()
@@ -178,6 +179,9 @@ def update_task(task_id: int, task_update_data: task_schemas.TaskUpdate,
 
     data_base.commit()
     data_base.refresh(task_obj)
+
+    if task_obj.assigned_users:
+        task_obj.assignee_email = task_obj.assigned_users[0].user.email
 
     return task_obj
 
