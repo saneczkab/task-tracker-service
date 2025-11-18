@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, FormControl, Select,
     MenuItem, Box } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import FormRow from "./FormRow.jsx";
 import { toInputDate, toInputTime, toISOStringOrNull } from "../../utils/datetime.js";
 
+import { useProcessError } from "../../hooks/useProcessError.js";
+import { createTaskApi, updateTaskApi } from "../../api/task.js";
+
 const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
                       statuses: statusesProp, priorities: prioritiesProp }) => {
-    const navigate = useNavigate();
-    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
-
     const [statuses, setStatuses] = useState(statusesProp || []);
     const [priorities, setPriorities] = useState(prioritiesProp || []);
 
@@ -24,6 +23,8 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
     const [deadlineTime, setDeadlineTime] = useState("");
 
     const isEdit = Boolean(task?.id);
+    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+    const processError = useProcessError();
 
     useEffect(() => {
         if (!open) {
@@ -42,98 +43,39 @@ const TaskForm = ({ open, onClose, streamId, task = null, onSaved,
 
     useEffect(() => {
         if (open) {
-            loadRefs();
+            loadMeta();
         }
     }, [open]);
 
-    const loadRefs = async () => {
-        if (statusesProp && prioritiesProp) {
-            return;
-        }
-
-        try {
-            if (!statusesProp) {
-                const response = await fetch(`/api/taskStatuses`,{
-                    method: "GET",
-                    headers: {
-                        "Accept": "application/json",
-                    }
-                });
-
-                if (!response.ok){
-                    // TODO
-                    return;
-                }
-
-                const data = await response.json();
-                setStatuses(data || []);
-            } else {
-                setStatuses(statusesProp);
-            }
-
-            if (!prioritiesProp) {
-                const response = await fetch(`/api/priorities`, {
-                    method: "GET",
-                    headers: {
-                        Accept: "application/json"
-                    }
-                });
-
-                if (!response.ok) {
-                    // TODO
-                    return;
-                }
-
-                const data = await response.json();
-                setPriorities(data || []);
-            } else {
-                setPriorities(prioritiesProp);
-            }
-        } catch {
-            // TODO
-        }
+    const loadMeta = async () => {
+        setStatuses(statusesProp);
+        setPriorities(prioritiesProp);
     };
 
-    const handleSubmit = async ()=> {
-        try {
-            const payload = {
-                name: name.trim(),
-                status_id: Number(statusId) || null,
-                priority_id: Number(priorityId) || null,
-                assignee_email: assigneeEmail?.trim() || null,
-                start_date: toISOStringOrNull(startDate, startTime),
-                deadline: toISOStringOrNull(deadlineDate, deadlineTime)
-            };
+    const handleSubmit = async (e)=> {
+        e.preventDefault();
 
-            const url = isEdit ? `/api/task/${task.id}` : `/api/stream/${streamId}/task/new`;
-            const method = isEdit ? "PATCH" : "POST";
+        const payload = {
+          name: name.trim(),
+          status_id: Number(statusId) || null,
+          priority_id: Number(priorityId) || null,
+          assignee_email: assigneeEmail?.trim() || null,
+          start_date: toISOStringOrNull(startDate, startTime),
+          deadline: toISOStringOrNull(deadlineDate, deadlineTime)
+        };
 
-            const res = await fetch(url, {
-                method: method,
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    Authorization: token
-                },
-                body: JSON.stringify(payload)
-            });
+        const response = isEdit
+          ? await updateTaskApi(task.id, payload, token)
+          : await createTaskApi(payload, streamId, token);
 
-            if (res.status === 404) {
-                navigate("/error/404");
-                return;
-            }
-
-            if (!res.ok) {
-                // TODO
-                return;
-            }
-
-            const saved = await res.json();
-            onSaved?.(saved);
-            onClose?.();
-        } catch {
-            // TODO
+        if (!response.ok) {
+          processError(response.status);
+          return;
         }
+
+        const savedTask = response.task;
+        onSaved?.(savedTask);
+        onClose?.();
     };
 
     return (
