@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import FormRow from "./FormRow.jsx";
 import { toInputDate, toInputTime, toISOStringOrNull } from "../../utils/datetime.js";
 
-const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
-    const navigate = useNavigate();
-    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+import { useProcessError } from "../../hooks/useProcessError.js";
+import { createGoalApi, updateGoalApi } from "../../api/goal.js";
 
+const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
     const [name, setName] = useState("");
     const [deadlineDate, setDeadlineDate] = useState("");
     const [deadlineTime, setDeadlineTime] = useState("");
 
     const isEdit = Boolean(goal?.id);
+
+    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+    const processError = useProcessError();
 
     useEffect(() => {
         if (!open) {
@@ -25,45 +27,27 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
     }, [open, goal]);
 
     const handleSubmit = async () => {
-        try {
-            const finalName = name.trim() || "Новая цель";
-            const payload = { name: finalName };
+        const finalName = name.trim() || "Новая цель";
+        const payload = { name: finalName };
 
-            if ((deadlineDate || "").trim() !== "") {
-                const iso = toISOStringOrNull(deadlineDate, deadlineTime);
-                if (iso) {
-                    payload.deadline = iso;
-                }
+        if ((deadlineDate || "").trim() !== "") {
+            const iso = toISOStringOrNull(deadlineDate, deadlineTime);
+            if (iso) {
+                payload.deadline = iso;
             }
-
-            const url = isEdit ? `/api/goal/${goal.id}` : `/api/stream/${streamId}/goal/new`;
-            const method = isEdit ? "PATCH" : "POST";
-
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                    Authorization: token
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.status === 404) {
-                navigate("/error/404");
-                return;
-            }
-            if (!res.ok) {
-                // TODO
-                return;
-            }
-
-            const saved = await res.json();
-            onSaved?.(saved);
-            onClose?.();
-        } catch {
-            // TODO
         }
+
+        const response = isEdit
+            ? await updateGoalApi(goal.id, payload, token)
+            : await createGoalApi(payload, streamId, token);
+
+        if (!response.ok) {
+            processError(response.status);
+            return;
+        }
+
+        onSaved?.(response.goal);
+        onClose?.();
     };
 
     return (

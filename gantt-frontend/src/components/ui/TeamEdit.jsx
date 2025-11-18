@@ -1,9 +1,19 @@
-import React, { Fragment, useEffect, useState, useRef } from "react";
+import React, { Fragment, useEffect, useState, useRef, useMemo } from "react";
 import { Dialog, DialogTitle, DialogContent, Box, Button, CircularProgress, List, ListItem, ListItemText, Alert,
     Divider, TextField, IconButton, Collapse  } from "@mui/material";
-import { Delete as DeleteIcon, ArrowForward as ArrowForwardIcon, Edit as EditIcon, Save as SaveIcon,
-    People as PeopleIcon, Close as CloseIcon } from "@mui/icons-material";
-import { useLocation } from "react-router-dom";
+import {
+  Delete as DeleteIcon,
+  ArrowForward as ArrowForwardIcon,
+  Edit as EditIcon,
+  Save as SaveIcon,
+  People as PeopleIcon,
+  Close as CloseIcon,
+} from "@mui/icons-material";
+import { useLocation, useNavigate } from "react-router-dom";
+
+import { fetchTeamsApi, addUserToTeamApi, fetchTeamMembersApi, createTeamApi, updateTeamNameApi, deleteTeamApi,
+  deleteUserFromTeamApi } from "../../api/team.js";
+import { useProcessError } from "../../hooks/useProcessError.js";
 
 const TeamEdit = ({ open, onClose }) => {
     const location = useLocation();
@@ -23,108 +33,55 @@ const TeamEdit = ({ open, onClose }) => {
     const [addUserByTeam, setAddUserByTeam] = useState({});
     const [addTeam, setAddTeam] = useState({ open: false, loading: false });
 
+    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+    const processError = useProcessError((status) => setError(`Ошибка ${status}`));
+
     const fetchTeams = async () => {
         setIsLoading(true);
         setError("");
 
-        try {
-            const token = window.localStorage.getItem("auth_token");
-            if (!token) {
-                setError("Войдите в аккаунт!");
-                setTeams([]);
-                return;
-            }
+        const response = await fetchTeamsApi(token);
 
-            const response = await fetch("/api/user_by_token", {
-                method: "GET",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
-
-            if (!response.ok) {
-                setError(`Ошибка ${response.status}`);
-                setTeams([]);
-                return;
-            }
-
-            const data = await response.json();
-            setTeams(data.teams);
-        } catch (e) {
-            setError(`Ошибка: ${e.message}`);
-            setTeams([]);
-        } finally {
-            setIsLoading(false);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setTeams(response.teams);
+        setIsLoading(false);
     };
 
     const createTeam = async () => {
-        const token = window.localStorage.getItem("auth_token");
         setError("");
 
-        let name = newTeamName;
-        if (!newTeamName.trim()) {
-            name = "Новая команда";
-        }
+        const name = newTeamName || "Новая команда";
 
         setAddTeam(prev => ({ ...prev, loading: true }));
-        try{
-            const response = await fetch("/api/team/new",{
-                method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ name })
-            });
 
-            if (!response.ok) {
-                setError(`Ошибка ${response.status}`);
-                return;
-            }
+        const response = await createTeamApi(name, token);
 
-            setNewTeamName("");
-            await fetchTeams();
-            setAddTeam(prev => ({ ...prev, open: false }));
-        } catch (e) {
-            setError(`Ошибка: ${e.message}`);
-        } finally {
-            setAddTeam(prev => ({ ...prev, loading: false }));
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setNewTeamName("");
+        await fetchTeams();
+        setAddTeam(prev => ({ ...prev, open: false, loading: false }));
     };
 
     const deleteTeam = async (teamId) => {
-        const token = window.localStorage.getItem("auth_token");
-        if (!token) {
-            setError("Войдите в аккаунт!");
-            setTeams([]);
+        setDeletingId(teamId);
+
+        const response = await deleteTeamApi(teamId, token);
+
+        if (!response.ok) {
+            processError(response.status);
             return;
         }
-        setDeletingId(teamId);
-        setError("");
 
-        try {
-            const response = await fetch(`/api/team/${teamId}`,{
-                method: "DELETE",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
-
-            if (!response.ok) {
-                setError(`Ошибка ${response.status}`);
-                return;
-            }
-
-            await fetchTeams();
-        } catch (e) {
-            setError(`Ошибка: ${e.message}`);
-        } finally {
-            setDeletingId(null);
-        }
+        await fetchTeams();
+        setDeletingId(null);
     }
 
     useEffect(() => {
@@ -142,38 +99,20 @@ const TeamEdit = ({ open, onClose }) => {
 
     const saveTeam = async (teamId) => {
         const token = window.localStorage.getItem("auth_token");
-        let name = editedName.trim();
-        if (!name) {
-            name = `Команда ${teamId}`;
-        }
+        const name = editedName.trim() || `Команда ${teamId}`;
         setSavingId(teamId);
-        setError("");
 
-        try {
-            const response = await fetch(`/api/team/${teamId}`, {
-                method: "PATCH",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ name })
-            });
+        const response = await updateTeamNameApi(teamId, name, token);
 
-            if (!response.ok) {
-                const data = await response.json();
-                setError(`Ошибка ${data?.detail}`);
-                return;
-            }
-
-            setEditingId(null);
-            setEditedName("");
-            await fetchTeams();
-        } catch (e) {
-            setError(`Ошибка: ${e.message}`);
-        } finally {
-            setSavingId(null);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setEditingId(null);
+        setEditedName("");
+        await fetchTeams();
+        setSavingId(null);
     };
 
     const startEditing = (team) => {
@@ -183,42 +122,22 @@ const TeamEdit = ({ open, onClose }) => {
     };
 
     const fetchTeamMembers = async (teamId) => {
-        const token = window.localStorage.getItem("auth_token");
         setMembersByTeamId(prev => ({
             ...prev,
             [teamId]: { ...(prev[teamId] || {}), loading: true }
         }));
 
-        try {
-            const response = await fetch(`/api/team/${teamId}/users`, {
-                method: "GET",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
+        const response = await fetchTeamMembersApi(teamId, token);
 
-            if (!response.ok) {
-                setError(`Ошибка ${response.status}`);
-                setMembersByTeamId(prev => ({
-                    ...prev,
-                    [teamId]: { ...(prev[teamId] || {}), loading: false, list: [] }
-                }));
-                return;
-            }
-
-            const data = await response.json();
-            setMembersByTeamId(prev => ({
-                ...prev,
-                [teamId]: { loading: false, list: data }
-            }));
-        } catch (e) {
-            setError(`Ошибка: ${e.message}`);
-            setMembersByTeamId(prev => ({
-                ...prev,
-                [teamId]: { ...(prev[teamId] || {}), loading: false, list: [] }
-            }));
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setMembersByTeamId(prev => ({
+          ...prev,
+          [teamId]: { loading: false, list: response.users }
+        }));
     };
 
     const toggleMembers = (teamId) => {
@@ -240,38 +159,25 @@ const TeamEdit = ({ open, onClose }) => {
     };
 
     const removeUserFromTeam = async (teamId, userEmail) => {
-        const token = window.localStorage.getItem("auth_token");
         setError("");
         setRemovingUserByTeam(prev => ({
             ...prev,
             [teamId]: userEmail
         }));
 
-        try {
-            const response = await fetch(`/api/team/${teamId}`, {
-                method: "PATCH",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ deleteUsers: [userEmail] })
-            });
+        const response = await deleteUserFromTeamApi(teamId, userEmail, token);
 
-            if (!response.ok) {
-                setError(`Ошибка ${response.status}`);
-                return;
-            }
-
-            await fetchTeamMembers(teamId);
-        } catch (e) {
-            setError(`Ошибка: ${e.message}`);
-        } finally {
-            setRemovingUserByTeam(prev => ({
-                ...prev,
-                [teamId]: null
-            }));
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        await fetchTeamMembers(teamId);
+
+        setRemovingUserByTeam(prev => ({
+            ...prev,
+            [teamId]: null
+        }));
     };
 
     const startAddUser = (teamId) => {
@@ -290,7 +196,6 @@ const TeamEdit = ({ open, onClose }) => {
     };
 
     const addUserToTeam = async (teamId) => {
-        const token = window.localStorage.getItem("auth_token");
         const email = addUserByTeam[teamId]?.email?.trim();
         setError("");
         setAddUserByTeam(prev => ({
@@ -298,33 +203,23 @@ const TeamEdit = ({ open, onClose }) => {
             [teamId]: { ...(prev[teamId] || {}), loading: true }
         }));
 
-        try {
-            const response = await fetch(`/api/team/${teamId}`, {
-                method: "PATCH",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ newUsers: [email] })
-            });
+        const response = await addUserToTeamApi(teamId, email, token);
 
-            if (!response.ok) {
-                const data = await response.json();
-                setError(`Ошибка ${data?.detail}`);
-                return;
-            }
-
-            await fetchTeamMembers(teamId);
-            cancelAddUser(teamId);
-        } catch (e) {
-            setError(`Ошибка: ${e.message}`);
-        } finally {
+        if (!response.ok) {
+            setError(`Ошибка ${response.status}`);
             setAddUserByTeam(prev => ({
-                ...prev,
-                [teamId]: { ...(prev[teamId] || {}), loading: false }
+              ...prev,
+              [teamId]: { ...(prev[teamId] || {}), loading: false }
             }));
+            return;
         }
+
+        await fetchTeamMembers(teamId);
+        cancelAddUser(teamId);
+        setAddUserByTeam(prev => ({
+          ...prev,
+          [teamId]: { ...(prev[teamId] || {}), loading: false }
+        }));
     };
 
     const cancelCreateTeam = () => {

@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { CircularProgress, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Paper, IconButton,
 Button, Menu, MenuItem } from "@mui/material";
 import { MoreVert as MoreVertIcon }
     from '@mui/icons-material';
 import GoalForm from "./GoalForm.jsx";
 
-const GoalList = ({ streamId }) => {
-    const navigate = useNavigate();
-    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+import { useProcessError } from "../../hooks/useProcessError.js";
+import { fetchGoalsApi, deleteGoalApi } from "../../api/goal.js";
 
+const GoalList = ({ streamId }) => {
     const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -21,35 +20,21 @@ const GoalList = ({ streamId }) => {
     const [formOpen, setFormOpen] = useState(false);
     const [selectedGoal, setSelectedGoal] = useState(null);
 
+    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+    const processError = useProcessError();
+
     const fetchGoals = async () => {
         setLoading(true);
 
-        try {
-            const response = await fetch(`/api/stream/${streamId}/goals`, {
-                method: "GET",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
+        const response = await fetchGoalsApi(streamId, token);
 
-            if (response.status === 404) {
-                navigate("/error/404");
-                return;
-            }
-
-            if (!response.ok) {
-                // TODO
-                return;
-            }
-
-            const data = await response.json();
-            setGoals(data);
-        } catch {
-            // TODO
-        } finally {
-            setLoading(false);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setGoals(response.goals);
+        setLoading(false);
     }
 
     const handleSaved = (saved) => {
@@ -84,26 +69,15 @@ const GoalList = ({ streamId }) => {
         setDeletingGoalId(goalId);
         setMenuAnchorEl(null);
 
-        try {
-            const response = await fetch(`/api/goal/${goalId}`, {
-                method: "DELETE",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
+        const response = await deleteGoalApi(goalId, token);
 
-            if (!response.ok) {
-                // TODO
-                return;
-            }
-
-            setGoals((prev) => prev.filter((g) => g.id !== goalId));
-        } catch {
-            // TODO
-        } finally {
-            setDeletingGoalId(null);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setGoals((prev) => prev.filter((g) => g.id !== goalId));
+        setDeletingGoalId(null);
     };
 
     const handleCreate = () => {
