@@ -1,223 +1,247 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { CircularProgress, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Paper, IconButton,
-Button, Menu, MenuItem } from "@mui/material";
-import { MoreVert as MoreVertIcon }
-    from '@mui/icons-material';
+import {
+  CircularProgress,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableContainer,
+  Paper,
+  IconButton,
+  Button,
+  Menu,
+  MenuItem,
+} from "@mui/material";
+import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 import GoalForm from "./GoalForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchGoalsApi, deleteGoalApi } from "../../api/goal.js";
 
 const GoalList = ({ streamId }) => {
-    const [goals, setGoals] = useState([]);
-    const [loading, setLoading] = useState(true);
+  const [goals, setGoals] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
-    const [menuGoalId, setMenuGoalId] = useState(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [menuGoalId, setMenuGoalId] = useState(null);
 
-    const [deletingGoalId, setDeletingGoalId] = useState(null);
+  const [deletingGoalId, setDeletingGoalId] = useState(null);
 
-    const [formOpen, setFormOpen] = useState(false);
-    const [selectedGoal, setSelectedGoal] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState(null);
 
-    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
-    const processError = useProcessError();
+  const token = useMemo(
+    () => window.localStorage.getItem("auth_token") || "",
+    [],
+  );
+  const processError = useProcessError();
 
-    const fetchGoals = async () => {
-        setLoading(true);
+  const fetchGoals = async () => {
+    setLoading(true);
 
-        const response = await fetchGoalsApi(streamId, token);
+    const response = await fetchGoalsApi(streamId, token);
 
-        if (!response.ok) {
-            processError(response.status);
-            return;
-        }
-
-        setGoals(response.goals);
-        setLoading(false);
+    if (!response.ok) {
+      processError(response.status);
+      return;
     }
 
-    const handleSaved = (saved) => {
-        setFormOpen(false);
-        setSelectedGoal(null);
-        setGoals(prev => {
-            const idx = prev.findIndex(g => g.id === saved.id);
-            if (idx === -1) {
-                return [...prev, saved];
-            }
-            const copy = [...prev];
-            copy[idx] = saved;
-            return copy;
-        });
-    };
+    setGoals(response.goals);
+    setLoading(false);
+  };
 
-    useEffect(() => {
-        fetchGoals();
-    }, [streamId]);
+  const handleSaved = (saved) => {
+    setFormOpen(false);
+    setSelectedGoal(null);
+    setGoals((prev) => {
+      const idx = prev.findIndex((g) => g.id === saved.id);
+      if (idx === -1) {
+        return [...prev, saved];
+      }
+      const copy = [...prev];
+      copy[idx] = saved;
+      return copy;
+    });
+  };
 
-    const openMenu = (event, goalId) => {
-        setMenuAnchorEl(event.currentTarget);
-        setMenuGoalId(goalId);
-    };
+  useEffect(() => {
+    fetchGoals();
+  }, [streamId]);
 
-    const closeMenu = () => {
-        setMenuAnchorEl(null);
-        setMenuGoalId(null);
-    };
+  const openMenu = (event, goalId) => {
+    setMenuAnchorEl(event.currentTarget);
+    setMenuGoalId(goalId);
+  };
 
-    const deleteGoal = async (goalId) => {
-        setDeletingGoalId(goalId);
-        setMenuAnchorEl(null);
+  const closeMenu = () => {
+    setMenuAnchorEl(null);
+    setMenuGoalId(null);
+  };
 
-        const response = await deleteGoalApi(goalId, token);
+  const deleteGoal = async (goalId) => {
+    setDeletingGoalId(goalId);
+    setMenuAnchorEl(null);
 
-        if (!response.ok) {
-            processError(response.status);
-            return;
-        }
+    const response = await deleteGoalApi(goalId, token);
 
-        setGoals((prev) => prev.filter((g) => g.id !== goalId));
-        setDeletingGoalId(null);
-    };
-
-    const handleCreate = () => {
-        setSelectedGoal(null);
-        setFormOpen(true);
-    };
-
-    const handleEdit = () => {
-        const goal = goals.find(x => x.id === menuGoalId) || null;
-        setSelectedGoal(goal);
-        setFormOpen(true);
-        closeMenu();
-    };
-
-    if (loading) {
-        return <CircularProgress size={32} />
+    if (!response.ok) {
+      processError(response.status);
+      return;
     }
 
-    return (
-        <>
-            {
-                goals.length > 0 ? (
-                    <div>
-                        <TableContainer
-                            component={ Paper }
-                            sx={{
-                                borderRadius: 2,
-                                overflow: 'hidden',
-                                mt: 1,
-                                border: "1px solid black"
-                        }}>
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell
-                                            sx={{
-                                                backgroundColor: '#EDEDED',
-                                                fontWeight: 'bold',
-                                                // borderRight: '1px solid rgba(0,0,0,0.12)'
-                                            }}
-                                        >Название
-                                        </TableCell>
+    setGoals((prev) => prev.filter((g) => g.id !== goalId));
+    setDeletingGoalId(null);
+  };
 
-                                        <TableCell
-                                            sx={{
-                                                backgroundColor: '#EDEDED',
-                                                fontWeight: 'bold',
-                                                // borderRight: '1px solid rgba(0,0,0,0.12)'
-                                            }}
-                                        >Дедлайн
-                                        </TableCell>
-                                    </TableRow>
-                                </TableHead>
+  const handleCreate = () => {
+    setSelectedGoal(null);
+    setFormOpen(true);
+  };
 
-                                <TableBody>
-                                    {
-                                        goals.map(goal => (
-                                            <TableRow
-                                                key={goal.id}
-                                                sx={{
-                                                    "&:hover": { backgroundColor: "#fafafa" },
-                                                    "& .goal-actions": { opacity: 0, transition: "opacity 0.2s" },
-                                                    "&:hover .goal-actions": { opacity: 1 },
-                                                }}
-                                            >
-                                                <TableCell
-                                                    // sx={{ borderRight: '1px solid rgba(0,0,0,0.12)' }}
-                                                >
-                                                    {goal.name}
-                                                </TableCell>
+  const handleEdit = () => {
+    const goal = goals.find((x) => x.id === menuGoalId) || null;
+    setSelectedGoal(goal);
+    setFormOpen(true);
+    closeMenu();
+  };
 
-                                                <TableCell sx={{
-                                                    // borderRight: "1px solid rgba(0,0,0,0.12)",
-                                                    position: "relative",
-                                                    pr: 5
-                                                }}>
-                                                    {goal.deadline ? new Date(goal.deadline).toLocaleString() : "-"}
+  if (loading) {
+    return <CircularProgress size={32} />;
+  }
 
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={e => openMenu(e, goal.id)}
-                                                        className="goal-actions"
-                                                        sx={{
-                                                            position: "absolute",
-                                                            right: 8,
-                                                            top: "50%",
-                                                            transform: "translateY(-50%)"
-                                                        }}>
-                                                        <MoreVertIcon fontSize="small" />
-                                                    </IconButton>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    }
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+  return (
+    <>
+      {goals.length > 0 ? (
+        <div>
+          <TableContainer
+            component={Paper}
+            sx={{
+              borderRadius: 2,
+              overflow: "hidden",
+              mt: 1,
+              border: "1px solid black",
+            }}
+          >
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#EDEDED",
+                      fontWeight: "bold",
+                      // borderRight: '1px solid rgba(0,0,0,0.12)'
+                    }}
+                  >
+                    Название
+                  </TableCell>
 
-                        <Menu
-                            anchorEl={menuAnchorEl}
-                            open={Boolean(menuAnchorEl)}
-                            onClose={closeMenu}
-                            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                        >
-                            <MenuItem onClick={handleEdit}>Редактировать</MenuItem>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#EDEDED",
+                      fontWeight: "bold",
+                      // borderRight: '1px solid rgba(0,0,0,0.12)'
+                    }}
+                  >
+                    Дедлайн
+                  </TableCell>
+                </TableRow>
+              </TableHead>
 
-                            <MenuItem onClick={() => deleteGoal(menuGoalId)}>
-                                {deletingGoalId === menuGoalId ? <CircularProgress size={16} /> : "Удалить"}
-                            </MenuItem>
-                        </Menu>
+              <TableBody>
+                {goals.map((goal) => (
+                  <TableRow
+                    key={goal.id}
+                    sx={{
+                      "&:hover": { backgroundColor: "#fafafa" },
+                      "& .goal-actions": {
+                        opacity: 0,
+                        transition: "opacity 0.2s",
+                      },
+                      "&:hover .goal-actions": { opacity: 1 },
+                    }}
+                  >
+                    <TableCell
+                    // sx={{ borderRight: '1px solid rgba(0,0,0,0.12)' }}
+                    >
+                      {goal.name}
+                    </TableCell>
 
-                        <div style={{ marginTop: 8, display: "flex" }}>
-                            <Button variant="text" size="small" onClick={handleCreate}>
-                                Добавить цель
-                            </Button>
-                        </div>
+                    <TableCell
+                      sx={{
+                        // borderRight: "1px solid rgba(0,0,0,0.12)",
+                        position: "relative",
+                        pr: 5,
+                      }}
+                    >
+                      {goal.deadline
+                        ? new Date(goal.deadline).toLocaleString()
+                        : "-"}
 
-                    </div>
-                ) : (
-                    <div>Цели не заданы. Создайте цель!
-                        <div style={{ marginTop: 8, display: "flex" }}>
-                            <Button variant="text" size="small" onClick={handleCreate}>
-                                Добавить цель
-                            </Button>
-                        </div>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => openMenu(e, goal.id)}
+                        className="goal-actions"
+                        sx={{
+                          position: "absolute",
+                          right: 8,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                        }}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-                    </div>
-                )
-            }
+          <Menu
+            anchorEl={menuAnchorEl}
+            open={Boolean(menuAnchorEl)}
+            onClose={closeMenu}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+          >
+            <MenuItem onClick={handleEdit}>Редактировать</MenuItem>
 
-            <GoalForm
-                open={formOpen}
-                onClose={() => setFormOpen(false)}
-                streamId={streamId}
-                goal={selectedGoal}
-                onSaved={handleSaved}
-            />
-        </>
-    )
-}
+            <MenuItem onClick={() => deleteGoal(menuGoalId)}>
+              {deletingGoalId === menuGoalId ? (
+                <CircularProgress size={16} />
+              ) : (
+                "Удалить"
+              )}
+            </MenuItem>
+          </Menu>
+
+          <div style={{ marginTop: 8, display: "flex" }}>
+            <Button variant="text" size="small" onClick={handleCreate}>
+              Добавить цель
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          Цели не заданы. Создайте цель!
+          <div style={{ marginTop: 8, display: "flex" }}>
+            <Button variant="text" size="small" onClick={handleCreate}>
+              Добавить цель
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <GoalForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        streamId={streamId}
+        goal={selectedGoal}
+        onSaved={handleSaved}
+      />
+    </>
+  );
+};
 
 export default GoalList;
