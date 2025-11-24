@@ -9,7 +9,8 @@ services:
       - AUTH_ACCESS_TOKEN_EXPIRE_DAYS=${AUTH_ACCESS_TOKEN_EXPIRE_DAYS}
       - AUTH_DATABASE_URL=${AUTH_DATABASE_URL}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -23,8 +24,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
   frontend:
     build: ./gantt-frontend
