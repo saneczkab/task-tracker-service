@@ -22,6 +22,8 @@ import {
   Edit as EditIcon,
   ExpandMore,
   ExpandLess,
+  Search as SearchIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 import TeamEdit from "./TeamEdit.jsx";
 
@@ -59,8 +61,23 @@ const Sidebar = ({ teamId }) => {
   const [editingStreamId, setEditingStreamId] = useState(null);
   const [editedStreamName, setEditedStreamName] = useState("");
   const [savingStreamId, setSavingStreamId] = useState(null);
+  const [user, setUser] = useState(null);
 
   const [uiProjects, setUiProjects] = useState([]);
+
+  const getProjectColor = (id) => {
+    const colors = [
+      '#78F878',
+      '#3A7AFE',
+      '#FF6B35',
+      '#9C27B0',
+      '#E91E63',
+      '#4CAF50',
+      '#2196F3',
+      '#FF9800',
+    ];
+    return colors[id % colors.length];
+  };
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -135,12 +152,12 @@ const Sidebar = ({ teamId }) => {
       prev.map((p) =>
         p.id === projId
           ? {
-              ...p,
-              streams: [
-                ...p.streams,
-                { id: created.id, name: created.name, open: false },
-              ],
-            }
+            ...p,
+            streams: [
+              ...p.streams,
+              { id: created.id, name: created.name, open: false },
+            ],
+          }
           : p,
       ),
     );
@@ -174,11 +191,11 @@ const Sidebar = ({ teamId }) => {
       prev.map((proj) =>
         proj.id === projectId
           ? {
-              ...proj,
-              streams: (proj.streams || []).map((s) =>
-                s.id === streamId ? { ...s, open: !s.open } : s,
-              ),
-            }
+            ...proj,
+            streams: (proj.streams || []).map((s) =>
+              s.id === streamId ? { ...s, open: !s.open } : s,
+            ),
+          }
           : proj,
       ),
     );
@@ -248,15 +265,15 @@ const Sidebar = ({ teamId }) => {
       prev.map((p) =>
         p.id === projId
           ? {
-              ...p,
-              streams: (data || []).map((s) => ({
-                id: s.id,
-                name: s.name,
-                open: false,
-              })),
-              isStreamsLoaded: true,
-              isStreamsLoading: false,
-            }
+            ...p,
+            streams: (data || []).map((s) => ({
+              id: s.id,
+              name: s.name,
+              open: false,
+            })),
+            isStreamsLoaded: true,
+            isStreamsLoading: false,
+          }
           : p,
       ),
     );
@@ -278,11 +295,11 @@ const Sidebar = ({ teamId }) => {
       prev.map((p) =>
         p.id === projectId
           ? {
-              ...p,
-              streams: p.streams.map((s) =>
-                s.id === streamId ? { ...s, name: updated.name } : s,
-              ),
-            }
+            ...p,
+            streams: p.streams.map((s) =>
+              s.id === streamId ? { ...s, name: updated.name } : s,
+            ),
+          }
           : p,
       ),
     );
@@ -316,13 +333,33 @@ const Sidebar = ({ teamId }) => {
   }, [teamId]);
 
   return (
-    <aside className="w-88 min-h-screen bg-white border-r border-gray-200">
-      <div className="px-3 py-3">
-        <div className="flex items-center justify-between bg-[#EDEDED] rounded-lg px-3 py-2">
-          <span className="font-bold text-xl">{teamName}</span>
+    <aside className="w-75 min-h-screen bg-[#F5F6F7] flex flex-col">
+      <div className="flex items-center justify-between bg-[#F5F6F7] px-3 py-2">
+        <div className="flex items-center gap-1.5">
+          <div className="w-6 h-6 bg-gray-300 rounded flex items-center justify-center">
+            <span className="text-sm font-semibold text-gray-600">
+              {teamName ? teamName.charAt(0).toUpperCase() : 'T'}
+            </span>
+          </div>
+          <span className="font-bold text-xl text-gray-800">{teamName}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Tooltip title="Поиск">
+            <IconButton
+              size="small"
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)' }
+              }}
+            >
+              <SearchIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Редактировать">
             <IconButton
               size="small"
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)' }
+              }}
               onClick={() => {
                 setIsTeamEditOpen(true);
               }}
@@ -338,9 +375,160 @@ const Sidebar = ({ teamId }) => {
         onClose={() => setIsTeamEditOpen(false)}
       />
 
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="font-bold text-lg">Проекты</span>
+      <div className="mt">
+        <List disablePadding>
+          <ListItem disablePadding sx={{ my: 0.2 }}>
+            <Box
+              sx={{
+                px: 1,
+                py: 1,
+                borderRadius: '10px',
+                mx: 1,
+                border: '1px solid rgba(0, 0, 0, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                width: 'calc(100% - 16px)',
+                minHeight: '30px',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)'
+                },
+              }}
+            >
+              <SearchIcon
+                sx={{
+                  fontSize: 25,
+                  marginLeft: '8px',
+                  marginRight: '-4px',
+                  color: 'rgba(0, 0, 0, 0.5)'
+                }}
+              />
+
+              <Box
+                sx={{
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  color: 'rgba(0, 0, 0, 0.45)',
+                  flex: 1,
+                  px: 0.1
+                }}
+              >
+                Проект...
+              </Box>
+            </Box>
+          </ListItem>
+
+          <ListItem disablePadding>
+            <ListItemButton
+              sx={{
+                px: 5.9,
+                py: 0.5,
+                borderRadius: '10px',
+                mx: 1,
+                '&:hover': {
+                  backgroundColor: 'rgba(217, 217, 217, 0.8)',
+                },
+                '& .MuiListItemText-primary': {
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '1.1rem'
+                }
+              }}
+            >
+              <ListItemText primary="Мои задачи" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton
+              sx={{
+                px: 5.9,
+                py: 0.5,
+                borderRadius: '10px',
+                mx: 1,
+                '&:hover': {
+                  backgroundColor: 'rgba(217, 217, 217, 0.8)',
+                },
+                '& .MuiListItemText-primary': {
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 400,
+                  fontSize: '1.1rem'
+                }
+              }}
+            >
+              <ListItemText primary="Все задачи" />
+            </ListItemButton>
+          </ListItem>
+        </List>
       </div>
+
+      <div className="flex items-center justify-between px-3 py-2">
+        <span
+          style={{
+            fontFamily: 'Montserrat, sans-serif',
+            fontWeight: 600,
+            color: 'rgba(31, 31, 31, 0.5)',
+            fontSize: '1rem'
+          }}
+        >
+          Проекты
+        </span>
+        <Tooltip title="Создать проект">
+          <IconButton
+            size="small"
+            sx={{
+              '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
+            }}
+            onClick={() => {
+              setNewProjName("");
+              setIsCreatingProject(true);
+            }}
+          >
+            <AddIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </div>
+
+      {isCreatingProject && (
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2">
+            <TextField
+              size="small"
+              placeholder="Название проекта"
+              value={newProjName}
+              sx={{ flex: 1 }}
+              autoFocus
+              onChange={(e) => setNewProjName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  createProject();
+                }
+              }}
+            />
+            <IconButton
+              size="small"
+              onClick={async () => {
+                await createProject();
+              }}
+            >
+              {isCreateProjLoading ? (
+                <CircularProgress size={20} />
+              ) : (
+                <SaveIcon fontSize="small" />
+              )}
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => {
+                setIsCreatingProject(false);
+                setNewProjName("");
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </div>
+        </div>
+      )}
 
       <List disablePadding>
         {uiProjects.map((proj) => (
@@ -349,7 +537,12 @@ const Sidebar = ({ teamId }) => {
               disablePadding
               secondaryAction={
                 <Box
-                  sx={{ display: "flex", gap: 1, pr: 1, alignItems: "center" }}
+                  sx={{
+                    display: "flex",
+                    gap: 0,
+                    pr: 0,
+                    alignItems: "center",
+                  }}
                 >
                   {editingProjId === proj.id ? (
                     <>
@@ -423,25 +616,53 @@ const Sidebar = ({ teamId }) => {
                 onClick={() => toggleProject(proj.id)}
                 selected={proj.open}
                 sx={{
+                  mx: 0,
+                  my: 0,
+                  borderRadius: '10px',
                   mx: 1,
-                  my: 0.5,
-                  borderRadius: "8px",
-                  "&.Mui-selected, &.Mui-selected:hover": {
-                    backgroundColor: "#EDEDED",
+                  '&:hover': {
+                    backgroundColor: 'rgba(217, 217, 217, 0.8)',
                   },
+                  '&.Mui-selected': {
+                    backgroundColor: '#D9D9D9',
+                    '&:hover': {
+                      backgroundColor: '#D9D9D9',
+                    }
+                  }
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  <IconButton
-                    size="small"
-                    edge="start"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleProject(proj.id);
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleProject(proj.id);
+                  }}
+                  sx={{
+                    mr: 0,
+                    ml: -2.5,
+                  }}
+                >
+                  {proj.open ? <ExpandLess /> : <ExpandMore />}
+                </IconButton>
+
+                <ListItemIcon sx={{ minWidth: 32, mr: -0.5 }}>
+                  <Box
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '6px',
+                      backgroundColor: getProjectColor(proj.id),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      fontFamily: 'Montserrat, sans-serif',
                     }}
                   >
-                    {proj.open ? <ExpandLess /> : <ExpandMore />}
-                  </IconButton>
+                    {proj.name ? proj.name.charAt(0).toUpperCase() : 'П'}
+                  </Box>
                 </ListItemIcon>
 
                 {editingProjId === proj.id ? (
@@ -450,12 +671,24 @@ const Sidebar = ({ teamId }) => {
                     value={editedProjName}
                     onChange={(e) => setEditedProjName(e.target.value)}
                     autoFocus
+                    inputProps={{
+                      style: {
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontWeight: 400,
+                      }
+                    }}
                   />
                 ) : (
                   <ListItemText
                     primary={proj.name}
                     slotProps={{
-                      primary: { sx: { fontWeight: 700, fontSize: "1rem" } },
+                      primary: {
+                        sx: {
+                          fontFamily: 'Montserrat, sans-serif',
+                          fontWeight: proj.open ? 700 : 400,
+                          fontSize: "1.1rem"
+                        }
+                      },
                     }}
                   />
                 )}
@@ -464,6 +697,35 @@ const Sidebar = ({ teamId }) => {
 
             <Collapse in={proj.open} unmountOnExit>
               <List component="div" disablePadding dense>
+                <ListItem disablePadding sx={{ px: 3, py: 1, pl: 5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span
+                      style={{
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontWeight: 600,
+                        color: 'rgba(31, 31, 31, 0.5)',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      Стримы
+                    </span>
+                    <Tooltip title="Добавить стрим">
+                      <IconButton
+                        size="small"
+                        sx={{
+                          '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
+                        }}
+                        onClick={() => {
+                          setNewStreamName("");
+                          setNewStreamFor(proj.id);
+                        }}
+                      >
+                        <AddIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </ListItem>
+
                 {proj.isStreamsLoading && (
                   <ListItem sx={{ pl: 6 }}>
                     <CircularProgress size={20} />
@@ -478,8 +740,8 @@ const Sidebar = ({ teamId }) => {
                         <Box
                           sx={{
                             display: "flex",
-                            gap: 1,
-                            pr: 1,
+                            gap: 0,
+                            pr: 0,
                             alignItems: "center",
                           }}
                         >
@@ -548,7 +810,7 @@ const Sidebar = ({ teamId }) => {
                           )}
                         </Box>
                       }
-                      sx={{ pl: 2 }}
+                      sx={{ pl: 0 }}
                     >
                       <ListItemButton
                         onClick={() => toggleStream(proj.id, stream.id)}
@@ -584,13 +846,23 @@ const Sidebar = ({ teamId }) => {
                               setEditedStreamName(e.target.value)
                             }
                             autoFocus
+                            inputProps={{
+                              style: {
+                                fontFamily: 'Montserrat, sans-serif',
+                                fontWeight: 400,
+                              }
+                            }}
                           />
                         ) : (
                           <ListItemText
                             primary={stream.name}
                             slotProps={{
                               primary: {
-                                sx: { fontWeight: 700, fontSize: "1rem" },
+                                sx: {
+                                  fontFamily: 'Montserrat, sans-serif',
+                                  fontWeight: stream.open ? 700 : 400,
+                                  fontSize: "1.06rem"
+                                },
                               },
                             }}
                           />
@@ -600,27 +872,63 @@ const Sidebar = ({ teamId }) => {
 
                     <Collapse in={stream.open} unmountOnExit>
                       <List component="div" disablePadding dense>
-                        <ListItem disablePadding sx={{ pl: 4 }}>
+                        <ListItem disablePadding sx={{ pl: 2 }}>
                           <ListItemButton
                             component="a"
                             href={`/team/${teamId}/stream/${stream.id}`}
+                            sx={{
+                              borderRadius: "8px",
+                              mx: 2,
+                              my: 0.5,
+                              '&:hover': {
+                                backgroundColor: "rgba(217, 217, 217, 0.6)",
+                              }
+                            }}
                           >
-                            <ListItemIcon>
+                            <ListItemIcon sx={{ minWidth: 24 }}>
                               <ListAltIcon fontSize="small" />
                             </ListItemIcon>
-                            <ListItemText primary="Список задач" />
+                            <ListItemText
+                              primary="Список задач"
+                              slotProps={{
+                                primary: {
+                                  sx: {
+                                    fontFamily: 'Montserrat, sans-serif',
+                                    fontWeight: 400,
+                                  },
+                                },
+                              }}
+                            />
                           </ListItemButton>
                         </ListItem>
 
-                        <ListItem disablePadding sx={{ pl: 4 }}>
+                        <ListItem disablePadding sx={{ pl: 2 }}>
                           <ListItemButton
                             component="a"
                             href={`/team/${teamId}/stream/${stream.id}/kanban`}
+                            sx={{
+                              borderRadius: "8px",
+                              mx: 2,
+                              my: 0.5,
+                              '&:hover': {
+                                backgroundColor: "rgba(217, 217, 217, 0.6)",
+                              }
+                            }}
                           >
-                            <ListItemIcon>
+                            <ListItemIcon sx={{ minWidth: 24 }}>
                               <ViewKanbanIcon fontSize="small" />
                             </ListItemIcon>
-                            <ListItemText primary="Канбан-доска" />
+                            <ListItemText
+                              primary="Канбан-доска"
+                              slotProps={{
+                                primary: {
+                                  sx: {
+                                    fontFamily: 'Montserrat, sans-serif',
+                                    fontWeight: 400,
+                                  },
+                                },
+                              }}
+                            />
                           </ListItemButton>
                         </ListItem>
                       </List>
@@ -628,7 +936,7 @@ const Sidebar = ({ teamId }) => {
                   </div>
                 ))}
 
-                {newStreamFor === proj.id ? (
+                {newStreamFor === proj.id && (
                   <ListItem sx={{ pl: 6 }}>
                     <div className="flex items-center w-full gap-2">
                       <TextField
@@ -637,6 +945,12 @@ const Sidebar = ({ teamId }) => {
                         placeholder="Новый стрим"
                         value={newStreamName}
                         onChange={(e) => setNewStreamName(e.target.value)}
+                        inputProps={{
+                          style: {
+                            fontFamily: 'Montserrat, sans-serif',
+                            fontWeight: 400,
+                          }
+                        }}
                       />
 
                       <IconButton size="small" onClick={createSidebarStream}>
@@ -661,20 +975,6 @@ const Sidebar = ({ teamId }) => {
                       </IconButton>
                     </div>
                   </ListItem>
-                ) : (
-                  <ListItem sx={{ pl: 6 }}>
-                    <Button
-                      variant="text"
-                      size="small"
-                      onClick={() => {
-                        setNewStreamName("");
-                        setNewStreamFor(proj.id);
-                      }}
-                      sx={{ ml: "auto" }}
-                    >
-                      Добавить стрим
-                    </Button>
-                  </ListItem>
                 )}
               </List>
             </Collapse>
@@ -682,57 +982,45 @@ const Sidebar = ({ teamId }) => {
         ))}
       </List>
 
-      <div className="px-3 py-2 flex items-center justify-end gap-2">
-        {isCreatingProject ? (
-          <>
-            <TextField
-              size="small"
-              label="Название проекта"
-              value={newProjName}
-              sx={{ flex: 1 }}
-              autoFocus
-              onChange={(e) => setNewProjName(e.target.value)}
-            />
+      <div className="mt-auto p-2">
+        <Button
+          component="a"
+          href={user ? "/profile" : "/login"}
+          fullWidth
+          sx={{
+            justifyContent: 'flex-start',
+            textTransform: 'none',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            '&:hover': {
+              backgroundColor: 'rgba(217, 217, 217, 0.4)',
+            }
+          }}
+        >
+          <div className="flex items-center gap-3 w-full">
+            <div
+              className="w-8 h-8 bg-gray-300 flex items-center justify-center"
+              style={{ borderRadius: '7px' }}
+            >
+              <span className="text-sm font-semibold text-gray-600">
+                {user ? user.username.charAt(0).toUpperCase() : 'Л'}
+              </span>
+            </div>
 
-            <IconButton
-              size="small"
-              edge="end"
-              onClick={async () => {
-                await createProject();
+            <div
+              style={{
+                fontFamily: 'Montserrat, sans-serif',
+                fontWeight: 500,
+                fontSize: '1rem',
+                color: '#1F1F1F'
               }}
             >
-              {isCreateProjLoading ? (
-                <CircularProgress size={20} />
-              ) : (
-                <SaveIcon fontSize="small" />
-              )}
-            </IconButton>
-
-            <IconButton
-              size="small"
-              edge="end"
-              onClick={() => {
-                setIsCreatingProject(false);
-                setNewProjName("");
-              }}
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </>
-        ) : (
-          <Button
-            variant="text"
-            size="small"
-            onClick={() => {
-              setNewProjName("");
-              setIsCreatingProject(true);
-            }}
-          >
-            Создать проект
-          </Button>
-        )}
+              {user ? user.username : 'Личный кабинет'}
+            </div>
+          </div>
+        </Button>
       </div>
-    </aside>
+    </aside >
   );
 };
 
