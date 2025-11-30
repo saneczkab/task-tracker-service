@@ -49,3 +49,23 @@ export const CREATE_BUTTON_STYLES = {
     color: "rgba(31, 31, 31, 0.8)",
   },
 };
+
+export const TOGGLE_BUTTON_STYLES = {
+  textTransform: "none",
+  fontWeight: 500,
+  px: 2,
+  fontFamily: "Montserrat, sans-serif",
+  color: "black",
+  border: "none",
+  "&.Mui-selected": {
+    backgroundColor: "white",
+    color: "#3A7AFE",
+    borderRadius: "8px",
+    "&:hover": {
+      backgroundColor: "white",
+    },
+  },
+  "&:hover": {
+    backgroundColor: "transparent",
+  },
+};

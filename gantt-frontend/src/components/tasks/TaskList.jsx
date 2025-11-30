@@ -12,6 +12,8 @@ import {
   Button,
   Menu,
   MenuItem,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import { MoreVert as MoreVertIcon, Add as AddIcon } from "@mui/icons-material";
 import TaskForm from "./TaskForm.jsx";
@@ -19,6 +21,7 @@ import TaskForm from "./TaskForm.jsx";
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
+import { fetchUserEmailApi } from "../../api/user.js";
 import {
   CELL_STYLES,
   HEADER_CELL_STYLES,
@@ -26,6 +29,7 @@ import {
   TASKS_TABLE_BODY_STYLES,
   TABLE_CONTAINER_STYLES,
   CREATE_BUTTON_STYLES,
+  TOGGLE_BUTTON_STYLES,
 } from "./tableStyles.js";
 import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
@@ -40,6 +44,9 @@ const TaskList = ({ streamId }) => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+
+  const [filterMode, setFilterMode] = useState("all");
+  const [userEmail, setUserEmail] = useState("");
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -119,16 +126,29 @@ const TaskList = ({ streamId }) => {
     return response.priorities;
   };
 
+  const fetchUserEmail = async () => {
+    const response = await fetchUserEmailApi(token);
+
+    if (!response.ok) {
+      processError(response.status);
+      return "";
+    }
+
+    return response.email;
+  };
+
   const loadAll = async () => {
     setLoading(true);
 
     const tasks = await fetchTasks();
     const statuses = await fetchStatuses();
     const priorities = await fetchPriorities();
+    const email = await fetchUserEmail();
 
     setTasks(tasks || []);
     setStatuses(statuses || []);
     setPriorities(priorities || []);
+    setUserEmail(email || "");
 
     setLoading(false);
   };
@@ -142,13 +162,69 @@ const TaskList = ({ streamId }) => {
     setMenuTaskId(null);
   };
 
+  const filteredTasks = useMemo(() => {
+    if (filterMode === "my") {
+      return tasks.filter((task) => task.assignee_email === userEmail);
+    }
+    return tasks;
+  }, [tasks, filterMode, userEmail]);
+
   if (loading) {
     return <CircularProgress size={32} />;
   }
 
   return (
     <>
-      {tasks.length > 0 ? (
+      <div
+        style={{
+          backgroundColor: "#F5F6F7",
+          padding: "12px",
+          borderRadius: "8px",
+          marginBottom: "16px",
+          display: "inline-block",
+        }}
+      >
+        <ToggleButtonGroup
+          value={filterMode}
+          exclusive
+          onChange={(e, newValue) => {
+            if (newValue !== null) {
+              setFilterMode(newValue);
+            }
+          }}
+          aria-label="task filter"
+          size="small"
+          sx={{
+            "& .MuiToggleButtonGroup-grouped": {
+              border: "none",
+              "&:not(:first-of-type)": {
+                borderRadius: "8px",
+                marginLeft: "8px",
+              },
+              "&:first-of-type": {
+                borderRadius: "8px",
+              },
+            },
+          }}
+        >
+          <ToggleButton
+            value="all"
+            aria-label="all tasks"
+            sx={TOGGLE_BUTTON_STYLES}
+          >
+            Все задачи
+          </ToggleButton>
+          <ToggleButton
+            value="my"
+            aria-label="my tasks"
+            sx={TOGGLE_BUTTON_STYLES}
+          >
+            Назначенные мне
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </div>
+
+      {filteredTasks.length > 0 ? (
         <div>
           <TableContainer component={Paper} sx={TABLE_CONTAINER_STYLES}>
             <Table size="small">
@@ -164,7 +240,7 @@ const TaskList = ({ streamId }) => {
               </TableHead>
 
               <TableBody>
-                {(tasks || []).map((task) => (
+                {(filteredTasks || []).map((task) => (
                   <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
                     <TableCell sx={CELL_STYLES}>{task.name}</TableCell>
 
