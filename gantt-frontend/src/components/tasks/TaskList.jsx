@@ -13,12 +13,21 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { MoreVert as MoreVertIcon } from "@mui/icons-material";
+import { MoreVert as MoreVertIcon, Add as AddIcon } from "@mui/icons-material";
 import TaskForm from "./TaskForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
+import {
+  CELL_STYLES,
+  HEADER_CELL_STYLES,
+  LAST_CELL_STYLES,
+  TASKS_TABLE_BODY_STYLES,
+  TABLE_CONTAINER_STYLES,
+  CREATE_BUTTON_STYLES,
+} from "./tableStyles.js";
+import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
 const TaskList = ({ streamId }) => {
   const [tasks, setTasks] = useState([]);
@@ -141,134 +150,45 @@ const TaskList = ({ streamId }) => {
     <>
       {tasks.length > 0 ? (
         <div>
-          <TableContainer
-            component={Paper}
-            sx={{
-              borderRadius: 2,
-              overflow: "hidden",
-              mt: 1,
-              border: "1px solid black",
-            }}
-          >
+          <TableContainer component={Paper} sx={TABLE_CONTAINER_STYLES}>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
-                  >
-                    Название
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
-                  >
-                    Исполнитель
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
-                  >
-                    Статус
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
-                  >
-                    Приоритет
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
-                  >
-                    Дата начала
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
-                  >
-                    Дедлайн
-                  </TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Название</TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Исполнитель</TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Статус</TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Приоритет</TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Дата начала</TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Дедлайн</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {(tasks || []).map((task) => (
-                  <TableRow
-                    key={task.id}
-                    sx={{
-                      "&:hover": { backgroundColor: "#fafafa" },
-                      "& .task-actions": {
-                        opacity: 0,
-                        transition: "opacity 0.2s",
-                      },
-                      "&:hover .task-actions": { opacity: 1 },
-                    }}
-                  >
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
-                      {task.name}
-                    </TableCell>
+                  <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
+                    <TableCell sx={CELL_STYLES}>{task.name}</TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.assignee_email || "-"}
                     </TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.status_id ? statusMap[task.status_id] : "-"}
                     </TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.priority_id ? priorityMap[task.priority_id] : "-"}
                     </TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.start_date
-                        ? new Date(task.start_date).toLocaleString()
+                        ? toLocaleDateWithTimeHM(task.start_date)
                         : "-"}
                     </TableCell>
 
-                    <TableCell
-                      sx={{
-                        // borderRight: "1px solid rgba(0,0,0,0.12)",
-                        position: "relative",
-                        pr: 5,
-                      }}
-                    >
+                    <TableCell sx={LAST_CELL_STYLES}>
                       {task.deadline
-                        ? new Date(task.deadline).toLocaleString()
+                        ? toLocaleDateWithTimeHM(task.deadline)
                         : "-"}
 
                       <IconButton
@@ -287,6 +207,15 @@ const TaskList = ({ streamId }) => {
                     </TableCell>
                   </TableRow>
                 ))}
+
+                <Button
+                  variant="text"
+                  onClick={handleCreate}
+                  startIcon={<AddIcon />}
+                  sx={CREATE_BUTTON_STYLES}
+                >
+                  Создать
+                </Button>
               </TableBody>
             </Table>
           </TableContainer>
@@ -302,21 +231,17 @@ const TaskList = ({ streamId }) => {
 
             <MenuItem onClick={handleDelete}>Удалить</MenuItem>
           </Menu>
-
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить задачу
-            </Button>
-          </div>
         </div>
       ) : (
         <div>
-          Задачи не заданы. Создайте задачу!
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить задачу
-            </Button>
-          </div>
+          <Button
+            variant="text"
+            onClick={handleCreate}
+            startIcon={<AddIcon />}
+            sx={CREATE_BUTTON_STYLES}
+          >
+            Создать
+          </Button>
         </div>
       )}
 

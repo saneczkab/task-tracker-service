@@ -25,3 +25,11 @@ export const toISOStringOrNull = (dateStr, timeStr) => {
   const date = new Date(combined);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
+
+export const toLocaleDateWithTimeHM = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  const datePart = d.toLocaleDateString();
+  const timePart = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${datePart}, ${timePart}`;
+};

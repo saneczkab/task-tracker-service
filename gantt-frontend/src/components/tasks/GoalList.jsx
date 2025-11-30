@@ -13,11 +13,20 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { MoreVert as MoreVertIcon } from "@mui/icons-material";
+import { MoreVert as MoreVertIcon, Add as AddIcon } from "@mui/icons-material";
 import GoalForm from "./GoalForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchGoalsApi, deleteGoalApi } from "../../api/goal.js";
+import {
+  CELL_STYLES,
+  HEADER_CELL_STYLES,
+  LAST_CELL_STYLES,
+  TABLE_CONTAINER_STYLES,
+  GOALS_TABLE_BODY_STYLES,
+  CREATE_BUTTON_STYLES,
+} from "./tableStyles.js";
+import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
 const GoalList = ({ streamId }) => {
   const [goals, setGoals] = useState([]);
@@ -114,68 +123,23 @@ const GoalList = ({ streamId }) => {
     <>
       {goals.length > 0 ? (
         <div>
-          <TableContainer
-            component={Paper}
-            sx={{
-              borderRadius: 2,
-              overflow: "hidden",
-              mt: 1,
-              border: "1px solid black",
-            }}
-          >
+          <TableContainer component={Paper} sx={TABLE_CONTAINER_STYLES}>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: '1px solid rgba(0,0,0,0.12)'
-                    }}
-                  >
-                    Название
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: '1px solid rgba(0,0,0,0.12)'
-                    }}
-                  >
-                    Дедлайн
-                  </TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Название</TableCell>
+                  <TableCell sx={HEADER_CELL_STYLES}>Дедлайн</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
                 {goals.map((goal) => (
-                  <TableRow
-                    key={goal.id}
-                    sx={{
-                      "&:hover": { backgroundColor: "#fafafa" },
-                      "& .goal-actions": {
-                        opacity: 0,
-                        transition: "opacity 0.2s",
-                      },
-                      "&:hover .goal-actions": { opacity: 1 },
-                    }}
-                  >
-                    <TableCell
-                    // sx={{ borderRight: '1px solid rgba(0,0,0,0.12)' }}
-                    >
-                      {goal.name}
-                    </TableCell>
+                  <TableRow key={goal.id} sx={GOALS_TABLE_BODY_STYLES}>
+                    <TableCell sx={CELL_STYLES}>{goal.name}</TableCell>
 
-                    <TableCell
-                      sx={{
-                        // borderRight: "1px solid rgba(0,0,0,0.12)",
-                        position: "relative",
-                        pr: 5,
-                      }}
-                    >
+                    <TableCell sx={LAST_CELL_STYLES}>
                       {goal.deadline
-                        ? new Date(goal.deadline).toLocaleString()
+                        ? toLocaleDateWithTimeHM(goal.deadline)
                         : "-"}
 
                       <IconButton
@@ -198,6 +162,15 @@ const GoalList = ({ streamId }) => {
             </Table>
           </TableContainer>
 
+          <Button
+            variant="text"
+            onClick={handleCreate}
+            startIcon={<AddIcon />}
+            sx={CREATE_BUTTON_STYLES}
+          >
+            Создать
+          </Button>
+
           <Menu
             anchorEl={menuAnchorEl}
             open={Boolean(menuAnchorEl)}
@@ -215,21 +188,17 @@ const GoalList = ({ streamId }) => {
               )}
             </MenuItem>
           </Menu>
-
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить цель
-            </Button>
-          </div>
         </div>
       ) : (
         <div>
-          Цели не заданы. Создайте цель!
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить цель
-            </Button>
-          </div>
+          <Button
+            variant="text"
+            onClick={handleCreate}
+            startIcon={<AddIcon />}
+            sx={CREATE_BUTTON_STYLES}
+          >
+            Создать
+          </Button>
         </div>
       )}
 
