@@ -12,7 +12,7 @@ export const toInputTime = (value) => {
     return "";
   }
 
-  const datetime = new Date(value);
+  const datetime = new Date(value + "Z");
   return `${String(datetime.getHours()).padStart(2, "0")}:${String(datetime.getMinutes()).padStart(2, "0")}`;
 };
 
@@ -27,9 +27,13 @@ export const toISOStringOrNull = (dateStr, timeStr) => {
 };
 
 export const toLocaleDateWithTimeHM = (value) => {
-  if (!value) return "";
-  const d = new Date(value);
-  const datePart = d.toLocaleDateString();
-  const timePart = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (!value) {
+    return "";
+  }
+
+  const dateString = value + "Z";
+  const date = new Date(dateString);
+  const datePart = date.toLocaleDateString();
+  const timePart = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   return `${datePart}, ${timePart}`;
 };
