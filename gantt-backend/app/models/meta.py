@@ -21,6 +21,7 @@ class ConnectionType(base.Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
 
+
 class UserTask(base.Base):
     __tablename__ = "UserTask"
     id = Column(Integer, primary_key=True)
@@ -29,4 +30,3 @@ class UserTask(base.Base):
 
     user = relationship("User", backref="user_tasks")
     task = relationship("Task", backref="user_tasks")
-

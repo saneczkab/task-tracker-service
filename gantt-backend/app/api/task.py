@@ -9,6 +9,45 @@ from app.api import auth
 router = fastapi.APIRouter()
 
 
+@router.post("/api/task/{task_id}/relation", response_model=task_schemas.TaskRelationResponse)
+def create_relation(task_id: int,
+                    data: task_schemas.TaskRelationCreate,
+                    data_base: orm.Session = fastapi.Depends(db.get_db)):
+    task_1 = data_base.query(task.Task).filter(task.Task.id == task_id).first()
+    task_2 = data_base.query(task.Task).filter(task.Task.id == data.task_id_2).first()
+
+    if not task_1 or not task_2:
+        raise fastapi.HTTPException(404, "Одна из задач не найдена")
+
+    if task_id == data.task_id_2:
+        raise fastapi.HTTPException(400, "Нельзя создать связь между задачей и самой собой")
+
+    connection_type = data_base.query(meta.ConnectionType).filter(
+        meta.ConnectionType.id == data.connection_id
+    ).first()
+
+    if not connection_type:
+        raise fastapi.HTTPException(404, "Тип связи не найден")
+
+    relation = task.TaskRelation(
+        task_id_1=task_id,
+        task_id_2=data.task_id_2,
+        connection_id=data.connection_id
+    )
+
+    data_base.add(relation)
+    data_base.commit()
+    data_base.refresh(relation)
+
+    return task_schemas.TaskRelationResponse(
+        id=relation.id,
+        task_id_1=relation.task_id_1,
+        task_id_2=relation.task_id_2,
+        connection_id=relation.connection_id,
+        connection_name=relation.connection.name
+    )
+
+
 @router.get("/api/project/{proj_id}/tasks", response_model=typing.List[task_schemas.TaskResponse],
             status_code=fastapi.status.HTTP_200_OK)
 def get_project_tasks(proj_id: int, current_user: user.User = fastapi.Depends(auth.get_current_user),
@@ -32,6 +71,16 @@ def get_project_tasks(proj_id: int, current_user: user.User = fastapi.Depends(au
             task.Task.stream_id == stream_obj.id).all()
         tasks.extend(stream_tasks)
         for task_obj in stream_tasks:
+            task_obj.relations = [
+                task_schemas.TaskRelationResponse(
+                    id=r.id,
+                    task_id_1=r.task_id_1,
+                    task_id_2=r.task_id_2,
+                    connection_id=r.connection_id,
+                    connection_name=r.connection.name
+                )
+                for r in task_obj.relations_outgoing
+            ]
             if task_obj.assigned_users:
                 task_obj.assignee_email = task_obj.assigned_users[0].user.email
             tasks.append(task_obj)
@@ -61,6 +110,16 @@ def get_stream_tasks(stream_id: int, current_user: user.User = fastapi.Depends(a
         task.Task.stream_id == stream_obj.id).all()
 
     for task_obj in tasks:
+        task_obj.relations = [
+            task_schemas.TaskRelationResponse(
+                id=r.id,
+                task_id_1=r.task_id_1,
+                task_id_2=r.task_id_2,
+                connection_id=r.connection_id,
+                connection_name=r.connection.name
+            )
+            for r in task_obj.relations_outgoing
+        ]
         if task_obj.assigned_users:
             task_obj.assignee_email = task_obj.assigned_users[0].user.email
 
@@ -98,6 +157,24 @@ def create_task(stream_id: int, task_data: task_schemas.TaskCreate,
         start_date=task_data.start_date,
         deadline=task_data.deadline
     )
+
+    task_obj.relations = [
+        task_schemas.TaskRelationResponse(
+            id=r.id,
+            task_id_1=r.task_id_1,
+            task_id_2=r.task_id_2,
+            connection_id=r.connection_id,
+            connection_name=r.connection.name
+        )
+        for r in task_obj.relations_outgoing
+    ]
+
+    if task_data.position is None:
+        last_pos = data_base.query(task.Task).filter(task.Task.stream_id == stream_id).order_by(
+            task.Task.position.desc()).first()
+        task_obj.position = (last_pos.position + 1) if last_pos else 1
+    else:
+        task_obj.position = task_data.position
 
     data_base.add(task_obj)
     data_base.flush()
@@ -157,6 +234,20 @@ def update_task(task_id: int, task_update_data: task_schemas.TaskUpdate,
     if task_update_data.priority_id:
         task_obj.priority_id = task_update_data.priority_id
 
+    if task_update_data.position is not None:
+        task_obj.position = task_update_data.position
+
+    task_obj.relations = [
+        task_schemas.TaskRelationResponse(
+            id=r.id,
+            task_id_1=r.task_id_1,
+            task_id_2=r.task_id_2,
+            connection_id=r.connection_id,
+            connection_name=r.connection.name
+        )
+        for r in task_obj.relations_outgoing
+    ]
+
     task_obj.start_date = task_update_data.start_date
     task_obj.deadline = task_update_data.deadline
 
@@ -176,6 +267,18 @@ def update_task(task_id: int, task_update_data: task_schemas.TaskUpdate,
             task_id=task_id
         )
         data_base.add(new_user_task)
+
+    if task_update_data.status_id == 3:
+        blocking_relations = data_base.query(task.TaskRelation).filter(
+            task.TaskRelation.task_id == task_id,
+            task.TaskRelation.connection_id == 1
+        ).all()
+
+        for relation in blocking_relations:
+            task_blocker = data_base.query(task.Task).filter(task.Task.id == relation.task_id_1).first()
+            if task_blocker and task_blocker.status_id != 3:
+                raise fastapi.HTTPException(status_code=400,
+                                            detail=f"Нельзя выполнить задачу, пока задача {task_blocker.name} не выполнена.")
 
     data_base.commit()
     data_base.refresh(task_obj)

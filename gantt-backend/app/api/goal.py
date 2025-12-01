@@ -71,6 +71,13 @@ def create_goal(stream_id: int, goal_data: goal_schemas.GoalCreate,
         deadline=goal_data.deadline
     )
 
+    if goal_data.position is None:
+        last_pos = data_base.query(goal.Goal).filter(goal.Goal.stream_id == stream_id).order_by(
+            goal.Goal.position.desc()).first()
+        new_goal.position = (last_pos.position + 1) if last_pos else 1
+    else:
+        new_goal.position = goal_data.position
+
     data_base.add(new_goal)
     data_base.commit()
     data_base.refresh(new_goal)
@@ -119,6 +126,9 @@ def update_goal(goal_id: int, goal_update_data: goal_schemas.GoalUpdate,
 
     if goal_update_data.deadline is not None:
         goal_obj.deadline = goal_update_data.deadline
+
+    if goal_update_data.position is not None:
+        goal_obj.position = goal_update_data.position
 
     data_base.commit()
     data_base.refresh(goal_obj)
