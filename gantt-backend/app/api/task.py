@@ -234,6 +234,12 @@ def update_task(task_id: int, task_update_data: task_schemas.TaskUpdate,
     if task_update_data.priority_id:
         task_obj.priority_id = task_update_data.priority_id
 
+    if task_update_data.start_date:
+        task_obj.start_date = task_update_data.start_date
+
+    if task_update_data.deadline:
+        task_obj.deadline = task_update_data.deadline
+
     if task_update_data.position is not None:
         task_obj.position = task_update_data.position
 
@@ -268,9 +274,10 @@ def update_task(task_id: int, task_update_data: task_schemas.TaskUpdate,
         )
         data_base.add(new_user_task)
 
-    if task_update_data.status_id == 3:
+    # TODO: enum
+    if task_update_data.status_id == 4:
         blocking_relations = data_base.query(task.TaskRelation).filter(
-            task.TaskRelation.task_id == task_id,
+            task.TaskRelation.task_id_1 == task_id or task.TaskRelation.task_id_2 == task_id,
             task.TaskRelation.connection_id == 1
         ).all()
 
