@@ -68,6 +68,7 @@ def create_goal(stream_id: int, goal_data: goal_schemas.GoalCreate,
         name=goal_data.name,
         stream_id=stream_id,
         description=goal_data.description,
+        start_date=goal_data.start_date,
         deadline=goal_data.deadline
     )
 
@@ -123,6 +124,8 @@ def update_goal(goal_id: int, goal_update_data: goal_schemas.GoalUpdate,
 
     if goal_update_data.description is not None:
         goal_obj.description = goal_update_data.description
+
+    goal_obj.start_date = goal_update_data.start_date
 
     if goal_update_data.deadline is not None:
         goal_obj.deadline = goal_update_data.deadline

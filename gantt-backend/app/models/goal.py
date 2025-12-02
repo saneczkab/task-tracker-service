@@ -9,6 +9,7 @@ class Goal(base.Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(String)
+    start_date = Column(DateTime, nullable=True)
     deadline = Column(DateTime, nullable=False)
     stream_id = Column(Integer, ForeignKey('Streams.id'), nullable=False)
     position = Column(Integer, nullable=False, default=0)
