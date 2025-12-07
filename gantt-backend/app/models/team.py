@@ -21,6 +21,7 @@ class UserTeam(base.Base):
 
     user = relationship("User", back_populates="user_teams")
     team = relationship("Team", back_populates="user_teams")
+    role = relationship("Role")
 
 
 class Role(base.Base):

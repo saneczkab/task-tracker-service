@@ -28,5 +28,5 @@ class UserTask(base.Base):
     user_id = Column(Integer, ForeignKey("Users.id"), nullable=False)
     task_id = Column(Integer, ForeignKey("Tasks.id"), nullable=False)
 
-    user = relationship("User", backref="user_tasks")
-    task = relationship("Task", backref="user_tasks")
+    user = relationship("User", back_populates="user_tasks")
+    task = relationship("Task", back_populates="assigned_users")

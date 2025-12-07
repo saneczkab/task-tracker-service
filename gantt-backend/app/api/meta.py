@@ -1,10 +1,10 @@
 import typing
 import fastapi
-from sqlalchemy import orm
 
+from sqlalchemy import orm
 from app.api import auth
 from app.core import db
-from app.models import meta as meta_models
+from app.crud import meta as meta_crud
 from app.schemas import meta as meta_schemas
 
 router = fastapi.APIRouter()
@@ -14,7 +14,7 @@ router = fastapi.APIRouter()
             status_code=fastapi.status.HTTP_200_OK)
 def get_team_statuses(data_base: orm.Session = fastapi.Depends(db.get_db)):
     """Получить все статусы в команде team_id"""
-    statuses = data_base.query(meta_models.Status).all()
+    statuses = meta_crud.get_team_statuses(data_base)
 
     return statuses
 
@@ -23,7 +23,7 @@ def get_team_statuses(data_base: orm.Session = fastapi.Depends(db.get_db)):
             status_code=fastapi.status.HTTP_200_OK)
 def get_team_priorities(data_base: orm.Session = fastapi.Depends(db.get_db)):
     """Получить все приоритеты в команде team_id"""
-    priorities = data_base.query(meta_models.Priority).all()
+    priorities = meta_crud.get_team_priorities(data_base)
 
     return priorities
 
@@ -32,7 +32,7 @@ def get_team_priorities(data_base: orm.Session = fastapi.Depends(db.get_db)):
             status_code=fastapi.status.HTTP_200_OK)
 def get_connection_types(data_base: orm.Session = fastapi.Depends(db.get_db)):
     """Получить все типы связей"""
-    connections = data_base.query(meta_models.ConnectionType).all()
+    connections = meta_crud.get_connection_types(data_base)
 
     return connections
 

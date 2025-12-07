@@ -1,8 +1,8 @@
 import fastapi
-from sqlalchemy import orm, exc
-
-from app.core import db, security
-from app.models import user
+from sqlalchemy import orm
+from app.core import db
+from app.services import user_service
+from app.core import exception
 
 router = fastapi.APIRouter()
 
@@ -11,55 +11,31 @@ def get_current_user(request: fastapi.Request, data_base: orm.Session = fastapi.
     user_id = getattr(request.state, "user_id", None)
 
     if not user_id:
-        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_401_UNAUTHORIZED, detail="Некорректный токен")
+        raise fastapi.HTTPException(status_code=401, detail="Некорректный токен")
 
-    u = data_base.query(user.User).filter(user.User.id == user_id).first()
-
-    if not u:
-        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
-
-    return u
+    try:
+        return user_service.get_current_user_service(data_base, user_id)
+    except exception.NotFoundError as e:
+        raise fastapi.HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/api/check-email")
 def check_email(email: str, data_base: orm.Session = fastapi.Depends(db.get_db)):
-    """Проверить существует ли email в базе данных"""
-    u = data_base.query(user.User).filter(user.User.email == email).first()
-    return {"exists": u is not None}
+    exists = user_service.check_email_exists_service(data_base, email)
+    return {"exists": exists}
 
 
-@router.post("/api/register", status_code=fastapi.status.HTTP_201_CREATED)
+@router.post("/api/register", status_code=201)
 def register(email: str, nickname: str, password: str, data_base: orm.Session = fastapi.Depends(db.get_db)):
-    """Регистрация"""
-    u = user.User(
-        email=email,
-        nickname=nickname,
-        password_hash=security.get_password_hash(password)
-    )
-
-    data_base.add(u)
     try:
-        data_base.commit()
-        data_base.refresh(u)
-    except exc.IntegrityError:
-        data_base.rollback()
-        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_409_CONFLICT,
-                                    detail="Пользователь с таким email или именем уже существует")
-
-    token = security.create_access_token({"sub": str(u.id)})
-
-    return {"access_token": token, "token_type": "Bearer"}
+        return user_service.register_user_service(data_base, email, nickname, password)
+    except exception.ConflictError as e:
+        raise fastapi.HTTPException(status_code=409, detail=str(e))
 
 
 @router.post("/api/login")
 def login(email: str, password: str, data_base: orm.Session = fastapi.Depends(db.get_db)):
-    """Авторизация"""
-    u = data_base.query(user.User).filter(user.User.email == email).first()
-
-    if not u or not security.verify_password(password, u.password_hash):
-        raise fastapi.HTTPException(status_code=fastapi.status.HTTP_401_UNAUTHORIZED,
-                                    detail="Неверные данные для входа")
-
-    token = security.create_access_token({"sub": str(u.id)})
-
-    return {"access_token": token, "token_type": "Bearer"}
+    try:
+        return user_service.login_user_service(data_base, email, password)
+    except exception.ForbiddenError as e:
+        raise fastapi.HTTPException(status_code=401, detail=str(e))
