@@ -1,5 +1,6 @@
 import sqlalchemy
 from sqlalchemy import orm
+
 from app.core.config import settings
 
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL

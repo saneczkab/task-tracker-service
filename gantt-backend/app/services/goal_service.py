@@ -1,18 +1,19 @@
 from sqlalchemy import orm
 
-from app.crud import goal as goal_crud
 from app.core import exception
-from app.models import stream, project, team, goal, role
+from app.crud import goal as goal_crud
+from app.models import goal, project, role, stream, team
 
 
 def check_stream_permissions(data_base: orm.Session, stream_id: int, user_id: int, need_lead: bool = False):
     """Общий метод проверки прав на стрим/проект."""
     stream_obj = data_base.query(stream.Stream).filter(stream.Stream.id == stream_id).first()
-
     if not stream_obj:
         raise exception.NotFoundError("Стрим не найден")
 
     project_obj = data_base.query(project.Project).filter(project.Project.id == stream_obj.project_id).first()
+    if not project_obj:
+        raise exception.NotFoundError("Проект не найден")
 
     user_team = data_base.query(team.UserTeam).filter(team.UserTeam.team_id == project_obj.team_id,
                                                       team.UserTeam.user_id == user_id).first()
@@ -32,7 +33,7 @@ def get_stream_goals_service(data_base: orm.Session, stream_id: int, user_id: in
 
 
 def create_goal_service(data_base: orm.Session, stream_id: int, user_id: int, goal_data):
-    stream_obj = check_stream_permissions(data_base, stream_id, user_id, need_lead=True)
+    check_stream_permissions(data_base, stream_id, user_id, need_lead=True)
 
     if goal_crud.get_goal_by_name_in_stream(data_base, stream_id, goal_data.name):
         raise exception.ConflictError("В данном стриме уже есть цель с таким названием")

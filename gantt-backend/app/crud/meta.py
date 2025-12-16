@@ -1,10 +1,8 @@
-import typing
 import fastapi
-
 from sqlalchemy import orm
+
 from app.core import db
 from app.models import meta as meta_models
-from app.schemas import meta as meta_schemas
 
 router = fastapi.APIRouter()
 

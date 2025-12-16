@@ -1,8 +1,8 @@
 from sqlalchemy import orm
-from app.crud import user as user_crud
-from app.crud import team as team_crud
 
-from app.core import security, exception
+from app.core import exception, security
+from app.crud import team as team_crud
+from app.crud import user as user_crud
 
 
 def get_current_user_service(data_base: orm.Session, user_id: int):
@@ -15,9 +15,23 @@ def check_email_exists_service(data_base: orm.Session, email: str):
 
 
 def register_user_service(data_base: orm.Session, email: str, nickname: str, password: str):
+    if user_crud.get_user_by_email(data_base, email):
+        raise exception.ConflictError("Email уже используется")
+
+    if user_crud.get_user_by_nickname(data_base, nickname):
+        raise exception.ConflictError("Никнейм уже используется")
+
     hashed_pass = security.get_password_hash(password)
 
-    new_user = user_crud.create_user(data_base=data_base, email=email, nickname=nickname, password_hash=hashed_pass)
+    try:
+        new_user = user_crud.create_user(
+            data_base=data_base,
+            email=email,
+            nickname=nickname,
+            password_hash=hashed_pass
+        )
+    except exception.ConflictError:
+        raise exception.ConflictError("Email или никнейм уже используются")
 
     token = security.create_access_token({"sub": str(new_user.id)})
     return {"access_token": token, "token_type": "Bearer"}

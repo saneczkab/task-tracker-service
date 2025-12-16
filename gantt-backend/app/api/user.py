@@ -1,8 +1,8 @@
 import fastapi
 from sqlalchemy import orm
+
 from app.api import auth
-from app.core import db
-from app.core import exception
+from app.core import db, exception
 from app.models import user
 from app.schemas import user as user_schemas
 from app.services import user_service

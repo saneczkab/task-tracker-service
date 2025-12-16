@@ -1,7 +1,8 @@
 from sqlalchemy import orm
-from app.models import stream, task, goal
-from app.schemas import stream as stream_schemas
+
 from app.core import exception
+from app.models import goal, stream, task
+from app.schemas import stream as stream_schemas
 
 
 def get_streams_by_project_id(data_base: orm.Session, proj_id: int):

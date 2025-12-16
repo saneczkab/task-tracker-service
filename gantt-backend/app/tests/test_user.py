@@ -1,6 +1,8 @@
+from unittest.mock import Mock
+
 import fastapi
 import pytest
-from unittest.mock import Mock
+
 from app.api import user as user_api
 
 

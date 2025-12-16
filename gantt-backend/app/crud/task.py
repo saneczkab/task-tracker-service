@@ -1,5 +1,6 @@
 from sqlalchemy import orm
-from app.models import task, user, meta
+
+from app.models import task
 
 
 def get_task_by_id(db: orm.Session, task_id: int):

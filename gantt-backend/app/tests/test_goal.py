@@ -1,9 +1,10 @@
 from unittest.mock import Mock
+
 import pytest
 from fastapi import HTTPException
 
-from app.api import goal
 from app import models
+from app.api import goal
 
 
 class TestGoals:

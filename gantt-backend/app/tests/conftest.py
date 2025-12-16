@@ -1,6 +1,6 @@
-import os
-import pytest
 from pathlib import Path
+
+import pytest
 from dotenv import load_dotenv
 
 
@@ -9,6 +9,3 @@ def load_env_and_models():
     env_path = Path(__file__).parent.parent.parent / '.env'
     load_dotenv(env_path)
 
-    import app.models.goal
-    import app.models.task
-    import app.models.meta

@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
+
+from app.core import exception
 from app.crud import project as project_crud
 from app.crud import stream as stream_crud
 from app.crud import team as team_crud
 from app.models import role
 from app.schemas import stream as stream_schemas
-from app.core import exception
 
 
 def check_project_access(data_base: Session, project_id: int, user_id: int):
@@ -14,7 +15,6 @@ def check_project_access(data_base: Session, project_id: int, user_id: int):
         raise exception.NotFoundError("Проект не найден")
 
     user_team = team_crud.get_user_team_by_id(data_base, user_id, project.team_id)
-
     if not user_team:
         raise exception.ForbiddenError("У вас нет доступа к этой команде")
 

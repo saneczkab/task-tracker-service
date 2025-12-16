@@ -1,5 +1,6 @@
 import fastapi
 import jose
+
 from app.core import security
 
 EXEMPT_PATHS = {

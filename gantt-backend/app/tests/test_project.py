@@ -1,6 +1,8 @@
 from unittest.mock import Mock
+
 import pytest
 from fastapi import HTTPException
+
 from app.api import project
 from app.models import project as project_models
 
@@ -69,7 +71,7 @@ class TestProject:
         project_data = Mock()
         project_data.name = "New Project"
 
-        result = project.create_project(1, project_data, self.mock_user, self.mock_db)
+        project.create_project(1, project_data, self.mock_user, self.mock_db)
 
         mock_project_class.assert_called_once_with(name="New Project", team_id=1)
         self.mock_db.add.assert_called_once()

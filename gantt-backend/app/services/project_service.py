@@ -1,19 +1,18 @@
 from sqlalchemy import orm
+
 from app.core import exception
 from app.crud import project as project_crud
-from app.models import team, stream, task, goal, role
+from app.models import goal, role, stream, task, team
 
 
 def check_team_permissions(data_base: orm.Session, team_id: int, user_id: int, need_lead: bool = False):
     """Общая проверка прав на команду."""
     team_obj = data_base.query(team.Team).filter(team.Team.id == team_id).first()
-
     if not team_obj:
         raise exception.NotFoundError("Команда не найдена")
 
     user_team = data_base.query(team.UserTeam).filter(team.UserTeam.team_id == team_id,
                                                       team.UserTeam.user_id == user_id).first()
-
     if not user_team:
         raise exception.ForbiddenError("У вас нет доступа к этой команде")
 
@@ -26,13 +25,11 @@ def check_team_permissions(data_base: orm.Session, team_id: int, user_id: int, n
 def check_project_permissions(data_base: orm.Session, proj_id: int, user_id: int, need_lead: bool = False):
     """Проверка доступа к проекту."""
     project_obj = project_crud.get_project_by_id(data_base, proj_id)
-
     if not project_obj:
         raise exception.NotFoundError("Проект не найден")
 
     user_team = data_base.query(team.UserTeam).filter(team.UserTeam.team_id == project_obj.team_id,
                                                       team.UserTeam.user_id == user_id).first()
-
     if not user_team:
         raise exception.ForbiddenError("Вы должны состоять в команде проекта")
 
@@ -59,6 +56,9 @@ def update_project_service(data_base: orm.Session, proj_id: int, user_id: int, u
 
 def delete_project_service(data_base: orm.Session, proj_id: int, user_id: int):
     project_obj = check_project_permissions(data_base, proj_id, user_id, need_lead=True)
+    if not project_obj:
+        raise exception.NotFoundError("Проект не найден")
+
     streams = data_base.query(stream.Stream).filter(stream.Stream.project_id == proj_id).all()
     stream_ids = [s.id for s in streams]
 

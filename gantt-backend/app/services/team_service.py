@@ -1,8 +1,8 @@
 from sqlalchemy import orm
-from app.crud import team as team_crud
+
 from app.core import exception
-from app.models import role
-from app.models import project, stream, task, goal, team
+from app.crud import team as team_crud
+from app.models import goal, project, role, stream, task, team
 
 
 def check_team_permissions(data_base: orm.Session, team_id: int, user_id: int, need_lead=False):
@@ -52,7 +52,7 @@ def update_team_service(data_base: orm.Session, team_id: int, user_id: int, upda
     if not team_obj:
         raise exception.NotFoundError("Команда не найдена")
 
-    member = check_team_permissions(data_base, team_id, user_id, need_lead=True)
+    check_team_permissions(data_base, team_id, user_id, need_lead=True)
 
     if update_data.name:
         team_obj.name = update_data.name

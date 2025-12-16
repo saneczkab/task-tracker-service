@@ -1,7 +1,8 @@
 from sqlalchemy import orm
-from app.models import stream, project, team, task, user, meta, role
-from app.crud import task as task_crud
+
 from app.core import exception
+from app.crud import task as task_crud
+from app.models import meta, project, role, stream, task, team, user
 
 
 def check_stream_permissions(data_base: orm.Session, stream_id: int, user_id: int, need_lead=False):
@@ -10,6 +11,9 @@ def check_stream_permissions(data_base: orm.Session, stream_id: int, user_id: in
         raise exception.NotFoundError("Стрим не найден")
 
     project_obj = data_base.query(project.Project).filter(project.Project.id == stream_obj.project_id).first()
+    if not project_obj:
+        raise exception.NotFoundError("Проект не найден")
+
     user_team = data_base.query(team.UserTeam).filter(team.UserTeam.team_id == project_obj.team.id,
                                                       team.UserTeam.user_id == user_id).first()
     if not user_team:
@@ -27,12 +31,18 @@ def check_task_permissions(data_base: orm.Session, task_id: int, user_id: int, n
         raise exception.NotFoundError("Задача не найдена")
 
     stream_obj = data_base.query(stream.Stream).filter(stream.Stream.id == task_obj.stream_id).first()
+    if not stream_obj:
+        raise exception.NotFoundError("Стрим не найден")
+
     project_obj = data_base.query(project.Project).filter(project.Project.id == stream_obj.project_id).first()
+    if not project_obj:
+        raise exception.NotFoundError("Проект не найден")
+
     user_team = data_base.query(team.UserTeam).filter(team.UserTeam.team_id == project_obj.team.id,
                                                       team.UserTeam.user_id == user_id).first()
-
     if not user_team:
         raise exception.ForbiddenError("У вас нет доступа к задаче")
+
     if need_lead and user_team.role_id != role.Role.EDITOR:
         raise exception.ForbiddenError("У вас нет прав на выполнение действия")
 
@@ -58,7 +68,7 @@ def get_stream_tasks_service(data_base: orm.Session, stream_id: int, user_id: in
 
 
 def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, task_data):
-    stream_obj = check_stream_permissions(data_base, stream_id, user_id, need_lead=True)
+    check_stream_permissions(data_base, stream_id, user_id, need_lead=True)
 
     if task_data.position is None:
         last_pos = data_base.query(task.Task).filter(task.Task.stream_id == stream_id).order_by(task.Task.position.desc()).first()
@@ -70,6 +80,7 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
         assignee_user = data_base.query(user.User).filter(user.User.email == task_data.assignee_email).first()
         if not assignee_user:
             raise exception.NotFoundError("Пользователь не найден")
+
         data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=new_task.id))
 
     data_base.commit()
@@ -84,9 +95,11 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
         assignee_user = data_base.query(user.User).filter(user.User.email == task_update_data.assignee_email).first()
         if not assignee_user:
             raise exception.NotFoundError("Пользователь не найден")
+
         old_user_task = data_base.query(meta.UserTask).filter(meta.UserTask.task_id == task_id).first()
         if old_user_task:
             data_base.delete(old_user_task)
+
         data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=task_id))
 
     task_crud.update_task(data_base, task_obj, task_update_data)
@@ -98,6 +111,7 @@ def delete_task_service(data_base: orm.Session, task_id: int, user_id: int):
     old_user_task = data_base.query(meta.UserTask).filter(meta.UserTask.task_id == task_id).first()
     if old_user_task:
         data_base.delete(old_user_task)
+
     task_crud.delete_task(data_base, task_obj)
 
 

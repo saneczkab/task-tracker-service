@@ -1,6 +1,6 @@
-import typing
+
 import fastapi
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 class TeamResponse(BaseModel):
@@ -19,5 +19,5 @@ class UserResponse(BaseModel):
         return value
 
     nickname: str
-    teams: typing.List[TeamResponse]
+    teams: list[TeamResponse]
     model_config = ConfigDict(from_attributes=True)

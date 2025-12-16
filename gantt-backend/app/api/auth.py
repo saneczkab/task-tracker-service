@@ -1,8 +1,8 @@
 import fastapi
 from sqlalchemy import orm
-from app.core import db
+
+from app.core import db, exception
 from app.services import user_service
-from app.core import exception
 
 router = fastapi.APIRouter()
 
