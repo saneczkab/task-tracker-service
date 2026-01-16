@@ -9,7 +9,7 @@ export async function createTeamApi(name, token) {
     );
     return { ok: true };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }
 
@@ -23,7 +23,7 @@ export async function addUserToTeamApi(teamId, userEmail, token) {
 
     return { ok: true };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }
 
@@ -34,7 +34,7 @@ export async function fetchTeamsApi(token) {
     });
     return { ok: true, teams: response.data.teams };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }
 
@@ -53,7 +53,7 @@ export async function fetchTeamNameApi(teamId, token) {
       return { ok: true, name: "Команда" };
     }
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }
 
@@ -65,7 +65,7 @@ export async function fetchTeamMembersApi(teamId, token) {
 
     return { ok: true, users: response.data };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }
 
@@ -79,7 +79,7 @@ export async function updateTeamNameApi(teamId, newName, token) {
 
     return { ok: true };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }
 
@@ -91,7 +91,7 @@ export async function deleteTeamApi(teamId, token) {
 
     return { ok: true };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }
 
@@ -105,6 +105,6 @@ export async function deleteUserFromTeamApi(teamId, userEmail, token) {
 
     return { ok: true };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return { ok: false, status: e.response.status, details: e.response.data };
   }
 }

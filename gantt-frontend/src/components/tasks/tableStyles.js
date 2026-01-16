@@ -27,6 +27,8 @@ export const HEADER_CELL_STYLES = {
   color: "rgba(31, 31, 31, 0.6)",
   fontWeight: 600,
   fontFamily: "Montserrat, sans-serif",
+  cursor: "pointer",
+  userSelect: "none",
 };
 
 export const CELL_STYLES = {
@@ -68,4 +70,10 @@ export const TOGGLE_BUTTON_STYLES = {
   "&:hover": {
     backgroundColor: "transparent",
   },
+};
+
+export const SORTABLE_HEADER_CELL_STYLES = {
+  ...HEADER_CELL_STYLES,
+  cursor: "pointer",
+  userSelect: "none",
 };

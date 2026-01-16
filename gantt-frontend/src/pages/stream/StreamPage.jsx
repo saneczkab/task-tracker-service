@@ -1,60 +1,33 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import Topbar from "../../components/ui/Topbar.jsx";
-import Sidebar from "../../components/ui/Sidebar.jsx";
+import React, { useState } from "react";
+import { useParams } from "react-router-dom";
 import GoalList from "../../components/tasks/GoalList.jsx";
 import TaskList from "../../components/tasks/TaskList.jsx";
+import StreamLayout from "../../components/layout/StreamLayout.jsx";
 
 const StreamPage = () => {
-  const { streamId } = useParams();
-  const { teamId } = useParams();
-
-  const navigate = useNavigate();
-
-  const [streamName, setStreamName] = useState("");
-
-  useEffect(() => {
-    fetchStreamName(teamId);
-  }, [streamId, navigate]);
-
-  const fetchStreamName = async () => {
-    const token = window.localStorage.getItem("auth_token");
-
-    try {
-      const res = await fetch(`/api/stream/${streamId}`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          Authorization: token,
-        },
-      });
-
-      if (!res.ok) {
-        // TODO
-        return;
-      }
-
-      const data = await res.json();
-      setStreamName(data.name);
-    } catch {
-      // TODO
-    }
-  };
+  const { streamId, teamId } = useParams();
+  const [projId, setProjId] = useState(null);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Topbar />
-      <div className="flex flex-1">
-        <Sidebar teamId={teamId} />
-        <main className="flex-1 p-6">
-          <h1 className="font-bold text-xl mb-4">Цели стрима {streamName}</h1>
-          <GoalList streamId={Number(streamId)} />
+    <div className="min-h-screen flex flex-col bg-[#F5F6F7]">
+      <div className="flex flex-1 gap-4">
+        <div className="flex flex-1">
+          <StreamLayout
+            teamId={teamId}
+            streamId={streamId}
+            onProjIdLoaded={setProjId}
+          >
+            <h2 className="font-bold text-lg mb-4">Цели стрима</h2>
+            <GoalList streamId={Number(streamId)} />
 
-          <h1 className="font-bold text-xl mb-4 mt-8">
-            Задачи стрима {streamName}
-          </h1>
-          <TaskList streamId={Number(streamId)} />
-        </main>
+            <h2 className="font-bold text-lg mb-4 mt-8">Задачи стрима</h2>
+            <TaskList
+              streamId={Number(streamId)}
+              projectId={projId}
+              teamId={teamId}
+            />
+          </StreamLayout>
+        </div>
       </div>
     </div>
   );

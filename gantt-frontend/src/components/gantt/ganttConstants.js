@@ -1,0 +1,11 @@
+export const HEADER_HEIGHT = 66;
+export const GOAL_ROW_HEIGHT = 44;
+export const TASK_ROW_HEIGHT = 44;
+export const ROW_GAP = 3;
+export const SEPARATOR_OFFSET = 0;
+export const LABEL_HEIGHT = 20;
+export const LABEL_MARGIN = 8;
+export const BETWEEN_GOALS_TASKS = 0;
+export const STREAM_BOTTOM_PADDING = 0;
+export const FONT_SIZE = 15;
+export const SIDEBAR_WIDTH = 220;

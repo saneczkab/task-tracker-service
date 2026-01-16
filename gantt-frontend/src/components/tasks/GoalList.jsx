@@ -13,7 +13,12 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { MoreVert as MoreVertIcon, Add as AddIcon } from "@mui/icons-material";
+import {
+  MoreVert as MoreVertIcon,
+  Add as AddIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+} from "@mui/icons-material";
 import GoalForm from "./GoalForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
@@ -40,6 +45,9 @@ const GoalList = ({ streamId }) => {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
 
+  const [sortField, setSortField] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
+
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
     [],
@@ -53,6 +61,7 @@ const GoalList = ({ streamId }) => {
 
     if (!response.ok) {
       processError(response.status);
+      setLoading(false);
       return;
     }
 
@@ -115,6 +124,66 @@ const GoalList = ({ streamId }) => {
     closeMenu();
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortField !== field) return null;
+    return sortOrder === "asc" ? (
+      <ArrowUpwardIcon sx={{ fontSize: 16, ml: 0.5 }} />
+    ) : (
+      <ArrowDownwardIcon sx={{ fontSize: 16, ml: 0.5 }} />
+    );
+  };
+
+  const sortedGoals = useMemo(() => {
+    const sorted = [...goals];
+
+    sorted.sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortField) {
+        case "name":
+          aValue = (a.name || "").toLowerCase();
+          bValue = (b.name || "").toLowerCase();
+          break;
+        case "start_date":
+          aValue = a.start_date ? new Date(a.start_date).getTime() : 0;
+          bValue = b.start_date ? new Date(b.start_date).getTime() : 0;
+          break;
+        case "deadline":
+          aValue = a.deadline ? new Date(a.deadline).getTime() : 0;
+          bValue = b.deadline ? new Date(b.deadline).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) {
+        return sortOrder === "asc" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortOrder === "asc" ? 1 : -1;
+      }
+
+      if (sortField !== "name") {
+        const na = (a.name || "").toLowerCase();
+        const nb = (b.name || "").toLowerCase();
+        return na < nb ? -1 : 1;
+      }
+
+      return 0;
+    });
+
+    return sorted;
+  }, [goals, sortField, sortOrder]);
+
   if (loading) {
     return <CircularProgress size={32} />;
   }
@@ -127,15 +196,46 @@ const GoalList = ({ streamId }) => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={HEADER_CELL_STYLES}>Название</TableCell>
-                  <TableCell sx={HEADER_CELL_STYLES}>Дедлайн</TableCell>
+                  <TableCell
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("name")}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Название
+                      {renderSortIcon("name")}
+                    </div>
+                  </TableCell>
+                  <TableCell
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("start_date")}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Дата начала
+                      {renderSortIcon("start_date")}
+                    </div>
+                  </TableCell>
+                  <TableCell
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("deadline")}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Дедлайн
+                      {renderSortIcon("deadline")}
+                    </div>
+                  </TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {goals.map((goal) => (
+                {sortedGoals.map((goal) => (
                   <TableRow key={goal.id} sx={GOALS_TABLE_BODY_STYLES}>
                     <TableCell sx={CELL_STYLES}>{goal.name}</TableCell>
+
+                    <TableCell sx={CELL_STYLES}>
+                      {goal.start_date
+                        ? toLocaleDateWithTimeHM(goal.start_date)
+                        : "-"}
+                    </TableCell>
 
                     <TableCell sx={LAST_CELL_STYLES}>
                       {goal.deadline

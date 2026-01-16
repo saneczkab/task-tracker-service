@@ -17,3 +17,12 @@ export async function fetchPrioritiesApi() {
     return { ok: false, status: e.response.status };
   }
 }
+
+export async function fetchConnectionTypesApi() {
+  try {
+    const response = await axios.get(`/api/connectionTypes`);
+    return { ok: true, connectionTypes: response.data };
+  } catch (e) {
+    return { ok: false, status: e.response.status };
+  }
+}
