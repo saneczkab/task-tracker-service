@@ -11,4 +11,4 @@ class User(base.Base):
     password_hash = Column(String, nullable=False)
 
     user_teams = orm.relationship("UserTeam", back_populates="user")
-    user_tasks = orm.relationship("UserTask", back_populates="user")
+    assigned_tasks = orm.relationship("UserTask", back_populates="user")
