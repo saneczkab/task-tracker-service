@@ -69,7 +69,8 @@ CREATE TABLE "Goals"
     "name"        varchar NOT NULL,
     "description" text,
     "deadline"    timestamp,
-    "position"    integer NOT NULL
+    "position"    integer NOT NULL,
+    "start_date"  timestamp
 );
 
 CREATE TABLE "Tasks"
