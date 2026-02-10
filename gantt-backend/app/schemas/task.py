@@ -51,6 +51,26 @@ class TaskResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TaskResponseFull(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    status_id: int | None = None
+    priority_id: int | None = None
+    stream_id: int
+    start_date: datetime | None = None
+    deadline: datetime | None = None
+    assignee_email: str | None = None
+    position: int
+    relations: list[TaskRelationResponse] = []
+    team_id: int | None = None
+    team_name: str | None = None
+    project_name: str | None = None
+    stream_name: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TaskRelationCreate(BaseModel):
     task_id: int
     connection_id: int
