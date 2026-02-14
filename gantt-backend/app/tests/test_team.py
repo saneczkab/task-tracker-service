@@ -1,6 +1,8 @@
-import pytest
-import fastapi
 from unittest.mock import Mock
+
+import fastapi
+import pytest
+
 from app.api import team as team_api
 from app.models import team as team_model
 

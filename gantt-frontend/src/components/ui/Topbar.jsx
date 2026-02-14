@@ -3,7 +3,7 @@ import { Button } from "@mui/material";
 
 const Topbar = () => {
   return (
-    <header className="w-full h-14 bg-[#EDEDED] border-b border-gray-200">
+    <header className="w-full h-14 bg-[#F5F6F7] border-b border-gray-200">
       <div className="h-full flex items-center gap-4 px-4">
         <Button variant="text" content="a" href="/">
           Gantt

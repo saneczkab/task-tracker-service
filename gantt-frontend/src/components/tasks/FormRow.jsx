@@ -28,7 +28,7 @@ const FormRow = ({ label, children }) => (
     <Typography
       sx={{
         color: "text.secondary",
-        fontFamily: '"Roboto Flex","Roboto",sans-serif',
+        fontFamily: '"Montserrat", sans-serif',
         fontWeight: 700,
       }}
     >

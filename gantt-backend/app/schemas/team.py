@@ -1,6 +1,6 @@
 from enum import Enum
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserRole(str, Enum):
@@ -29,6 +29,6 @@ class TeamResponse(BaseModel):
 
 
 class TeamUpdate(BaseModel):
-    name: Optional[str] = None
-    newUsers: Optional[List[EmailStr]] = None
-    deleteUsers: Optional[List[EmailStr]] = None
+    name: str | None = None
+    newUsers: list[EmailStr] | None = None
+    deleteUsers: list[EmailStr] | None = None

@@ -1,6 +1,8 @@
-import pytest
-import fastapi
 from unittest.mock import Mock
+
+import fastapi
+import pytest
+
 from app.api import task as task_api
 from app.models import task as task_model
 

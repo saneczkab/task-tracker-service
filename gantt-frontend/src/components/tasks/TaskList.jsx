@@ -12,15 +12,33 @@ import {
   Button,
   Menu,
   MenuItem,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
-import { MoreVert as MoreVertIcon } from "@mui/icons-material";
+import {
+  MoreVert as MoreVertIcon,
+  Add as AddIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+} from "@mui/icons-material";
 import TaskForm from "./TaskForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
+import { fetchUserEmailApi } from "../../api/user.js";
+import {
+  CELL_STYLES,
+  HEADER_CELL_STYLES,
+  LAST_CELL_STYLES,
+  TASKS_TABLE_BODY_STYLES,
+  TABLE_CONTAINER_STYLES,
+  CREATE_BUTTON_STYLES,
+  TOGGLE_BUTTON_STYLES,
+} from "./tableStyles.js";
+import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
-const TaskList = ({ streamId }) => {
+const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
@@ -31,6 +49,11 @@ const TaskList = ({ streamId }) => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+
+  const [filterMode, setFilterMode] = useState("all");
+  const [userEmail, setUserEmail] = useState("");
+  const [sortField, setSortField] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -110,16 +133,29 @@ const TaskList = ({ streamId }) => {
     return response.priorities;
   };
 
+  const fetchUserEmail = async () => {
+    const response = await fetchUserEmailApi(token);
+
+    if (!response.ok) {
+      processError(response.status);
+      return "";
+    }
+
+    return response.email;
+  };
+
   const loadAll = async () => {
     setLoading(true);
 
     const tasks = await fetchTasks();
     const statuses = await fetchStatuses();
     const priorities = await fetchPriorities();
+    const email = await fetchUserEmail();
 
     setTasks(tasks || []);
     setStatuses(statuses || []);
     setPriorities(priorities || []);
+    setUserEmail(email || "");
 
     setLoading(false);
   };
@@ -133,142 +169,240 @@ const TaskList = ({ streamId }) => {
     setMenuTaskId(null);
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortField !== field) {
+      return null;
+    }
+
+    return sortOrder === "asc" ? (
+      <ArrowUpwardIcon sx={{ fontSize: 16, ml: 0.5 }} />
+    ) : (
+      <ArrowDownwardIcon sx={{ fontSize: 16, ml: 0.5 }} />
+    );
+  };
+
+  const filteredTasks = useMemo(() => {
+    if (filterMode === "my") {
+      return tasks.filter((task) => task.assignee_email === userEmail);
+    }
+    return tasks;
+  }, [tasks, filterMode, userEmail]);
+
+  const sortedTasks = useMemo(() => {
+    const sorted = [...filteredTasks];
+
+    sorted.sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortField) {
+        case "name":
+          aValue = (a.name || "").toLowerCase();
+          bValue = (b.name || "").toLowerCase();
+          break;
+        case "assignee":
+          aValue = (a.assignee_email || "").toLowerCase();
+          bValue = (b.assignee_email || "").toLowerCase();
+          break;
+        case "status":
+          aValue = a.status_id
+            ? (statusMap[a.status_id] || "").toLowerCase()
+            : "";
+          bValue = b.status_id
+            ? (statusMap[b.status_id] || "").toLowerCase()
+            : "";
+          break;
+        case "priority":
+          aValue = a.priority_id
+            ? (priorityMap[a.priority_id] || "").toLowerCase()
+            : "";
+          bValue = b.priority_id
+            ? (priorityMap[b.priority_id] || "").toLowerCase()
+            : "";
+          break;
+        case "start_date":
+          aValue = a.start_date ? new Date(a.start_date).getTime() : 0;
+          bValue = b.start_date ? new Date(b.start_date).getTime() : 0;
+          break;
+        case "deadline":
+          aValue = a.deadline ? new Date(a.deadline).getTime() : 0;
+          bValue = b.deadline ? new Date(b.deadline).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) {
+        return sortOrder === "asc" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortOrder === "asc" ? 1 : -1;
+      }
+
+      if (sortField !== "name") {
+        const na = (a.name || "").toLowerCase();
+        const nb = (b.name || "").toLowerCase();
+        return na < nb ? -1 : 1;
+      }
+
+      return 0;
+    });
+
+    return sorted;
+  }, [filteredTasks, sortField, sortOrder, statusMap, priorityMap]);
+
   if (loading) {
     return <CircularProgress size={32} />;
   }
 
   return (
     <>
-      {tasks.length > 0 ? (
-        <div>
-          <TableContainer
-            component={Paper}
-            sx={{
-              borderRadius: 2,
-              overflow: "hidden",
-              mt: 1,
-              border: "1px solid black",
-            }}
+      <div
+        style={{
+          backgroundColor: "#F5F6F7",
+          padding: "12px",
+          borderRadius: "8px",
+          marginBottom: "16px",
+          display: "inline-block",
+        }}
+      >
+        <ToggleButtonGroup
+          value={filterMode}
+          exclusive
+          onChange={(e, newValue) => {
+            if (newValue !== null) {
+              setFilterMode(newValue);
+            }
+          }}
+          aria-label="task filter"
+          size="small"
+          sx={{
+            "& .MuiToggleButtonGroup-grouped": {
+              border: "none",
+              "&:not(:first-of-type)": {
+                borderRadius: "8px",
+                marginLeft: "8px",
+              },
+              "&:first-of-type": {
+                borderRadius: "8px",
+              },
+            },
+          }}
+        >
+          <ToggleButton
+            value="all"
+            aria-label="all tasks"
+            sx={TOGGLE_BUTTON_STYLES}
           >
+            Все задачи
+          </ToggleButton>
+          <ToggleButton
+            value="my"
+            aria-label="my tasks"
+            sx={TOGGLE_BUTTON_STYLES}
+          >
+            Назначенные мне
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </div>
+
+      {filteredTasks.length > 0 ? (
+        <div>
+          <TableContainer component={Paper} sx={TABLE_CONTAINER_STYLES}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("name")}
                   >
-                    Название
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Название
+                      {renderSortIcon("name")}
+                    </div>
                   </TableCell>
-
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("assignee")}
                   >
-                    Исполнитель
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Исполнитель
+                      {renderSortIcon("assignee")}
+                    </div>
                   </TableCell>
-
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("status")}
                   >
-                    Статус
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Статус
+                      {renderSortIcon("status")}
+                    </div>
                   </TableCell>
-
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("priority")}
                   >
-                    Приоритет
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Приоритет
+                      {renderSortIcon("priority")}
+                    </div>
                   </TableCell>
-
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("start_date")}
                   >
-                    Дата начала
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Дата начала
+                      {renderSortIcon("start_date")}
+                    </div>
                   </TableCell>
-
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: "1px solid rgba(0,0,0,0.12)"
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("deadline")}
                   >
-                    Дедлайн
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Дедлайн
+                      {renderSortIcon("deadline")}
+                    </div>
                   </TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {(tasks || []).map((task) => (
-                  <TableRow
-                    key={task.id}
-                    sx={{
-                      "&:hover": { backgroundColor: "#fafafa" },
-                      "& .task-actions": {
-                        opacity: 0,
-                        transition: "opacity 0.2s",
-                      },
-                      "&:hover .task-actions": { opacity: 1 },
-                    }}
-                  >
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
-                      {task.name}
-                    </TableCell>
+                {(sortedTasks || []).map((task) => (
+                  <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
+                    <TableCell sx={CELL_STYLES}>{task.name}</TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.assignee_email || "-"}
                     </TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.status_id ? statusMap[task.status_id] : "-"}
                     </TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.priority_id ? priorityMap[task.priority_id] : "-"}
                     </TableCell>
 
-                    <TableCell
-                    // sx={{ borderRight: "1px solid rgba(0,0,0,0.12)" }}
-                    >
+                    <TableCell sx={CELL_STYLES}>
                       {task.start_date
-                        ? new Date(task.start_date).toLocaleString()
+                        ? toLocaleDateWithTimeHM(task.start_date)
                         : "-"}
                     </TableCell>
 
-                    <TableCell
-                      sx={{
-                        // borderRight: "1px solid rgba(0,0,0,0.12)",
-                        position: "relative",
-                        pr: 5,
-                      }}
-                    >
+                    <TableCell sx={LAST_CELL_STYLES}>
                       {task.deadline
-                        ? new Date(task.deadline).toLocaleString()
+                        ? toLocaleDateWithTimeHM(task.deadline)
                         : "-"}
 
                       <IconButton
@@ -287,6 +421,15 @@ const TaskList = ({ streamId }) => {
                     </TableCell>
                   </TableRow>
                 ))}
+
+                <Button
+                  variant="text"
+                  onClick={handleCreate}
+                  startIcon={<AddIcon />}
+                  sx={CREATE_BUTTON_STYLES}
+                >
+                  Создать
+                </Button>
               </TableBody>
             </Table>
           </TableContainer>
@@ -302,21 +445,17 @@ const TaskList = ({ streamId }) => {
 
             <MenuItem onClick={handleDelete}>Удалить</MenuItem>
           </Menu>
-
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить задачу
-            </Button>
-          </div>
         </div>
       ) : (
         <div>
-          Задачи не заданы. Создайте задачу!
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить задачу
-            </Button>
-          </div>
+          <Button
+            variant="text"
+            onClick={handleCreate}
+            startIcon={<AddIcon />}
+            sx={CREATE_BUTTON_STYLES}
+          >
+            Создать
+          </Button>
         </div>
       )}
 
@@ -327,6 +466,8 @@ const TaskList = ({ streamId }) => {
         task={selectedTask}
         statuses={statuses}
         priorities={priorities}
+        projectId={projectId}
+        teamId={teamId}
         onSaved={() => {
           setFormOpen(false);
           loadAll();

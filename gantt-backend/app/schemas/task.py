@@ -1,38 +1,76 @@
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
 class TaskCreate(BaseModel):
     name: str
-    description: Optional[str] = None
-    status_id: Optional[int]
-    priority_id: Optional[int]
-    assignee_email: Optional[str] = None  # TODO: multiple user responsible
-    start_date: Optional[datetime] = None
-    deadline: Optional[datetime] = None
+    description: str | None = None
+    status_id: int | None
+    priority_id: int | None
+    assignee_email: str | None = None
+    start_date: datetime | None = None
+    deadline: datetime | None = None
+    position: int | None = None
 
 
 class TaskUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    status_id: Optional[int] = None
-    priority_id: Optional[int] = None
-    assignee_email: Optional[str] = None  # TODO: multiple user responsible
-    start_date: Optional[datetime] = None
-    deadline: Optional[datetime] = None
+    name: str | None = None
+    description: str | None = None
+    status_id: int | None = None
+    priority_id: int | None = None
+    assignee_email: str | None = None
+    start_date: datetime | None = None
+    deadline: datetime | None = None
+    position: int | None = None
+
+
+class TaskRelationResponse(BaseModel):
+    id: int
+    task_id_1: int
+    task_id_2: int
+    connection_id: int
+    connection_name: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TaskResponse(BaseModel):
     id: int
     name: str
-    description: Optional[str] = None
-    status_id: Optional[int] = None
-    priority_id: Optional[int] = None
+    description: str | None = None
+    status_id: int | None = None
+    priority_id: int | None = None
     stream_id: int
-    start_date: Optional[datetime] = None
-    deadline: Optional[datetime] = None
-    assignee_email: Optional[str] = None
-    # TODO: multiple user responsible
+    start_date: datetime | None = None
+    deadline: datetime | None = None
+    assignee_email: str | None = None
+    position: int
+    relations: list[TaskRelationResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TaskResponseFull(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    status_id: int | None = None
+    priority_id: int | None = None
+    stream_id: int
+    start_date: datetime | None = None
+    deadline: datetime | None = None
+    assignee_email: str | None = None
+    position: int
+    relations: list[TaskRelationResponse] = []
+    team_id: int | None = None
+    team_name: str | None = None
+    project_name: str | None = None
+    stream_name: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TaskRelationCreate(BaseModel):
+    task_id: int
+    connection_id: int

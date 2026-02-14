@@ -1,24 +1,22 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
-import Topbar from "../ui/Topbar.jsx";
-import Sidebar from "../ui/Sidebar.jsx";
 import KanbanElement from "./KanbanElement.jsx";
 import TaskForm from "./TaskForm.jsx";
+import StreamLayout from "../layout/StreamLayout.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
-import { fetchStreamApi } from "../../api/stream.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
 
 const KanbanBoard = () => {
   const { teamId, streamId } = useParams();
 
-  const [streamName, setStreamName] = useState("");
   const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [projId, setProjId] = useState(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -73,17 +71,6 @@ const KanbanBoard = () => {
     setTasks((prev) => (prev || []).filter((t) => t.id !== task.id));
   };
 
-  const fetchStream = async () => {
-    const response = await fetchStreamApi(streamId, token);
-
-    if (!response.ok) {
-      processError(response.status);
-      return;
-    }
-
-    return response.stream;
-  };
-
   const fetchTasks = async () => {
     const response = await fetchTasksApi(streamId, token);
 
@@ -117,27 +104,25 @@ const KanbanBoard = () => {
     return response.priorities;
   };
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
 
-    const [stream, tasksData, statusesData, prioritiesData] = await Promise.all(
-      [fetchStream(), fetchTasks(), fetchStatuses(), fetchPriorities()],
-    );
-
-    if (stream) {
-      setStreamName(stream.name);
-    }
+    const [tasksData, statusesData, prioritiesData] = await Promise.all([
+      fetchTasks(),
+      fetchStatuses(),
+      fetchPriorities(),
+    ]);
 
     setTasks(tasksData || []);
     setStatuses(statusesData);
     setPriorities(prioritiesData);
 
     setLoading(false);
-  };
+  }, [streamId, token]);
 
   useEffect(() => {
     loadAll();
-  }, [streamId]);
+  }, [loadAll]);
 
   const handleDrop = async (event, targetStatusId) => {
     event.preventDefault();
@@ -166,68 +151,74 @@ const KanbanBoard = () => {
 
   if (loading) {
     return (
-      <Box className="min-h-screen flex flex-col bg-white">
-        <Topbar />
-        <Box className="flex flex-1">
-          <Sidebar teamId={teamId} />
-          <Box className="flex-1 p-6 flex items-center justify-center">
+      <div>
+        <StreamLayout
+          teamId={teamId}
+          streamId={streamId}
+          onProjIdLoaded={setProjId}
+        >
+          <Box className="flex items-center justify-center h-full">
             <CircularProgress size={32} />
           </Box>
-        </Box>
-      </Box>
+        </StreamLayout>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Topbar />
-      <div className="flex flex-1">
-        <Sidebar teamId={teamId} />
-        <main className="flex-1 p-6">
-          <h1 className="font-bold text-xl mb-4">Стрим {streamName}</h1>
-
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "flex-start",
-              overflowX: "auto",
-            }}
-          >
-            {(statuses || []).map((status) => (
-              <div
-                key={status.id}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                }}
-                onDrop={(e) => handleDrop(e, status.id)}
-              >
-                <KanbanElement
-                  title={status.name}
-                  statusId={status.id}
-                  tasks={tasks}
-                  priorityMap={priorityMap}
-                  onTaskEdit={handleEditTask}
-                  onAddTask={handleAddTask}
-                  onTaskDelete={handleTaskDelete}
-                />
-              </div>
-            ))}
-          </Box>
-
-          <TaskForm
-            open={formOpen}
-            onClose={() => {
-              setFormOpen(false);
-              setSelectedTask(null);
-            }}
+    <div className="min-h-screen flex flex-col bg-[#F5F6F7]">
+      <div className="flex flex-1 gap-4">
+        <div className="flex flex-1">
+          <StreamLayout
+            teamId={teamId}
             streamId={streamId}
-            task={selectedTask}
-            statuses={statuses}
-            priorities={priorities}
-            onSaved={handleTaskSaved}
-          />
-        </main>
+            onProjIdLoaded={setProjId}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                alignItems: "flex-start",
+                overflowX: "auto",
+              }}
+            >
+              {(statuses || []).map((status) => (
+                <div
+                  key={status.id}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                  }}
+                  onDrop={(e) => handleDrop(e, status.id)}
+                >
+                  <KanbanElement
+                    title={status.name}
+                    statusId={status.id}
+                    tasks={tasks}
+                    priorityMap={priorityMap}
+                    onTaskEdit={handleEditTask}
+                    onAddTask={handleAddTask}
+                    onTaskDelete={handleTaskDelete}
+                  />
+                </div>
+              ))}
+            </Box>
+
+            <TaskForm
+              open={formOpen}
+              onClose={() => {
+                setFormOpen(false);
+                setSelectedTask(null);
+              }}
+              streamId={streamId}
+              task={selectedTask}
+              statuses={statuses}
+              priorities={priorities}
+              projectId={projId}
+              teamId={teamId}
+              onSaved={handleTaskSaved}
+            />
+          </StreamLayout>
+        </div>
       </div>
     </div>
   );

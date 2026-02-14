@@ -1,6 +1,8 @@
 import datetime
+
 from jose import jwt
 from passlib.context import CryptContext
+
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -19,7 +21,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict) -> str:
     """Создание JWT токена"""
     to_encode = data.copy()
-    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
+    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
     encode_jwt = jwt.encode(to_encode, settings.SECRET_KEY, settings.ALGORITHM)
     return encode_jwt

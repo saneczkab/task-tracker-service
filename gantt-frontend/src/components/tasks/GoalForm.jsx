@@ -22,6 +22,8 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
   const [name, setName] = useState("");
   const [deadlineDate, setDeadlineDate] = useState("");
   const [deadlineTime, setDeadlineTime] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
 
   const isEdit = Boolean(goal?.id);
 
@@ -39,6 +41,8 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
     setName(goal?.name || "");
     setDeadlineDate(goal?.deadline ? toInputDate(goal.deadline) : "");
     setDeadlineTime(goal?.deadline ? toInputTime(goal.deadline) : "");
+    setStartDate(goal?.start_date ? toInputDate(goal.start_date) : "");
+    setStartTime(goal?.start_date ? toInputTime(goal.start_date) : "");
   }, [open, goal]);
 
   const handleSubmit = async () => {
@@ -49,6 +53,13 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
       const iso = toISOStringOrNull(deadlineDate, deadlineTime);
       if (iso) {
         payload.deadline = iso;
+      }
+    }
+
+    if ((startDate || "").trim() !== "") {
+      const isoStart = toISOStringOrNull(startDate, startTime);
+      if (isoStart) {
+        payload.start_date = isoStart;
       }
     }
 
@@ -89,6 +100,25 @@ const GoalForm = ({ open, onClose, streamId, goal = null, onSaved }) => {
               placeholder="Введите название"
               required
             />
+          </FormRow>
+
+          <FormRow label="Дата начала">
+            <div style={{ display: "flex", gap: 4 }}>
+              <TextField
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                size="small"
+                fullWidth
+              />
+              <TextField
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                size="small"
+                sx={{ minWidth: 140 }}
+              />
+            </div>
           </FormRow>
 
           <FormRow label="Дедлайн">

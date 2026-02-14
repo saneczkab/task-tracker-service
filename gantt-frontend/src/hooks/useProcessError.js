@@ -5,7 +5,10 @@ export const useProcessError = (onUnknown = null) => {
 
   // TODO: другие типы ошибок
   const handlers = {
+    401: () => navigate("/login"),
+    403: () => navigate("/error/403"),
     404: () => navigate("/error/404"),
+    500: () => navigate("/error/500"),
   };
 
   return (status) => {

@@ -302,7 +302,7 @@ const Login = () => {
             sx={{
               mt: 2,
               borderRadius: "12px",
-              backgroundColor: "#FFDD2D",
+              backgroundColor: "#dff1ff",
               height: (theme) => theme.spacing(7),
               fontFamily: "inherit",
             }}

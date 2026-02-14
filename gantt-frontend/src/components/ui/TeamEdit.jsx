@@ -314,7 +314,7 @@ const TeamEdit = ({ open, onClose }) => {
                             <IconButton
                               edge="end"
                               component="a"
-                              href={`/team/${team.id}`}
+                              href={`/team/${team.id}/tasks`}
                               onClick={() => {
                                 onClose?.();
                               }}

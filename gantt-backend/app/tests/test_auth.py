@@ -1,7 +1,9 @@
-import pytest
-import fastapi
 from unittest import mock
+
+import fastapi
+import pytest
 from sqlalchemy import exc
+
 from app.api import auth
 
 

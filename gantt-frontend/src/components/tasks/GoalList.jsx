@@ -13,11 +13,25 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import { MoreVert as MoreVertIcon } from "@mui/icons-material";
+import {
+  MoreVert as MoreVertIcon,
+  Add as AddIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+} from "@mui/icons-material";
 import GoalForm from "./GoalForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchGoalsApi, deleteGoalApi } from "../../api/goal.js";
+import {
+  CELL_STYLES,
+  HEADER_CELL_STYLES,
+  LAST_CELL_STYLES,
+  TABLE_CONTAINER_STYLES,
+  GOALS_TABLE_BODY_STYLES,
+  CREATE_BUTTON_STYLES,
+} from "./tableStyles.js";
+import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
 const GoalList = ({ streamId }) => {
   const [goals, setGoals] = useState([]);
@@ -30,6 +44,9 @@ const GoalList = ({ streamId }) => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
+
+  const [sortField, setSortField] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -44,6 +61,7 @@ const GoalList = ({ streamId }) => {
 
     if (!response.ok) {
       processError(response.status);
+      setLoading(false);
       return;
     }
 
@@ -106,6 +124,66 @@ const GoalList = ({ streamId }) => {
     closeMenu();
   };
 
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortField !== field) return null;
+    return sortOrder === "asc" ? (
+      <ArrowUpwardIcon sx={{ fontSize: 16, ml: 0.5 }} />
+    ) : (
+      <ArrowDownwardIcon sx={{ fontSize: 16, ml: 0.5 }} />
+    );
+  };
+
+  const sortedGoals = useMemo(() => {
+    const sorted = [...goals];
+
+    sorted.sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortField) {
+        case "name":
+          aValue = (a.name || "").toLowerCase();
+          bValue = (b.name || "").toLowerCase();
+          break;
+        case "start_date":
+          aValue = a.start_date ? new Date(a.start_date).getTime() : 0;
+          bValue = b.start_date ? new Date(b.start_date).getTime() : 0;
+          break;
+        case "deadline":
+          aValue = a.deadline ? new Date(a.deadline).getTime() : 0;
+          bValue = b.deadline ? new Date(b.deadline).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) {
+        return sortOrder === "asc" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortOrder === "asc" ? 1 : -1;
+      }
+
+      if (sortField !== "name") {
+        const na = (a.name || "").toLowerCase();
+        const nb = (b.name || "").toLowerCase();
+        return na < nb ? -1 : 1;
+      }
+
+      return 0;
+    });
+
+    return sorted;
+  }, [goals, sortField, sortOrder]);
+
   if (loading) {
     return <CircularProgress size={32} />;
   }
@@ -114,68 +192,54 @@ const GoalList = ({ streamId }) => {
     <>
       {goals.length > 0 ? (
         <div>
-          <TableContainer
-            component={Paper}
-            sx={{
-              borderRadius: 2,
-              overflow: "hidden",
-              mt: 1,
-              border: "1px solid black",
-            }}
-          >
+          <TableContainer component={Paper} sx={TABLE_CONTAINER_STYLES}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: '1px solid rgba(0,0,0,0.12)'
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("name")}
                   >
-                    Название
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Название
+                      {renderSortIcon("name")}
+                    </div>
                   </TableCell>
-
                   <TableCell
-                    sx={{
-                      backgroundColor: "#EDEDED",
-                      fontWeight: "bold",
-                      // borderRight: '1px solid rgba(0,0,0,0.12)'
-                    }}
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("start_date")}
                   >
-                    Дедлайн
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Дата начала
+                      {renderSortIcon("start_date")}
+                    </div>
+                  </TableCell>
+                  <TableCell
+                    sx={HEADER_CELL_STYLES}
+                    onClick={() => handleSort("deadline")}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      Дедлайн
+                      {renderSortIcon("deadline")}
+                    </div>
                   </TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {goals.map((goal) => (
-                  <TableRow
-                    key={goal.id}
-                    sx={{
-                      "&:hover": { backgroundColor: "#fafafa" },
-                      "& .goal-actions": {
-                        opacity: 0,
-                        transition: "opacity 0.2s",
-                      },
-                      "&:hover .goal-actions": { opacity: 1 },
-                    }}
-                  >
-                    <TableCell
-                    // sx={{ borderRight: '1px solid rgba(0,0,0,0.12)' }}
-                    >
-                      {goal.name}
+                {sortedGoals.map((goal) => (
+                  <TableRow key={goal.id} sx={GOALS_TABLE_BODY_STYLES}>
+                    <TableCell sx={CELL_STYLES}>{goal.name}</TableCell>
+
+                    <TableCell sx={CELL_STYLES}>
+                      {goal.start_date
+                        ? toLocaleDateWithTimeHM(goal.start_date)
+                        : "-"}
                     </TableCell>
 
-                    <TableCell
-                      sx={{
-                        // borderRight: "1px solid rgba(0,0,0,0.12)",
-                        position: "relative",
-                        pr: 5,
-                      }}
-                    >
+                    <TableCell sx={LAST_CELL_STYLES}>
                       {goal.deadline
-                        ? new Date(goal.deadline).toLocaleString()
+                        ? toLocaleDateWithTimeHM(goal.deadline)
                         : "-"}
 
                       <IconButton
@@ -198,6 +262,15 @@ const GoalList = ({ streamId }) => {
             </Table>
           </TableContainer>
 
+          <Button
+            variant="text"
+            onClick={handleCreate}
+            startIcon={<AddIcon />}
+            sx={CREATE_BUTTON_STYLES}
+          >
+            Создать
+          </Button>
+
           <Menu
             anchorEl={menuAnchorEl}
             open={Boolean(menuAnchorEl)}
@@ -215,21 +288,17 @@ const GoalList = ({ streamId }) => {
               )}
             </MenuItem>
           </Menu>
-
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить цель
-            </Button>
-          </div>
         </div>
       ) : (
         <div>
-          Цели не заданы. Создайте цель!
-          <div style={{ marginTop: 8, display: "flex" }}>
-            <Button variant="text" size="small" onClick={handleCreate}>
-              Добавить цель
-            </Button>
-          </div>
+          <Button
+            variant="text"
+            onClick={handleCreate}
+            startIcon={<AddIcon />}
+            sx={CREATE_BUTTON_STYLES}
+          >
+            Создать
+          </Button>
         </div>
       )}
 

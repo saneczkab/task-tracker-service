@@ -1,0 +1,25 @@
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+]
+
+ignore = [
+    "E501",
+    "B008",
+    "B904",
+]

@@ -68,7 +68,9 @@ CREATE TABLE "Goals"
     "stream_id"   integer NOT NULL,
     "name"        varchar NOT NULL,
     "description" text,
-    "deadline"    timestamp -- ИСПРАВЛЕНО: datetime → timestamp
+    "deadline"    timestamp,
+    "position"    integer NOT NULL,
+    "start_date"  timestamp
 );
 
 CREATE TABLE "Tasks"
@@ -80,7 +82,8 @@ CREATE TABLE "Tasks"
     "status_id"   integer,
     "priority_id" integer,
     "start_date"  timestamp,
-    "deadline"    timestamp
+    "deadline"    timestamp,
+    "position"    integer NOT NULL
 );
 
 CREATE TABLE "UserTeam"

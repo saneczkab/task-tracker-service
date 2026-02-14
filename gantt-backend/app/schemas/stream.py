@@ -1,4 +1,4 @@
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -15,4 +15,4 @@ class StreamResponse(BaseModel):
 
 
 class StreamUpdate(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None

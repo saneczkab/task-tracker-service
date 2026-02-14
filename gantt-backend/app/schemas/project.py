@@ -1,4 +1,3 @@
-import typing
 
 from pydantic import BaseModel, ConfigDict
 
@@ -16,4 +15,4 @@ class ProjectResponse(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    name: typing.Optional[str] = None
+    name: str | None = None

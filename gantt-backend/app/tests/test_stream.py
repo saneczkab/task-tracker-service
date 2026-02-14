@@ -1,6 +1,7 @@
 from unittest.mock import Mock
-import pytest
+
 import fastapi
+import pytest
 
 from app.api import stream as stream_api
 from app.models import stream as stream_models
