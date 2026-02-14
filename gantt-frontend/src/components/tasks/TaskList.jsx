@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { CircularProgress, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Paper, IconButton,
     Button, Menu, MenuItem } from "@mui/material";
 import { MoreVert as MoreVertIcon }
     from '@mui/icons-material';
 import TaskForm from "./TaskForm.jsx";
 
-const TaskList = ({ streamId }) => {
-    const navigate = useNavigate();
+import { useProcessError } from "../../hooks/useProcessError.js";
+import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
+import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
 
+const TaskList = ({ streamId }) => {
     const [tasks, setTasks] = useState([]);
     const [statuses, setStatuses] = useState([]);
     const [priorities, setPriorities] = useState([]);
@@ -21,6 +22,7 @@ const TaskList = ({ streamId }) => {
     const [selectedTask, setSelectedTask] = useState(null);
 
     const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+    const processError = useProcessError();
 
     const openMenu = (event, id) => {
         setMenuAnchorEl(event.currentTarget);
@@ -40,26 +42,13 @@ const TaskList = ({ streamId }) => {
     };
 
     const handleDelete = async () => {
-        try {
-            const response = await fetch(`/api/task/${menuTaskId}`, {
-                method: "DELETE",
-                headers: {
-                    Accept: "application/json",
-                    Authorization: token
-                }
-            });
-
-            if (!response.ok) {
-                // TODO
-                return;
-            }
-
-            await loadAll();
-        } catch {
-            // TODO
-        } finally {
-            closeMenu();
+        const response = await deleteTaskApi(menuTaskId, token);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        await loadAll();
     };
 
     const statusMap = useMemo(() => {
@@ -75,74 +64,50 @@ const TaskList = ({ streamId }) => {
     }, [priorities]);
 
     const fetchTasks = async () => {
-        const response = await fetch(`/api/stream/${streamId}/tasks`, {
-            method: "GET",
-            headers: {
-                Accept: "application/json",
-                Authorization: token
-            }
-        });
-
-        if (response.status === 404) {
-            navigate("/error/404");
-            return [];
-        }
+        const response = await fetchTasksApi(streamId, token);
 
         if (!response.ok) {
-            // TODO
+            processError(response.status);
             return [];
         }
 
-        return await response.json();
-    };
+        return response.tasks;
+    }
 
     const fetchStatuses = async () => {
-        const response = await fetch(`/api/taskStatuses`, {
-            method: "GET",
-            headers: {
-                Accept: "application/json"
-            }
-        });
+        const response = await fetchStatusesApi();
 
         if (!response.ok) {
+            processError(response.status);
             return [];
-            // TODO
         }
 
-        return await response.json();
+        return response.statuses;
     };
 
     const fetchPriorities = async () => {
-        const response = await fetch(`/api/priorities`, {
-            method: "GET",
-            headers: {
-                Accept: "application/json"
-            }
-        });
+        const response = await fetchPrioritiesApi();
+
         if (!response.ok) {
+            processError(response.status);
             return [];
-            // TODO
         }
 
-        return await response.json();
+        return response.priorities;
     };
 
     const loadAll = async () => {
         setLoading(true);
 
-        try {
-            const tasks = await fetchTasks();
-            const statuses = await fetchStatuses();
-            const priorities = await fetchPriorities();
+        const tasks = await fetchTasks();
+        const statuses = await fetchStatuses();
+        const priorities = await fetchPriorities();
 
-            setTasks(tasks || []);
-            setStatuses(statuses || []);
-            setPriorities(priorities || []);
-        } catch {
-            // TODO
-        } finally {
-            setLoading(false);
-        }
+        setTasks(tasks || []);
+        setStatuses(statuses || []);
+        setPriorities(priorities || []);
+
+        setLoading(false);
     };
 
     useEffect(() => {

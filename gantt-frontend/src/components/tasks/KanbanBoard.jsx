@@ -1,19 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import Topbar from "../ui/Topbar.jsx";
 import Sidebar from "../ui/Sidebar.jsx";
 import KanbanElement from "./KanbanElement.jsx";
 import TaskForm from "./TaskForm.jsx";
 
+import { useProcessError } from "../../hooks/useProcessError.js";
+import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
+import { fetchStreamApi } from "../../api/stream.js";
+import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
+
 const KanbanBoard = () => {
     const { teamId, streamId } = useParams();
-    const navigate = useNavigate();
-
-    const token = useMemo(
-        () => window.localStorage.getItem("auth_token") || "",
-        []
-    );
 
     const [streamName, setStreamName] = useState("");
     const [tasks, setTasks] = useState([]);
@@ -23,6 +22,9 @@ const KanbanBoard = () => {
 
     const [formOpen, setFormOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState(null);
+
+  const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+  const processError = useProcessError();
 
     const priorityMap = useMemo(() => {
         const map = {};
@@ -59,192 +61,111 @@ const KanbanBoard = () => {
 
 
     const handleTaskDelete = async (task) => {
-        try {
-            const response = await fetch(`/api/task/${task.id}`, {
-                method: "DELETE",
-                headers: {
-                    Accept: "application/json",
-                    Authorization: token
-                }
-            });
+        const response = await deleteTaskApi(task.id, token);
 
-            if (!response.ok) {
-                // TODO
-                return;
-            }
-
-            setTasks((prev) => (prev || []).filter((t) => t.id !== task.id));
-        } catch {
-            // TODO
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setTasks((prev) => (prev || []).filter((t) => t.id !== task.id));
     };
 
     const fetchStream = async () => {
-        try {
-            const res = await fetch(`/api/stream/${streamId}`, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                    Authorization: token
-                }
-            });
+        const response = await fetchStreamApi(streamId, token);
 
-            if (res.status === 404) {
-                navigate("/error/404");
-                return;
-            }
-
-            if (!res.ok) {
-                // TODO
-                return;
-            }
-
-            return await res.json();
-        } catch {
-            // TODO
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        return response.stream;
     };
 
     const fetchTasks = async () => {
-        try {
-            const res = await fetch(`/api/stream/${streamId}/tasks`, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                    Authorization: token
-                }
-            });
+        const response = await fetchTasksApi(streamId, token);
 
-            if (res.status === 404) {
-                navigate("/error/404");
-                return [];
-            }
-
-            if (!res.ok) {
-                // TODO
-                return;
-            }
-
-            return await res.json();
-        } catch {
-            // TODO
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        return response.tasks;
     };
 
     const fetchStatuses = async () => {
-        try {
-            const res = await fetch(`/api/taskStatuses`, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json"
-                }
-            });
+        const response = await fetchStatusesApi();
 
-            if (!res.ok) {
-                // TODO
-                return;
-            }
-
-            return await res.json();
-        } catch {
-            // TODO
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        return response.statuses;
     };
 
     const fetchPriorities = async () => {
-        try {
-            const res = await fetch(`/api/priorities`, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json"
-                }
-            });
+        const response = await fetchPrioritiesApi();
 
-            if (!res.ok) {
-                // TODO
-                return;
-            }
-
-            return await res.json();
-        } catch {
-            // TODO
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        return response.priorities;
     };
 
     const loadAll = async () => {
         setLoading(true);
 
-        try {
-            const [stream, tasksData, statusesData, prioritiesData] =
-                await Promise.all([
-                    fetchStream(),
-                    fetchTasks(),
-                    fetchStatuses(),
-                    fetchPriorities()
-                ]);
+        const [stream, tasksData, statusesData, prioritiesData] =
+          await Promise.all([
+            fetchStream(),
+            fetchTasks(),
+            fetchStatuses(),
+            fetchPriorities()
+          ]);
 
-            if (stream) {
-                setStreamName(stream.name);
-            }
-
-            setTasks(tasksData || []);
-            setStatuses(statusesData);
-            setPriorities(prioritiesData);
-        } finally {
-            setLoading(false);
+        if (stream) {
+          setStreamName(stream.name);
         }
+
+        setTasks(tasksData || []);
+        setStatuses(statusesData);
+        setPriorities(prioritiesData);
+
+        setLoading(false);
     };
 
     useEffect(() => {
         loadAll();
     }, [streamId]);
 
-    const handleDragOver = (event) => {
-        event.preventDefault();
-    };
-
     const handleDrop = async (event, targetStatusId) => {
         event.preventDefault();
         const idStr = event.dataTransfer.getData("text/plain");
         const taskId = Number(idStr);
         const currentTask = tasks.find(t => t.id === taskId);
+        const payload = {
+            status_id: Number(targetStatusId),
+            assignee_email: currentTask.assignee_email,
+            start_date: currentTask.start_date,
+            deadline: currentTask.deadline
+        };
 
-        try {
-            const res = await fetch(`/api/task/${taskId}`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    Authorization: token
-                },
-                body: JSON.stringify({
-                    status_id: Number(targetStatusId),
-                    assignee_email: currentTask.assignee_email,
-                    start_date: currentTask.start_date,
-                    deadline: currentTask.deadline
-                })
-            });
+        const response = await updateTaskApi(taskId, payload, token);
 
-            if (res.status === 404) {
-                navigate("/error/404");
-                return;
-            }
-
-            if (!res.ok) {
-                // TODO
-                return;
-            }
-
-            const updated = await res.json();
-
-            setTasks((prev) =>
-                (prev || []).map((t) =>
-                    t.id === updated.id ? { ...t, ...updated } : t
-                )
-            );
-        } catch {
-            // TODO
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        const updated = response.task;
+        setTasks((prev) =>
+          (prev || []).map((t) =>
+            t.id === updated.id ? { ...t, ...updated } : t
+          )
+        );
     };
 
     if (loading) {
@@ -262,50 +183,57 @@ const KanbanBoard = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-white">
-            <Topbar />
-            <div className="flex flex-1">
-                <Sidebar teamId={teamId} />
-                <main className="flex-1 p-6">
-                    <h1 className="font-bold text-xl mb-4">
-                        Стрим {streamName}
-                    </h1>
+      <div className="min-h-screen flex flex-col bg-white">
+        <Topbar />
+        <div className="flex flex-1">
+          <Sidebar teamId={teamId} />
+          <main className="flex-1 p-6">
+            <h1 className="font-bold text-xl mb-4">Стрим {streamName}</h1>
 
-                    <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", overflowX: "auto" }}>
-                        {(statuses || []).map((status) => (
-                            <div
-                                key={status.id}
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, status.id)}
-                            >
-                                <KanbanElement
-                                    title={status.name}
-                                    statusId={status.id}
-                                    tasks={tasks}
-                                    priorityMap={priorityMap}
-                                    onTaskEdit={handleEditTask}
-                                    onAddTask={handleAddTask}
-                                    onTaskDelete={handleTaskDelete}
-                                />
-                            </div>
-                        ))}
-                    </Box>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                alignItems: "flex-start",
+                overflowX: "auto",
+              }}
+            >
+              {(statuses || []).map((status) => (
+                <div
+                  key={status.id}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                  }}
+                  onDrop={(e) => handleDrop(e, status.id)}
+                >
+                  <KanbanElement
+                    title={status.name}
+                    statusId={status.id}
+                    tasks={tasks}
+                    priorityMap={priorityMap}
+                    onTaskEdit={handleEditTask}
+                    onAddTask={handleAddTask}
+                    onTaskDelete={handleTaskDelete}
+                  />
+                </div>
+              ))}
+            </Box>
 
-                    <TaskForm
-                        open={formOpen}
-                        onClose={() => {
-                            setFormOpen(false);
-                            setSelectedTask(null);
-                        }}
-                        streamId={streamId}
-                        task={selectedTask}
-                        statuses={statuses}
-                        priorities={priorities}
-                        onSaved={handleTaskSaved}
-                    />
-                </main>
-            </div>
+            <TaskForm
+              open={formOpen}
+              onClose={() => {
+                setFormOpen(false);
+                setSelectedTask(null);
+              }}
+              streamId={streamId}
+              task={selectedTask}
+              statuses={statuses}
+              priorities={priorities}
+              onSaved={handleTaskSaved}
+            />
+          </main>
         </div>
+      </div>
     );
 };
 

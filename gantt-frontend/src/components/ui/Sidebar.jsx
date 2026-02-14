@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Tooltip, IconButton, TextField,  List, ListItem, ListItemButton, ListItemIcon, ListItemText, Collapse,
     Button, CircularProgress, Box }
     from "@mui/material";
@@ -7,11 +7,13 @@ import {
     ViewKanban as ViewKanbanIcon, Edit as EditIcon, ExpandMore, ExpandLess
 } from "@mui/icons-material";
 import TeamEdit from "./TeamEdit.jsx";
-import { useNavigate } from "react-router-dom";
+
+import { createProjectApi, fetchProjectsApi, updateProjectNameApi, deleteProjectApi  } from "../../api/project.js";
+import { createStreamApi, fetchStreamsApi, updateStreamNameApi, deleteStreamApi } from "../../api/stream.js";
+import { fetchTeamNameApi } from "../../api/team.js";
+import { useProcessError } from "../../hooks/useProcessError.js";
 
 const Sidebar = ({ teamId }) => {
-    const navigate = useNavigate();
-
     const [isTeamEditOpen, setIsTeamEditOpen] = useState(false);
     const [teamName, setTeamName] = useState("Команда");
 
@@ -33,69 +35,44 @@ const Sidebar = ({ teamId }) => {
 
     const [uiProjects, setUiProjects] = useState([]);
 
+    const token = useMemo(() => window.localStorage.getItem("auth_token") || "", []);
+    const processError = useProcessError();
+
     useEffect(() => {
-        if (!teamId) return;
         fetchProjects();
     }, [teamId]);
 
     const fetchProjects = async () => {
-        const token = window.localStorage.getItem("auth_token");
+        const response = await fetchProjectsApi(teamId, token);
 
-        try {
-            const res = await fetch(`/api/team/${teamId}/projects`, {
-                method: "GET",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
-
-            if (res.status === 404) {
-                navigate("/error/404");
-                return;
-            }
-
-            const text = await res.text();
-            const parsed = JSON.parse(text);
-            setUiProjects(parsed);
-        } catch {
-            // TODO
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setUiProjects(response.projects);
     };
 
-    const addNewProject = async () => {
-        let name = newProjName.trim() || "Новый проект";
-        const token = window.localStorage.getItem("auth_token");
+    const createProject = async () => {
+        const name = newProjName.trim() || "Новый проект";
         setIsCreateProjLoading(true);
 
-        try {
-            const response = await fetch(`/api/team/${teamId}/project/new`, {
-                method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ name })
-            });
+        const response = await createProjectApi(teamId, name, token);
 
-            if (!response.ok) {
-                // TODO
-            }
-
-            const created = await response.json();
-            setUiProjects((prev) => [
-                ...prev,
-                { id: created.id, name: created.name, open: true, streams: [] }
-            ]);
-
-            setIsCreatingProject(false);
-            setNewProjName("");
-        } catch {
-            // TODO
-        } finally {
-            setIsCreateProjLoading(false);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        const created = await response.created;
+        setUiProjects((prev) => [
+            ...prev,
+            { id: created.id, name: created.name, open: true, streams: [] }
+        ]);
+
+        setIsCreatingProject(false);
+        setNewProjName("");
+        setIsCreateProjLoading(false);
     }
 
     const toggleProject = (projId) => {
@@ -111,73 +88,49 @@ const Sidebar = ({ teamId }) => {
         }
     }
 
-    const createStream = async () => {
+    const createSidebarStream = async () => {
         const projId = newStreamFor;
-        const token = window.localStorage.getItem("auth_token");
         const name = (newStreamName).trim() || "Новый стрим";
         setIsCreateStreamLoading(true);
 
-        try {
-            const response = await fetch(`/api/project/${projId}/stream/new`, {
-                method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ name })
-            });
+        const response = await createStreamApi(projId, name, token);
 
-            if (!response.ok) {
-                // TODO
-            }
-
-            const created = await response.json();
-            setUiProjects((prev) =>
-                prev.map((p) =>
-                    p.id === projId
-                        ? { ...p, streams: [...p.streams, { id: created.id, name: created.name, open: false }] }
-                        : p
-                )
-            );
-            setNewStreamName("");
-            setNewStreamFor(null);
-        } catch {
-            // TODO
-        } finally {
-            setIsCreateStreamLoading(false);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        const created = await response.created;
+        setUiProjects((prev) =>
+            prev.map((p) =>
+                p.id === projId
+                    ? { ...p, streams: [...p.streams, { id: created.id, name: created.name, open: false }] }
+                    : p
+            )
+        );
+
+        setNewStreamName("");
+        setNewStreamFor(null);
+        setIsCreateStreamLoading(false);
     }
 
     const deleteStream = async (projectId, streamId) => {
-        const token = window.localStorage.getItem("auth_token");
         setDeletingStreamId(streamId);
+        const response = await deleteStreamApi(streamId, token);
 
-        try {
-            const res = await fetch(`/api/stream/${streamId}`, {
-                method: "DELETE",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
-
-            if (!res.ok) {
-                // TODO
-            }
-
-            setUiProjects((prev) =>
-                prev.map((proj) =>
-                    proj.id === projectId
-                        ? { ...proj, streams: proj.streams.filter((s) => s.id !== streamId) }
-                        : proj
-                )
-            );
-        } catch {
-            // TODO
-        } finally {
-            setDeletingStreamId(null);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setUiProjects((prev) =>
+            prev.map((proj) =>
+                proj.id === projectId
+                    ? { ...proj, streams: proj.streams.filter((s) => s.id !== streamId) }
+                    : proj
+            )
+        );
+        setDeletingStreamId(null);
     }
 
     const toggleStream = (projectId, streamId) => {
@@ -196,32 +149,21 @@ const Sidebar = ({ teamId }) => {
     };
 
     const deleteProject = async (projId) => {
-        const token = window.localStorage.getItem("auth_token");
         setDeletingProjId(projId);
+        const response = await deleteProjectApi(projId, token);
 
-        try {
-            const response = await fetch(`/api/project/${projId}`, {
-                method: "DELETE",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
-
-            if (!response.ok) {
-                // TODO
-            }
-
-            setUiProjects((prev) => prev.filter((proj) => proj.id !== projId));
-            if (newStreamFor === projId) {
-                setNewStreamFor(null);
-                setNewStreamName("");
-            }
-        } catch {
-            // TODO
-        } finally {
-            setDeletingProjId(null);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        setUiProjects((prev) => prev.filter((proj) => proj.id !== projId));
+        if (newStreamFor === projId) {
+            setNewStreamFor(null);
+            setNewStreamName("");
+        }
+
+        setDeletingProjId(null);
     };
 
     const startEditProject = (proj) => {
@@ -235,120 +177,81 @@ const Sidebar = ({ teamId }) => {
     };
 
     const saveProjectName = async (projId) => {
-        const token = window.localStorage.getItem("auth_token") || "";
         const name = (editedProjName || "").trim() || `Проект ${projId}`;
         setSavingProjId(projId);
 
-        try {
-            const res = await fetch(`/api/project/${projId}`, {
-                method: "PATCH",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ name })
-            });
+        const response = await updateProjectNameApi(projId, name, token);
 
-            if (!res.ok) {
-                // TODO
-            }
-
-            const updated = await res.json();
-            setUiProjects((prev) =>
-                prev.map((p) => (p.id === projId ? { ...p, name: updated.name } : p))
-            );
-            cancelEditProject();
-        } catch {
-            // TODO
-        } finally {
-            setSavingProjId(null);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        const updated = await response.updated;
+        setUiProjects((prev) =>
+            prev.map((p) => (p.id === projId ? { ...p, name: updated.name } : p))
+        );
+        cancelEditProject();
+        setSavingProjId(null);
     };
 
     const fetchProjectStreams = async (projId) => {
-        const token = window.localStorage.getItem("auth_token");
         setUiProjects((prev) =>
             prev.map((p) => (p.id === projId ? { ...p, isStreamsLoading: true } : p))
         );
 
-        try {
-            const res = await fetch(`/api/project/${projId}/streams`, {
-                method: "GET",
-                headers: {
-                    "Accept": "application/json",
-                    "Authorization": token
-                }
-            });
+        const response = await fetchStreamsApi(projId, token);
 
-            if (!res.ok) {
-                // TODO
-            }
-
-            const data = await res.json();
-            setUiProjects((prev) =>
-                prev.map((p) =>
-                    p.id === projId
-                        ? {
-                            ...p,
-                            streams: (data || []).map((s) => ({
-                                id: s.id,
-                                name: s.name,
-                                open: false
-                            })),
-                            isStreamsLoaded: true
-                        }
-                        : p
-                )
-            );
-        } catch {
-            // TODO
-        } finally {
-            setUiProjects((prev) =>
-                prev.map((p) => (p.id === projId ? { ...p, isStreamsLoading: false } : p))
-            );
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        const data = await response.streams;
+        setUiProjects((prev) =>
+            prev.map((p) =>
+                p.id === projId
+                    ? {
+                        ...p,
+                        streams: (data || []).map((s) => ({
+                            id: s.id,
+                            name: s.name,
+                            open: false
+                        })),
+                        isStreamsLoaded: true,
+                        isStreamsLoading: false
+                    }
+                    : p
+            )
+        );
     };
 
     const saveStreamName = async (projectId, streamId) => {
-        const token = window.localStorage.getItem("auth_token");
         const name = (editedStreamName).trim() || `Стрим ${streamId}`;
         setSavingStreamId(streamId);
 
-        try {
-            const res = await fetch(`/api/stream/${streamId}`, {
-                method: "PATCH",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": token
-                },
-                body: JSON.stringify({ name })
-            });
+        const response = await updateStreamNameApi(streamId, name, token);
 
-            if (!res.ok) {
-                // TODO
-            }
-
-            const updated = await res.json();
-            setUiProjects((prev) =>
-                prev.map((p) =>
-                    p.id === projectId
-                        ? {
-                            ...p,
-                            streams: p.streams.map((s) =>
-                                s.id === streamId ? { ...s, name: updated.name } : s
-                            )
-                        }
-                        : p
-                )
-            );
-            cancelEditStream();
-        } catch {
-            // TODO
-        } finally {
-            setSavingStreamId(null);
+        if (!response.ok) {
+            processError(response.status);
+            return;
         }
+
+        const updated = await response.updated;
+        setUiProjects((prev) =>
+            prev.map((p) =>
+                p.id === projectId
+                    ? {
+                        ...p,
+                        streams: p.streams.map((s) =>
+                            s.id === streamId ? { ...s, name: updated.name } : s
+                        )
+                    }
+                    : p
+            )
+        );
+        cancelEditStream();
+        setSavingStreamId(null);
     };
 
     const startEditStream = (stream) => {
@@ -361,36 +264,19 @@ const Sidebar = ({ teamId }) => {
         setEditedStreamName("");
     };
 
+    // TODO: перенести в профиль юзера
     useEffect(() => {
-        if (!teamId) {
-            setTeamName("Команда");
-            return;
-        }
-        const token = window.localStorage.getItem("auth_token");
-        if (!token) return;
-
-        let mounted = true;
-        fetch("/api/user_by_token", {
-            method: "GET",
-            headers: {
-                "Accept": "application/json",
-                "Authorization": token
+        const fetchTeamName = async () => {
+            const response = await fetchTeamNameApi(teamId, token);
+            if (!response.ok) {
+                processError(response.status);
+                return;
             }
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error(`Ошибка ${res.status}`);
-                return res.json();
-            })
-            .then((data) => {
-                if (!mounted) return;
-                const team = (data.teams || []).find(t => Number(t.id) === Number(teamId));
-                setTeamName(team ? team.name : "Команда");
-            })
-            .catch(() => {
-                if (mounted) setTeamName("Команда");
-            });
 
-        return () => { mounted = false; };
+            setTeamName(response.name);
+        };
+
+        fetchTeamName();
     }, [teamId]);
 
     return (
@@ -692,7 +578,7 @@ const Sidebar = ({ teamId }) => {
 
                                                 <IconButton
                                                     size="small"
-                                                    onClick={createStream}>
+                                                    onClick={createSidebarStream}>
                                                     {
                                                         isCreateStreamLoading ? (
                                                             <CircularProgress size={20} />
@@ -755,7 +641,7 @@ const Sidebar = ({ teamId }) => {
                             <IconButton
                                 size="small"
                                 edge="end"
-                                onClick={async () => { await addNewProject(); }}
+                                onClick={async () => { await createProject(); }}
                             >
                                 {
                                     isCreateProjLoading ? (
