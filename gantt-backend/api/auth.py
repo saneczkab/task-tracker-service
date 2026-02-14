@@ -8,6 +8,7 @@ from models.user import User
 
 router = APIRouter()
 
+db = {}
 
 async def get_current_user(authorization: str = Header(...), data_base: Session = Depends(get_db)):
     """Получение текущего пользователя из токена"""
