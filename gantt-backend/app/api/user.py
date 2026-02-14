@@ -11,15 +11,20 @@ router = fastapi.APIRouter()
 @router.get("/api/user_by_token", response_model=user_schemas.UserResponse, status_code=fastapi.status.HTTP_200_OK)
 def get_user_by_token(current_user: user.User = fastapi.Depends(auth.get_current_user),
                       data_base: orm.Session = fastapi.Depends(db.get_db)):
-    user_teams = data_base.query(team.UserTeam).filter(team.UserTeam.user_id == current_user.id).all()
+    user_teams = (
+        data_base.query(team.Team)
+        .join(team.UserTeam, team.UserTeam.team_id == team.Team.id)
+        .filter(team.UserTeam.user_id == current_user.id)
+        .all()
+    )
 
     return {
         "id": current_user.id,
         "email": current_user.email,
         "nickname": current_user.nickname,
         "teams": [
-            {"id": user_team.team.id, "name": user_team.team.name}
-            for user_team in user_teams
+            {"id": t.id, "name": t.name}
+            for t in user_teams
         ]
     }
 

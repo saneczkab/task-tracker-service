@@ -1,0 +1,50 @@
+services:
+  backend:
+    build: ./gantt-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
+      - AUTH_ALGORITHM=${AUTH_ALGORITHM}
+      - AUTH_ACCESS_TOKEN_EXPIRE_DAYS=${AUTH_ACCESS_TOKEN_EXPIRE_DAYS}
+      - AUTH_DATABASE_URL=${AUTH_DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build: ./gantt-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

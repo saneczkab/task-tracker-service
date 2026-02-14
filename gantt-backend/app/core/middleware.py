@@ -3,6 +3,8 @@ import jose
 from app.core import security
 
 EXEMPT_PATHS = {
+    "/docs",
+    "/openapi.json",
     "/api/login",
     "/api/register",
     "/api/check-email",
@@ -10,6 +12,7 @@ EXEMPT_PATHS = {
     "/api/priorities",
     "/api/connectionTypes",
 }
+
 
 async def auth_middleware(request: fastapi.Request, call_next):
     path = request.url.path
@@ -26,7 +29,8 @@ async def auth_middleware(request: fastapi.Request, call_next):
     try:
         payload = security.decode_access_token(token)
     except jose.JWTError:
-        return fastapi.responses.JSONResponse(status_code=401, content={"detail": "Недействительный или просроченный токен"})
+        return fastapi.responses.JSONResponse(status_code=401,
+                                              content={"detail": "Недействительный или просроченный токен"})
 
     user_id = payload.get("sub")
 
