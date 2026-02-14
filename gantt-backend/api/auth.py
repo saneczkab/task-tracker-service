@@ -10,7 +10,6 @@ router = APIRouter()
 
 db = {}
 
-
 async def get_current_user(authorization: str = Header(...), data_base: Session = Depends(get_db)):
     """Получение текущего пользователя из токена"""
     if not authorization.startswith("Bearer "):
@@ -41,7 +40,7 @@ def check_email(email: str, data_base: Session = Depends(get_db)):
     }
 
 
-@router.post("/api/register")
+@router.post("/api/register", status_code=status.HTTP_201_CREATED)
 def register(email: str, nickname: str, password: str, data_base: Session = Depends(get_db)):
     """Регистрация"""
     if data_base.query(User).filter(User.nickname == nickname).first():
@@ -55,10 +54,10 @@ def register(email: str, nickname: str, password: str, data_base: Session = Depe
 
     token = security.create_access_token({"sub": str(user.id)})
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "Bearer"}
 
 
-@router.post("/api/login")
+@router.post("/api/login", status_code=status.HTTP_201_CREATED)
 def login(email: str, password: str, data_base: Session = Depends(get_db)):
     """Авторизация"""
     user = data_base.query(User).filter(User.email == email).first()
@@ -68,4 +67,4 @@ def login(email: str, password: str, data_base: Session = Depends(get_db)):
 
     token = security.create_access_token({"sub": str(user.id)})
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "Bearer"}
