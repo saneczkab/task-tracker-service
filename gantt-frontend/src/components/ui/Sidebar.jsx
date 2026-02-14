@@ -665,7 +665,7 @@ const Sidebar = ({ teamId }) => {
                                                 </ListItem>
 
                                                 <ListItem disablePadding sx={{ pl: 4 }}>
-                                                    <ListItemButton component="a" href="/">
+                                                    <ListItemButton component="a" href={`/team/${teamId}/stream/${stream.id}/kanban`}>
                                                         <ListItemIcon>
                                                             <ViewKanbanIcon fontSize="small" />
                                                         </ListItemIcon>
