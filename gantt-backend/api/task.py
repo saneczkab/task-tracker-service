@@ -84,8 +84,8 @@ def create_task(stream_id: int, task_data: TaskCreate, current_user: User = Depe
         name=task_data.name,
         description=task_data.description or "",
         stream_id=stream_id,
-        status_id=task_data.status_id,
-        priority_id=task_data.priority_id,
+        status_id=task_data.status_id or 1,
+        priority_id=task_data.priority_id or 1,
         start_date=task_data.start_date,
         deadline=task_data.deadline
     )

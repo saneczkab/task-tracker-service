@@ -6,6 +6,7 @@ import Profile from './pages/auth/Profile.jsx'
 import TeamPage from "./pages/team/TeamPage.jsx";
 
 import Error404 from "./pages/error/Error404.jsx";
+import StreamPage from "./pages/stream/StreamPage.jsx";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/team/:teamId" element={<TeamPage />} />
+                <Route path="/team/:teamId/stream/:streamId" element={<StreamPage />} />
 
                 <Route path="/error/404" element={<Error404 />} />
             </Routes>
