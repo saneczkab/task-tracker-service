@@ -2,7 +2,6 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(__file__))
-
 import fastapi
 from app.api.auth import router as auth_router
 from app.api.team import router as team_router
@@ -16,6 +15,7 @@ from app.core import middleware
 
 app = fastapi.FastAPI(title="Task Tracker API")
 app.middleware("http")(middleware.auth_middleware)
+
 app.include_router(auth_router)
 app.include_router(team_router)
 
