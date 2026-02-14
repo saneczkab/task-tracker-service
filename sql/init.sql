@@ -78,7 +78,9 @@ CREATE TABLE "Tasks"
     "name"        varchar,
     "description" text,
     "status_id"   integer,
-    "priority_id" integer
+    "priority_id" integer,
+    "start_date"  timestamp,
+    "deadline"    timestamp
 );
 
 CREATE TABLE "UserTeam"
@@ -261,6 +263,10 @@ ALTER TABLE "TaskReminders"
     ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
 ALTER TABLE "TaskReminders"
     ADD FOREIGN KEY ("reminder_type_id") REFERENCES "ReminderType" ("id");
+ALTER TABLE "UserTask"
+ADD CONSTRAINT usertask_user_id_fkey FOREIGN KEY (user_id) REFERENCES "Users"(id),
+ADD CONSTRAINT usertask_task_id_fkey FOREIGN KEY (task_id) REFERENCES "Tasks"(id);
+
 INSERT INTO "Status" ("name")
 VALUES ('No status'),
        ('To do'),

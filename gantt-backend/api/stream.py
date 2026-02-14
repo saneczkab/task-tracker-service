@@ -31,6 +31,23 @@ def get_project_streams(proj_id: int, current_user: User = Depends(get_current_u
 
     return streams
 
+@router.get("/api/stream/{stream_id}", response_model=StreamResponse, status_code=status.HTTP_200_OK)
+def get_stream(stream_id: int, current_user: User = Depends(get_current_user),
+                data_base: Session = Depends(get_db)):
+    """Получить информацию о стриме stream_id"""
+    stream = data_base.query(Stream).filter(Stream.id == stream_id).first()
+
+    if not stream:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Стрим не найден")
+
+    project = data_base.query(Project).filter(Project.id == stream.project_id).first()
+    user_team = data_base.query(UserTeam).filter(UserTeam.team_id == project.team.id,
+                                                    UserTeam.user_id == current_user.id).first()
+    if not user_team:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="У вас нет доступа к этому стриму")
+
+    return stream
+
 
 @router.post("/api/project/{proj_id}/stream/new", response_model=StreamResponse, status_code=status.HTTP_201_CREATED)
 def create_stream(proj_id: int, stream_data: StreamCreate, current_user: User = Depends(get_current_user),
