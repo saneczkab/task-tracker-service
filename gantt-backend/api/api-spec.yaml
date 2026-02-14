@@ -1,0 +1,1312 @@
+openapi: 3.0.0
+info:
+  title: Authorization API
+  version: 1.0.0
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/check-email:
+    post:
+      security: [ ]
+      summary: "Проверить существование email"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+              required:
+                - email
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/register:
+    post:
+      security: [ ]
+      summary: "Регистрация"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                nickname:
+                  type: string
+                password:
+                  type: string
+              required:
+                - email
+                - nickname
+                - password
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/login:
+    post:
+      security: [ ]
+      summary: "Авторизация"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/user/{user_id}:
+    get:
+      summary: "Получить информацию о пользователе"
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeamWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: "Частично обновить данные о пользователе"
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    mail:
+                      type: string
+                      nullable: true
+                    nickname:
+                      type: string
+                      nullable: true
+                    oldPassword:
+                      type: string
+                    newPassword:
+                      type: string
+                      nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      summary: "Удалить пользователя"
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/team/{team_id}/users:
+    get:
+      summary: "Получить всех пользователей в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        mail:
+                          type: string
+                        nickname:
+                          type: string
+                        role:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/user/{user_id}/team/new:
+    post:
+      summary: "Создать новую команду"
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                team:
+                  $ref: '#/components/schemas/TeamWithoutId'
+
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    $ref: '#/components/schemas/TeamWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/team/{team_id}:
+    patch:
+      summary: "Частично обновить данные о команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                team:
+                  $ref: '#/components/schemas/TeamWithoutId'
+                newUsers:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    $ref: '#/components/schemas/TeamWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: "Удалить команду"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/team/{team_id}/projects:
+    get:
+      summary: "Получить все проекты в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/team/{team_id}/project/new:
+    post:
+      summary: "Создать новый проект"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project:
+                  $ref: '#/components/schemas/ProjectWithoutId'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/ProjectWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/project/{project_id}:
+    patch:
+      summary: "Частично обновить данные проекта"
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project:
+                  $ref: "#/components/schemas/ProjectWithoutId"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: '#/components/schemas/ProjectWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: "Удалить проект"
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdPath'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/project/{project_id}/streams:
+    get:
+      summary: "Получить все стримы в команде"
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  streams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StreamWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/project/{project_id}/stream/new:
+    post:
+      summary: "Создать новый стрим"
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stream:
+                  $ref: '#/components/schemas/StreamWithoutId'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stream:
+                    $ref: '#/components/schemas/StreamWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/stream/{stream_id}:
+    patch:
+      summary: "Частично обновить данные стрима"
+      parameters:
+        - $ref: '#/components/parameters/StreamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stream:
+                  $ref: '#/components/schemas/StreamWithoutId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stream:
+                    $ref: '#/components/schemas/StreamWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: "Удалить стрим"
+      parameters:
+        - $ref: '#/components/parameters/StreamIdPath'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/stream/{stream_id}/goals:
+    get:
+      summary: "Получить все цели у стрима"
+      parameters:
+        - $ref: '#/components/parameters/StreamIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GoalWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/stream/{stream_id}/goal/new:
+    post:
+      summary: "Создать новую цель в проекте"
+      parameters:
+        - $ref: '#/components/parameters/StreamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                goal:
+                  $ref: '#/components/schemas/GoalWithoutId'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goal:
+                    $ref: '#/components/schemas/GoalWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/goal/{goal_id}:
+    patch:
+      summary: "Частично обновить данные цели"
+      parameters:
+        - $ref: '#/components/parameters/GoalIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                goal:
+                  $ref: '#/components/schemas/GoalWithoutId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goal:
+                    $ref: '#/components/schemas/GoalWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: "Удалить цель"
+      parameters:
+        - $ref: '#/components/parameters/GoalIdPath'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/project/{project_id}/tasks:
+    get:
+      summary: "Получить все задачи в проекте"
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/stream/{stream_id}/tasks:
+    get:
+      summary: "Получить все задачи в стриме с учетом фильтра"
+      parameters:
+        - $ref: '#/components/parameters/StreamIdPath'
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/stream/{stream_id}/task/new:
+    post:
+      summary: "Создать задачу в стриме"
+      parameters:
+        - $ref: '#/components/parameters/StreamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                      nullable: true
+                    priority:
+                      type: string
+                      nullable: true
+                    task_relation:
+                      type: string
+                      nullable: true
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                      nullable: true
+                    reminder:
+                      type: object
+                      nullable: true
+                      properties:
+                        type:
+                          type: string
+                          enum: [ "email", "push" ]
+                        datetime:
+                          type: string
+                          format: date-time
+                      required:
+                        - type
+                        - datetime
+                    date_start:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    deadline:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    assigned:
+                      type: string
+                      nullable: true
+                    author:
+                      type: string
+                      nullable: true
+                  required:
+                    - stream_id
+                    - name
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/TaskWithId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/task/{task_id}:
+    patch:
+      summary: "Частично обновить данные задачи"
+      parameters:
+        - $ref: '#/components/parameters/TaskIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task:
+                  type: object
+                  properties:
+                    stream_id:
+                      type: integer
+                    name:
+                      type: string
+                    description:
+                      type: string
+                      nullable: true
+                    priority:
+                      type: string
+                      nullable: true
+                    task_relation:
+                      type: string
+                      nullable: true
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                      nullable: true
+                    reminder:
+                      type: object
+                      nullable: true
+                      properties:
+                        type:
+                          type: string
+                          enum: [ "email", "push" ]
+                        datetime:
+                          type: string
+                          format: date-time
+                      required:
+                        - type
+                        - datetime
+                    date_start:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    deadline:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    assigned:
+                      type: string
+                      nullable: true
+                    author:
+                      type: string
+                      nullable: true
+                  required:
+                    - id
+                    - stream_id
+                    - name
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/TaskWithId'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: "Удалить задачу"
+      parameters:
+        - $ref: '#/components/parameters/TaskIdPath'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/team/{team_id}/task_statuses:
+    get:
+      summary: "Получить все статусы в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statuses:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/team/{team_id}/priorities:
+    get:
+      summary: "Получить все приоритеты в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  priorities:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/team/{team_id}/tags:
+    get:
+      summary: "Получить все теги в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/connection_types:
+    get:
+      security: [ ]
+      summary: "Получить все типы сложных связей"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connection_types:
+                    type: array
+                    items:
+                      type: string
+
+  /api/reminder_types:
+    get:
+      security: [ ]
+      summary: "Получить все типы напоминаний"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reminder_types:
+                    type: array
+                    items:
+                      type: string
+
+  /api/field_types:
+    get:
+      security: [ ]
+      summary: "Получить все типы полей"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  field_types:
+                    type: array
+                    items:
+                      type: string
+
+  /api/user/{user_id}/team/{team_id}/role:
+    get:
+      summary: "Получить роль юзера в команде"
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/TeamIdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/team/{team_id}/statuses/new:
+    post:
+      summary: "Создать новый статус в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status_name:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_id:
+                    type: integer
+                  new_status:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/team/{team_id}/priorities/new:
+    post:
+      summary: "Создать новый приоритет в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                priority_name:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  priority_id:
+                    type: integer
+                  new_priority:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/team/{team_id}/tags/new:
+    post:
+      summary: "Создать новый тег в команде"
+      parameters:
+        - $ref: '#/components/parameters/TeamIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag_name:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tag_id:
+                    type: integer
+                  new_tag:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/status/{status_id}:
+    delete:
+      summary: "Удалить статус"
+      parameters:
+        - name: status_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/priorities/{priority_id}:
+    delete:
+      summary: "Удалить приоритет"
+      parameters:
+        - name: priority_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/tags/{tags_id}:
+    delete:
+      summary: "Удалить тег"
+      parameters:
+        - name: tags_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/fields/{field_id}:
+    delete:
+      summary: "Удалить поле"
+      parameters:
+        - name: field_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        mail:
+          type: string
+        nickname:
+          type: string
+
+    ProjectWithId:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    ProjectWithoutId:
+      type: object
+      properties:
+        name:
+          type: string
+
+    TeamWithId:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    TeamWithoutId:
+      type: object
+      properties:
+        name:
+          type: string
+
+    StreamWithId:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    StreamWithoutId:
+      type: object
+      properties:
+        name:
+          type: string
+
+    GoalWithId:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+
+    GoalWithoutId:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+
+    TaskWithId:
+      type: object
+      properties:
+        id:
+          type: integer
+        stream_id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          nullable: true
+        task_relation:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        reminder:
+          type: object
+          nullable: true
+          properties:
+            type:
+              type: string
+              enum: [ "email", "push" ]
+            datetime:
+              type: string
+              format: date-time
+          required:
+            - type
+            - datetime
+        date_start:
+          type: string
+          format: date-time
+          nullable: true
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+        assigned:
+          type: string
+          nullable: true
+        author:
+          type: string
+          nullable: true
+      required:
+        - id
+        - stream_id
+        - name
+
+  parameters:
+    UserIdPath:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    TeamIdPath:
+      name: team_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    ProjectIdPath:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    StreamIdPath:
+      name: stream_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    GoalIdPath:
+      name: goal_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    TaskIdPath:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  responses:
+    NoContent:
+      description: No content
+
+    BadRequest:
+      description: Bad request
+
+    Unauthorized:
+      description: Unauthorized
+
+    Forbidden:
+      description: Forbidden
+
+    NotFound:
+      description: Not found
+
+    Conflict:
+      description: Conflict
