@@ -119,8 +119,8 @@ const GanttSidebar = forwardRef(
       setMenuRow({ type: row.type, item: row.item, streamId });
     };
 
-    const handleAddTask = async (streamId) => {
-      setSelectedTask(null);
+    const handleAddTask = async (streamId, afterPosition = null) => {
+      setSelectedTask({ position: afterPosition });
       setCurrentStreamId(streamId);
       await loadMeta();
       setTaskFormOpen(true);
@@ -183,8 +183,9 @@ const GanttSidebar = forwardRef(
       });
     };
 
-    const handleTaskSaved = (saved) => {
-      const action = selectedTask ? "update" : "create";
+    const handleTaskSaved = async (saved) => {
+      const action = selectedTask?.id ? "update" : "create";
+
       setTaskFormOpen(false);
       setSelectedTask(null);
       onDataChanged?.({
@@ -193,6 +194,33 @@ const GanttSidebar = forwardRef(
         streamId: currentStreamId,
         item: saved,
       });
+    };
+
+    const handleBeforeCreateTask = async (newPosition) => {
+      const streamTasks =
+        grouped
+          .find((g) => g.stream.item.id === currentStreamId)
+          ?.tasks.map((task) => task.item)
+          .sort((a, b) => (a.position || 0) - (b.position || 0)) || [];
+
+      for (const task of streamTasks) {
+        if (task.position >= newPosition) {
+          const payload = {
+            name: task.name,
+            status_id: Number(task.status_id) || null,
+            priority_id: Number(task.priority_id) || null,
+            assignee_email: task.assignee_email || null,
+            start_date: task.start_date || null,
+            deadline: task.deadline || null,
+            position: task.position + 1,
+          };
+
+          const response = await updateTaskApi(task.id, payload, token);
+          if (!response.ok) {
+            processError(response.status);
+          }
+        }
+      }
     };
 
     const handleGoalDragStart = (goal, streamId) => {
@@ -488,7 +516,7 @@ const GanttSidebar = forwardRef(
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddTask(stream.item.id);
+                          handleAddTask(stream.item.id, goal.item.position);
                         }}
                         sx={{
                           position: "absolute",
@@ -581,7 +609,7 @@ const GanttSidebar = forwardRef(
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddTask(stream.item.id);
+                          handleAddTask(stream.item.id, task.item.position);
                         }}
                         sx={{
                           position: "absolute",
@@ -664,6 +692,7 @@ const GanttSidebar = forwardRef(
             projectId={projectId}
             teamId={teamId}
             onSaved={handleTaskSaved}
+            onBeforeCreate={handleBeforeCreateTask}
           />
 
           {metaLoading && <CircularProgress size={16} />}
