@@ -9,6 +9,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
+import { formatDatetime } from "../../utils/datetime.js";
 
 const TaskCard = ({ task, priorityMap, onEdit, onDelete }) => {
   const { name, assignee_email, deadline, priority_id } = task || {};
@@ -25,7 +26,7 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete }) => {
   }, [priority_id, priorityMap]);
 
   const deadlineLabel = useMemo(() => {
-    return deadline ? new Date(deadline).toLocaleString() : "-";
+    return deadline ? formatDatetime(deadline) : "-";
   }, [deadline]);
 
   const assigneeLabel = useMemo(() => {
