@@ -197,10 +197,11 @@ const GanttSidebar = forwardRef(
     };
 
     const handleBeforeCreateTask = async (newPosition) => {
-      const streamTasks = grouped
-        .find((g) => g.stream.item.id === currentStreamId)
-        ?.tasks.map((task) => task.item)
-        .sort((a, b) => (a.position || 0) - (b.position || 0)) || [];
+      const streamTasks =
+        grouped
+          .find((g) => g.stream.item.id === currentStreamId)
+          ?.tasks.map((task) => task.item)
+          .sort((a, b) => (a.position || 0) - (b.position || 0)) || [];
 
       for (const task of streamTasks) {
         if (task.position >= newPosition) {
