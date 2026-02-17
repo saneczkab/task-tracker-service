@@ -17,6 +17,10 @@ class Task(base.Base):
 
     assigned_users = orm.relationship("UserTask", back_populates="task")
 
+    @property
+    def relations(self):
+        return (self.relations_outgoing or []) + (self.relations_incoming or [])
+
 
 class TaskRelation(base.Base):
     __tablename__ = "TaskRelations"
@@ -29,3 +33,7 @@ class TaskRelation(base.Base):
     task1 = orm.relationship("Task", foreign_keys=[task_id_1], backref="relations_outgoing")
     task2 = orm.relationship("Task", foreign_keys=[task_id_2], backref="relations_incoming")
     connection = orm.relationship("ConnectionType")
+
+    @property
+    def connection_name(self):
+        return self.connection.name if self.connection else None

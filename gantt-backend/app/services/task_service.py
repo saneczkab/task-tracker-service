@@ -49,6 +49,32 @@ def check_task_permissions(data_base: orm.Session, task_id: int, user_id: int, n
     return task_obj
 
 
+def get_all_tasks_service(data_base: orm.Session, user_id: int):
+    user_teams = data_base.query(team.UserTeam).filter(team.UserTeam.user_id == user_id).all()
+
+    if not user_teams:
+        return []
+
+    tasks = []
+
+    for user_team in user_teams:
+        team_projects = data_base.query(project.Project).filter(project.Project.team_id == user_team.team_id).all()
+
+        for project_obj in team_projects:
+            for stream_obj in project_obj.streams:
+                stream_tasks = data_base.query(task.Task).filter(task.Task.stream_id == stream_obj.id).all()
+
+                for task_obj in stream_tasks:
+                    task_obj.team_id = project_obj.team_id
+                    task_obj.team_name = project_obj.team.name if project_obj.team else None
+                    task_obj.project_name = project_obj.name
+                    task_obj.stream_name = stream_obj.name
+                    tasks.append(task_obj)
+
+    return tasks
+
+
+
 def get_project_tasks_service(data_base: orm.Session, project_id: int, user_id: int):
     project_obj = data_base.query(project.Project).filter(project.Project.id == project_id).first()
     if not project_obj:
@@ -113,6 +139,18 @@ def delete_task_service(data_base: orm.Session, task_id: int, user_id: int):
         data_base.delete(old_user_task)
 
     task_crud.delete_task(data_base, task_obj)
+
+
+def delete_task_relation_service(db: orm.Session, relation_id: int, user_id: int):
+    relation = db.query(task.TaskRelation).filter(task.TaskRelation.id == relation_id).first()
+
+    if not relation:
+        raise exception.NotFoundError("Связь не найдена")
+
+    check_task_permissions(db, relation.task_id_1, user_id, need_lead=True)
+
+    db.delete(relation)
+    db.commit()
 
 
 def create_task_relation_service(data_base: orm.Session, task_id_1: int, task_id_2: int, connection_id: int):
