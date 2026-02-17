@@ -71,6 +71,9 @@ def get_all_tasks_service(data_base: orm.Session, user_id: int):
                     task_obj.stream_name = stream_obj.name
                     tasks.append(task_obj)
 
+                    if task_obj.assigned_users:
+                        task_obj.assignee_email = task_obj.assigned_users[0].user.email
+
     return tasks
 
 
