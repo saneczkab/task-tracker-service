@@ -12,9 +12,12 @@ from app.api.stream import router as stream_router
 from app.api.task import router as task_router
 from app.api.team import router as team_router
 from app.api.user import router as user_router
+from app.api.reminder import router as reminder_router
+from app.api.push import router as push_router
 from app.core import middleware
 from app.core.db import engine
 from app.models.base import Base
+from app.core.scheduler import start_scheduler
 
 Base.metadata.create_all(bind=engine)
 
@@ -31,10 +34,16 @@ app.include_router(user_router)
 app.include_router(task_router)
 app.include_router(meta_router)
 
+app.include_router(reminder_router)
+app.include_router(push_router)
 
 @app.get("/")
 def read_root():
     return {"message": "Task Tracker API"}
+
+@app.on_event("startup")
+async def startup_event():
+    start_scheduler()
 
 
 if __name__ == "__main__":

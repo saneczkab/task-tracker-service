@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, orm
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, orm
 
 from app.models import base
 
@@ -37,3 +37,15 @@ class TaskRelation(base.Base):
     @property
     def connection_name(self):
         return self.connection.name if self.connection else None
+
+
+class TaskReminder(base.Base):
+    __tablename__ = "task_reminders"
+
+    id = Column(Integer, primary_key=True)
+
+    task_id = Column(Integer, ForeignKey("Tasks.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("Users.id"), nullable=False)
+
+    remind_at = Column(DateTime, nullable=False)
+    sent = Column(Boolean, default=False)
