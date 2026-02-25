@@ -9,6 +9,12 @@ from app.services import task_service
 router = fastapi.APIRouter()
 
 
+@router.get("/api/tasks/all", response_model=list[task_schemas.TaskResponseFull],
+            status_code=fastapi.status.HTTP_200_OK)
+def get_all_tasks(current_user=fastapi.Depends(auth.get_current_user),
+                  data_base: orm.Session = fastapi.Depends(db.get_db)):
+    """Получить все задачи пользователя"""
+    return task_service.get_all_tasks_service(data_base, current_user.id)
 
 
 @router.patch("/api/task/{task_id}", response_model=task_schemas.TaskResponse)
