@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.db import SessionLocal
 from app.crud import push as push_crud
 from app.crud import reminder as reminder_crud
+from app.crud import task as task_crud
 
 
 def send_push(reminder_id: int):
@@ -21,8 +22,18 @@ def send_push(reminder_id: int):
         return
 
     subscriptions = push_crud.get_subscriptions_by_user(db, reminder.user_id)
+    task_id = reminder.task_id
+    task = task_crud.get_task_by_id(db, task_id)
+    if not task:
+        db.close()
+        return
 
-    payload = json.dumps({"title": "Напоминание","body": f"Приближается дедлайн по задаче {reminder.task_id}"})
+    payload = json.dumps(
+        {
+            "title": "Напоминание",
+            "body": f"Приближается дедлайн по задаче {task.name}",
+        }
+    )
 
     for sub in subscriptions:
         try:
@@ -32,11 +43,11 @@ def send_push(reminder_id: int):
                     "keys": {
                         "p256dh": sub.p256dh,
                         "auth": sub.auth,
-                    }
+                    },
                 },
                 data=payload,
                 vapid_private_key=settings.VAPID_PRIVATE_KEY,
-                vapid_claims={"sub": settings.VAPID_CLAIMS_SUB}
+                vapid_claims={"sub": settings.VAPID_CLAIMS_SUB},
             )
         except Exception:
             pass
@@ -46,19 +57,11 @@ def send_push(reminder_id: int):
 
 
 def create_push_subscription_service(
-    data_base: orm.Session,
-    user_id: int,
-    endpoint: str,
-    p256dh: str,
-    auth: str
+    data_base: orm.Session, user_id: int, endpoint: str, p256dh: str, auth: str
 ):
     """Создать подписку на push уведомления"""
     subscription = push_crud.create_subscription(
-        data_base,
-        user_id=user_id,
-        endpoint=endpoint,
-        p256dh=p256dh,
-        auth=auth
+        data_base, user_id=user_id, endpoint=endpoint, p256dh=p256dh, auth=auth
     )
     data_base.commit()
     data_base.refresh(subscription)
@@ -70,7 +73,9 @@ def get_user_subscriptions_service(data_base: orm.Session, user_id: int):
     return push_crud.get_subscriptions_by_user(data_base, user_id)
 
 
-def delete_push_subscription_service(data_base: orm.Session, subscription_id: int, user_id: int):
+def delete_push_subscription_service(
+    data_base: orm.Session, subscription_id: int, user_id: int
+):
     """Удалить подписку на push уведомления"""
     subscription = push_crud.get_subscription_by_id(data_base, subscription_id)
     if not subscription:
