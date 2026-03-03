@@ -396,7 +396,15 @@ const TaskForm = ({
           {isEdit && (
             <>
               <Divider sx={{ my: 2 }} />
-              <RemindersSection taskId={task.id} token={token} />
+              <RemindersSection
+                taskId={task.id}
+                token={token}
+                deadline={
+                  deadlineDate
+                    ? toISOStringOrNull(deadlineDate, deadlineTime)
+                    : null
+                }
+              />
             </>
           )}
 

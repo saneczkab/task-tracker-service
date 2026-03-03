@@ -13,7 +13,9 @@ export async function getTaskRemindersApi(taskId, token) {
 
 export async function createReminderApi(taskId, remindAt, token) {
   try {
-    const remindAtNaive = remindAt ? remindAt.replace("Z", "") : remindAt;
+    const remindAtNaive = remindAt
+      ? remindAt.replace("Z", "").replace("T", " ").split(".")[0]
+      : remindAt;
     const response = await axios.post(
       `/api/tasks/${taskId}/reminders`,
       { remind_at: remindAtNaive },
@@ -27,7 +29,9 @@ export async function createReminderApi(taskId, remindAt, token) {
 
 export async function updateReminderApi(reminderId, remindAt, token) {
   try {
-    const remindAtNaive = remindAt ? remindAt.replace("Z", "") : remindAt;
+    const remindAtNaive = remindAt
+      ? remindAt.replace("Z", "").replace("T", " ").split(".")[0]
+      : remindAt;
     const response = await axios.patch(
       `/api/tasks/reminders/${reminderId}`,
       { remind_at: remindAtNaive },

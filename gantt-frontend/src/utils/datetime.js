@@ -12,7 +12,8 @@ export const toInputTime = (value) => {
     return "";
   }
 
-  const datetime = new Date(value + "Z");
+  const normalized = value.endsWith("Z") || value.includes("+") ? value : value + "Z";
+  const datetime = new Date(normalized);
   return `${String(datetime.getHours()).padStart(2, "0")}:${String(datetime.getMinutes()).padStart(2, "0")}`;
 };
 
@@ -31,8 +32,8 @@ export const toLocaleDateWithTimeHM = (value) => {
     return "";
   }
 
-  const dateString = value + "Z";
-  const date = new Date(dateString);
+  const normalized = value.endsWith("Z") || value.includes("+") ? value : value + "Z";
+  const date = new Date(normalized);
   const datePart = date.toLocaleDateString();
   const timePart = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   return `${datePart}, ${timePart}`;

@@ -31,7 +31,13 @@ function localToUtcIso(dateStr, timeStr) {
   return date.toISOString();
 }
 
-const RemindersSection = ({ taskId, token }) => {
+const QUICK_OFFSETS = [
+  { label: "За 1 час", ms: 60 * 60 * 1000 },
+  { label: "За 1 сутки", ms: 24 * 60 * 60 * 1000 },
+  { label: "За 3 суток", ms: 3 * 24 * 60 * 60 * 1000 },
+];
+
+const RemindersSection = ({ taskId, token, deadline }) => {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reminderDate, setReminderDate] = useState("");
@@ -55,6 +61,33 @@ const RemindersSection = ({ taskId, token }) => {
       })
       .finally(() => setLoading(false));
   }, [taskId, token]);
+
+  const displayedReminders = (() => {
+    const pending = reminders.filter((r) => !r.sent);
+    const sent = reminders
+      .filter((r) => r.sent)
+      .sort((a, b) => new Date(b.remind_at) - new Date(a.remind_at))
+      .slice(0, 1);
+    return [...pending, ...sent].sort(
+      (a, b) => new Date(a.remind_at) - new Date(b.remind_at),
+    );
+  })();
+
+  const handleQuickSet = (offsetMs) => {
+    if (!deadline) return;
+    const deadlineTs = new Date(deadline).getTime();
+    const targetTs = deadlineTs - offsetMs;
+    const targetDate = new Date(targetTs);
+    if (targetDate <= new Date()) {
+      setLocalError("Расчётное время напоминания уже в прошлом");
+      return;
+    }
+    const local = new Date(targetTs - targetDate.getTimezoneOffset() * 60000);
+    const iso = local.toISOString();
+    setReminderDate(iso.slice(0, 10));
+    setReminderTime(iso.slice(11, 16));
+    setLocalError(null);
+  };
 
   const handleAdd = async () => {
     const remindAt = localToUtcIso(reminderDate, reminderTime);
@@ -132,9 +165,9 @@ const RemindersSection = ({ taskId, token }) => {
 
       {loading ? (
         <CircularProgress size={20} sx={{ my: 1 }} />
-      ) : reminders.length > 0 ? (
+      ) : displayedReminders.length > 0 ? (
         <List dense sx={{ mb: 1 }}>
-          {reminders.map((r) => (
+          {displayedReminders.map((r) => (
             <ListItem
               key={r.id}
               sx={{
@@ -156,7 +189,7 @@ const RemindersSection = ({ taskId, token }) => {
               }
             >
               <ListItemText
-                primary={toLocaleDateWithTimeHM(r.remind_at.replace("Z", ""))}
+                primary={toLocaleDateWithTimeHM(r.remind_at)}
                 secondary={r.sent ? "Отправлено" : null}
                 slotProps={{
                   primary: { variant: "body2" },
@@ -177,6 +210,22 @@ const RemindersSection = ({ taskId, token }) => {
           <Typography variant="body2" fontWeight={600}>
             Добавить напоминание
           </Typography>
+
+          {deadline && (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              {QUICK_OFFSETS.map(({ label, ms }) => (
+                <Button
+                  key={label}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleQuickSet(ms)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </Box>
+          )}
+
           <Box sx={{ display: "flex", gap: 1 }}>
             <TextField
               type="date"
