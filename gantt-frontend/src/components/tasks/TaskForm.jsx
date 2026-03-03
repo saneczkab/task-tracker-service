@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { Delete as DeleteIcon, Add as AddIcon } from "@mui/icons-material";
 import FormRow from "./FormRow.jsx";
+import RemindersSection from "./RemindersSection.jsx";
 import {
   toInputDate,
   toInputTime,
@@ -391,6 +392,13 @@ const TaskForm = ({
               />
             </div>
           </FormRow>
+
+          {isEdit && (
+            <>
+              <Divider sx={{ my: 2 }} />
+              <RemindersSection taskId={task.id} token={token} />
+            </>
+          )}
 
           {isEdit && projectId && teamId && (
             <>
