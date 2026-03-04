@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.tag import TagResponse
 
 
 class TaskCreate(BaseModel):
@@ -23,6 +25,7 @@ class TaskUpdate(BaseModel):
     start_date: datetime | None = None
     deadline: datetime | None = None
     position: int | None = None
+    tag_ids: list[int] | None = None
 
 
 class TaskRelationResponse(BaseModel):
@@ -47,8 +50,9 @@ class TaskResponse(BaseModel):
     assignee_email: str | None = None
     position: int
     relations: list[TaskRelationResponse] = []
+    tags: list[TagResponse] = Field(default_factory=list, alias="tag_list")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class TaskResponseFull(BaseModel):
@@ -67,8 +71,9 @@ class TaskResponseFull(BaseModel):
     team_name: str | None = None
     project_name: str | None = None
     stream_name: str | None = None
+    tags: list[TagResponse] = Field(default_factory=list, alias="tag_list")
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class TaskRelationCreate(BaseModel):

@@ -16,6 +16,11 @@ class Task(base.Base):
     position = Column(Integer, nullable=False, default=0)
 
     assigned_users = orm.relationship("UserTask", back_populates="task")
+    tags = orm.relationship("TaskTag", back_populates="task")
+
+    @property
+    def tag_list(self):
+        return [link.tag for link in self.tags]
 
     @property
     def relations(self):
