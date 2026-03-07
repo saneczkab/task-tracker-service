@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import orm
 
 from app.models import task
@@ -68,3 +70,32 @@ def create_task_relation(db: orm.Session, task_id_1: int, task_id_2: int, connec
     db.commit()
     db.refresh(relation)
     return relation
+
+
+def create_task_history_entries(db: orm.Session, task_id: int, changed_by_id: int, changes: dict):
+    """Записать изменения в историю задачи."""
+    entries = []
+    now = datetime.utcnow()
+    for field_name, (old_value, new_value) in changes.items():
+        entry = task.TaskHistory(
+            task_id=task_id,
+            changed_by_id=changed_by_id,
+            changed_at=now,
+            field_name=field_name,
+            old_value=str(old_value) if old_value is not None else None,
+            new_value=str(new_value) if new_value is not None else None,
+        )
+        db.add(entry)
+        entries.append(entry)
+    return entries
+
+
+def get_task_history(db: orm.Session, task_id: int):
+    """Получить историю изменений задачи."""
+    return (
+        db.query(task.TaskHistory)
+        .filter(task.TaskHistory.task_id == task_id)
+        .order_by(task.TaskHistory.changed_at.desc())
+        .all()
+    )
+

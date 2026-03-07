@@ -79,3 +79,17 @@ class TaskResponseFull(BaseModel):
 class TaskRelationCreate(BaseModel):
     task_id: int
     connection_id: int
+
+
+class TaskHistoryEntry(BaseModel):
+    id: int
+    task_id: int
+    changed_by_id: int
+    changed_by_email: str | None = None
+    changed_at: datetime
+    field_name: str
+    old_value: str | None = None
+    new_value: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
