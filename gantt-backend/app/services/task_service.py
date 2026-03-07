@@ -98,6 +98,20 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
     task_obj, stream_obj, project_obj, team_obj = permissions.check_task_access(data_base, task_id, user_id,
                                                                                 need_lead=True)
 
+    tracked_fields = ["name", "description", "status_id", "priority_id", "start_date", "deadline", "position"]
+    changes = {}
+    for field in tracked_fields:
+        if field in task_update_data.model_fields_set:
+            old_val = getattr(task_obj, field)
+            new_val = getattr(task_update_data, field)
+            if old_val != new_val:
+                changes[field] = (old_val, new_val)
+
+    if task_update_data.assignee_email is not None:
+        old_assignee = task_obj.assigned_users[0].user.email if task_obj.assigned_users else None
+        if old_assignee != task_update_data.assignee_email:
+            changes["assignee_email"] = (old_assignee, task_update_data.assignee_email)
+
     if task_update_data.assignee_email:
         assignee_user = data_base.query(user.User).filter(user.User.email == task_update_data.assignee_email).first()
         if not assignee_user:
@@ -125,6 +139,11 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
             data_base.add(tag.TaskTag(task_id=task_id, tag_id=tag_id))
 
     task_crud.update_task(data_base, task_obj, task_update_data)
+
+    if changes:
+        task_crud.create_task_history_entries(data_base, task_id, user_id, changes)
+        data_base.commit()
+
     return task_obj
 
 
@@ -162,3 +181,16 @@ def create_task_relation_service(data_base: orm.Session, task_id_1: int, task_id
         raise exception.NotFoundError("Тип связи не найден")
 
     return task_crud.create_task_relation(data_base, task_id_1, task_id_2, connection_id)
+
+
+def get_task_history_service(data_base: orm.Session, task_id: int, user_id: int):
+    """Получить историю изменений задачи."""
+    task_obj, _, _, _ = permissions.check_task_access(data_base, task_id, user_id)
+    history = task_crud.get_task_history(data_base, task_id)
+
+    for entry in history:
+        if entry.changed_by:
+            entry.changed_by_email = entry.changed_by.email
+
+    return history
+
