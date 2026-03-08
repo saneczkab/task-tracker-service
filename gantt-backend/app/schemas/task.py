@@ -14,6 +14,7 @@ class TaskCreate(BaseModel):
     start_date: datetime | None = None
     deadline: datetime | None = None
     position: int | None = None
+    tag_ids: list[int] | None = None
 
 
 class TaskUpdate(BaseModel):
