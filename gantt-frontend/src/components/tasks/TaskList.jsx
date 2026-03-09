@@ -14,6 +14,8 @@ import {
   MenuItem,
   ToggleButtonGroup,
   ToggleButton,
+  Chip,
+  Box,
 } from "@mui/material";
 import {
   MoreVert as MoreVertIcon,
@@ -22,6 +24,7 @@ import {
   ArrowDownward as ArrowDownwardIcon,
 } from "@mui/icons-material";
 import TaskForm from "./TaskForm.jsx";
+import { getContrastColor } from "../../utils/taskUtils.js";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
@@ -380,7 +383,35 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
               <TableBody>
                 {(sortedTasks || []).map((task) => (
                   <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
-                    <TableCell sx={CELL_STYLES}>{task.name}</TableCell>
+                    <TableCell sx={CELL_STYLES}>
+                      <Box>
+                        {task.name}
+                        {task.tag_list.length > 0 && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 0.5,
+                              mt: 0.5,
+                            }}
+                          >
+                            {task.tag_list.map((tag) => (
+                              <Chip
+                                key={tag.id}
+                                size="small"
+                                label={tag.name}
+                                sx={{
+                                  backgroundColor: tag.color,
+                                  color: getContrastColor(tag.color),
+                                  fontWeight: 600,
+                                  fontFamily: "Montserrat, sans-serif",
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    </TableCell>
 
                     <TableCell sx={CELL_STYLES}>
                       {task.assignee_email || "-"}
