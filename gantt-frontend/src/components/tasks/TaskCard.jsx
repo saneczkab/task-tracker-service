@@ -10,8 +10,9 @@ import {
 } from "@mui/material";
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 import { getContrastColor } from "../../utils/taskUtils.js";
+import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
-const TaskCard = ({ task, priorityMap, onEdit, onDelete }) => {
+const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
   const {
     name,
     assignee_email,
@@ -32,7 +33,7 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete }) => {
   }, [priority_id, priorityMap]);
 
   const deadlineLabel = useMemo(() => {
-    return deadline ? new Date(deadline).toLocaleString() : "-";
+    return deadline ? toLocaleDateWithTimeHM(deadline) : "-";
   }, [deadline]);
 
   const assigneeLabel = useMemo(() => {
@@ -106,6 +107,17 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete }) => {
                   }}
                 >
                   Изменить
+                </MenuItem>
+              )}
+
+              {onHistory && (
+                <MenuItem
+                  onClick={() => {
+                    onHistory(task);
+                    setMenuAnchor(null);
+                  }}
+                >
+                  История изменений
                 </MenuItem>
               )}
 

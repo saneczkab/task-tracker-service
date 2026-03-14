@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import KanbanElement from "./KanbanElement.jsx";
 import TaskForm from "./TaskForm.jsx";
+import TaskHistory from "./TaskHistory.jsx";
 import StreamLayout from "../layout/StreamLayout.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
@@ -20,6 +21,9 @@ const KanbanBoard = () => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTask, setHistoryTask] = useState(null);
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -69,6 +73,11 @@ const KanbanBoard = () => {
     }
 
     setTasks((prev) => (prev || []).filter((t) => t.id !== task.id));
+  };
+
+  const handleTaskHistory = (task) => {
+    setHistoryTask(task);
+    setHistoryOpen(true);
   };
 
   const fetchTasks = async () => {
@@ -198,6 +207,7 @@ const KanbanBoard = () => {
                     onTaskEdit={handleEditTask}
                     onAddTask={handleAddTask}
                     onTaskDelete={handleTaskDelete}
+                    onTaskHistory={handleTaskHistory}
                   />
                 </div>
               ))}
@@ -216,6 +226,14 @@ const KanbanBoard = () => {
               projectId={projId}
               teamId={teamId}
               onSaved={handleTaskSaved}
+            />
+
+            <TaskHistory
+              open={historyOpen}
+              onClose={() => setHistoryOpen(false)}
+              task={historyTask}
+              statuses={statuses}
+              priorities={priorities}
             />
           </StreamLayout>
         </div>

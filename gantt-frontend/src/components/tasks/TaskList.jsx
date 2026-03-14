@@ -24,6 +24,7 @@ import {
   ArrowDownward as ArrowDownwardIcon,
 } from "@mui/icons-material";
 import TaskForm from "./TaskForm.jsx";
+import TaskHistory from "./TaskHistory.jsx";
 import { getContrastColor } from "../../utils/taskUtils.js";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
@@ -53,6 +54,9 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTask, setHistoryTask] = useState(null);
+
   const [filterMode, setFilterMode] = useState("all");
   const [userEmail, setUserEmail] = useState("");
   const [sortField, setSortField] = useState("name");
@@ -78,6 +82,13 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
     const t = (tasks || []).find((x) => x.id === menuTaskId);
     setSelectedTask(t || null);
     setFormOpen(true);
+    closeMenu();
+  };
+
+  const handleShowHistory = () => {
+    const t = (tasks || []).find((x) => x.id === menuTaskId);
+    setHistoryTask(t || null);
+    setHistoryOpen(true);
     closeMenu();
   };
 
@@ -474,6 +485,8 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
           >
             <MenuItem onClick={handleEdit}>Редактировать</MenuItem>
 
+            <MenuItem onClick={handleShowHistory}>История изменений</MenuItem>
+
             <MenuItem onClick={handleDelete}>Удалить</MenuItem>
           </Menu>
         </div>
@@ -503,6 +516,14 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
           setFormOpen(false);
           loadAll();
         }}
+      />
+
+      <TaskHistory
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        task={historyTask}
+        statuses={statuses}
+        priorities={priorities}
       />
     </>
   );

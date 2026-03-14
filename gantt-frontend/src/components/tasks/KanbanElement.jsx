@@ -11,6 +11,7 @@ const KanbanElement = ({
   onTaskEdit,
   onAddTask,
   onTaskDelete,
+  onTaskHistory,
 }) => {
   const columnTasks = useMemo(() => {
     const target = statusId ?? null;
@@ -75,6 +76,7 @@ const KanbanElement = ({
               priorityMap={priorityMap}
               onEdit={onTaskEdit}
               onDelete={onTaskDelete}
+              onHistory={onTaskHistory}
             />
           ))
         ) : (

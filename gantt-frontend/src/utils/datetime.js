@@ -31,9 +31,11 @@ export const toLocaleDateWithTimeHM = (value) => {
     return "";
   }
 
-  const dateString = value + "Z";
-  const date = new Date(dateString);
-  const datePart = date.toLocaleDateString();
+  const normalized = value.trim().replace(" ", "T");
+  const hasTimezone = /Z$/.test(normalized) || /[+-]\d{2}:\d{2}$/.test(normalized);
+  const date = new Date(hasTimezone ? normalized : normalized + "Z");
+
+  const datePart = date.toLocaleDateString("ru-RU");
   const timePart = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   return `${datePart}, ${timePart}`;
 };

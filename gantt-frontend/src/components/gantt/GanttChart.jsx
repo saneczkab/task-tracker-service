@@ -37,6 +37,7 @@ import {
 import GanttSidebar from "./GanttSidebar.jsx";
 import GoalForm from "../tasks/GoalForm.jsx";
 import TaskForm from "../tasks/TaskForm.jsx";
+import TaskHistory from "../tasks/TaskHistory.jsx";
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -67,6 +68,9 @@ const GanttChart = ({ projId, teamId }) => {
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskStreamId, setTaskStreamId] = useState(null);
+
+  const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
+  const [historyTask, setHistoryTask] = useState(null);
 
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
@@ -496,6 +500,14 @@ const GanttChart = ({ projId, teamId }) => {
       await handleGoalDelete(item);
     } else if (type === "task") {
       await handleTaskDelete(item);
+    }
+    closeContextMenu();
+  };
+
+  const handleHistoryFromMenu = () => {
+    if (contextMenu?.type === "task") {
+      setHistoryTask(contextMenu.item);
+      setTaskHistoryOpen(true);
     }
     closeContextMenu();
   };
@@ -1665,6 +1677,14 @@ const GanttChart = ({ projId, teamId }) => {
         onSaved={handleTaskSaved}
       />
 
+      <TaskHistory
+        open={taskHistoryOpen}
+        onClose={() => setTaskHistoryOpen(false)}
+        task={historyTask}
+        statuses={statuses}
+        priorities={priorities}
+      />
+
       <Menu
         open={Boolean(contextMenu)}
         onClose={closeContextMenu}
@@ -1676,6 +1696,9 @@ const GanttChart = ({ projId, teamId }) => {
         }
       >
         <MenuItem onClick={handleEditFromMenu}>Редактировать</MenuItem>
+        {contextMenu?.type === "task" && (
+          <MenuItem onClick={handleHistoryFromMenu}>История изменений</MenuItem>
+        )}
         <MenuItem onClick={handleDeleteFromMenu}>Удалить</MenuItem>
       </Menu>
     </div>
