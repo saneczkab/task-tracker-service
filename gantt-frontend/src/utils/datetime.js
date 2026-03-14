@@ -3,7 +3,7 @@ export const toInputDate = (value) => {
     return "";
   }
 
-  const datetime = new Date(value);
+  const datetime = new Date(value + "Z");
   return `${datetime.getFullYear()}-${String(datetime.getMonth() + 1).padStart(2, "0")}-${String(datetime.getDate()).padStart(2, "0")}`;
 };
 
@@ -37,3 +37,18 @@ export const toLocaleDateWithTimeHM = (value) => {
   const timePart = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   return `${datePart}, ${timePart}`;
 };
+
+export const formatDatetime = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value + "Z");
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
+};
+
