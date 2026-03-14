@@ -5,7 +5,7 @@ from app.api import auth
 from app.core import db, exception
 from app.schemas import project as project_schemas
 from app.schemas import team as team_schemas
-from app.services import project_service, team_service
+from app.services import project_service, team_service, task_service
 
 router = fastapi.APIRouter()
 
@@ -62,6 +62,18 @@ def get_projects(team_id: int, current_user=fastapi.Depends(auth.get_current_use
         raise fastapi.HTTPException(404, str(e))
     except exception.ForbiddenError as e:
         raise fastapi.HTTPException(403, str(e))
+
+
+@router.delete("/api/team/{team_id}/relation/{relation_id}", status_code=204)
+def delete_task_relation(relation_id: int, current_user=fastapi.Depends(auth.get_current_user),
+                         data_base: orm.Session = fastapi.Depends(db.get_db)):
+    try:
+        task_service.delete_task_relation_service(data_base, relation_id, current_user.id)
+    except exception.NotFoundError as e:
+        raise fastapi.HTTPException(404, str(e))
+    except exception.ForbiddenError as e:
+        raise fastapi.HTTPException(403, str(e))
+
 
 
 @router.post("/api/team/{team_id}/project/new", response_model=project_schemas.ProjectResponse, status_code=201)
