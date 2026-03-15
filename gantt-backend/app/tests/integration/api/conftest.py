@@ -1,4 +1,8 @@
 import os
+
+os.environ.setdefault("AUTH_SECRET_KEY", "test-secret-key")
+os.environ.setdefault("AUTH_DATABASE_URL", "sqlite://")
+
 from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
@@ -10,9 +14,6 @@ from app.core.db import get_db
 from app.core.security import create_access_token, get_password_hash
 from app.models import project, stream, team, user
 from app.models.base import Base
-
-os.environ.setdefault("AUTH_SECRET_KEY", "test-secret-key")
-os.environ.setdefault("AUTH_DATABASE_URL", "sqlite://")
 
 _engine = create_engine(
     "sqlite://",
