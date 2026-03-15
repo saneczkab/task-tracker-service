@@ -1,0 +1,38 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - ci-cd
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: docker compose build
+
+      - name: Check lint (backend)
+        run: docker compose run --rm backend ruff check .
+
+      - name: Check lint (frontend)
+        run: docker compose run --rm frontend npx prettier --check .
+
+  tests:
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: docker compose build
+
+      - name: Run tests (backend)
+        run: docker compose run --rm backend pytest
