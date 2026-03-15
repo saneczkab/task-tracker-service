@@ -42,7 +42,7 @@ jobs:
           DOT_ENV: ${{ secrets.DOT_ENV }}
 
       - name: Init python
-        run: actions/setup-python@v4
+        run: actions/setup-python@v5
         with:
           python-version: "3.11"
 
