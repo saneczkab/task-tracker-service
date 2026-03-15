@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Init .env
+        run: echo "$DOT_ENV" > .env
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
+
       - name: Build
         run: docker compose build
 
@@ -30,6 +35,11 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+
+      - name: Init .env
+        run: echo "$DOT_ENV" > .env
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
 
       - name: Build
         run: docker compose build
