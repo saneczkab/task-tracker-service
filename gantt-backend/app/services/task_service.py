@@ -1,7 +1,7 @@
 from sqlalchemy import orm
 
 from app.core import exception
-from app.crud import task as task_crud
+from app.crud import task as task_crud, custom_field as custom_field_crud
 from app.models import meta, project, task, team, user, tag, stream
 from app.services import permissions
 
@@ -60,7 +60,8 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
             task.Task.position.desc()).first()
         task_data.position = (last_pos.position + 1) if last_pos else 1
 
-    new_task = task_crud.create_task(data_base, stream_id, task_data)
+    task_create_data = task_data.model_dump(exclude={'custom_fields'})
+    new_task = task_crud.create_task(data_base, stream_id, task_create_data)
 
     if task_data.assignee_email:
         assignee_user = data_base.query(user.User).filter(user.User.email == task_data.assignee_email).first()
@@ -88,6 +89,10 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
                 raise exception.ForbiddenError("Тег принадлежит другой команде")
 
             data_base.add(tag.TaskTag(task_id=new_task.id, tag_id=tag_id))
+
+    if task_data.custom_fields:
+        for field_value in task_data.custom_fields:
+            custom_field_crud.set_task_custom_field_value(data_base, new_task.id, field_value)
 
     data_base.commit()
     data_base.refresh(new_task)
@@ -138,7 +143,12 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
 
             data_base.add(tag.TaskTag(task_id=task_id, tag_id=tag_id))
 
-    task_crud.update_task(data_base, task_obj, task_update_data)
+    if task_update_data.custom_fields is not None:
+        for field_value in task_update_data.custom_fields:
+            custom_field_crud.set_task_custom_field_value(data_base, task_id, field_value)
+
+    task_update_data_filtered = task_update_data.model_dump(exclude_unset=True, exclude={'custom_fields'})
+    task_crud.update_task(data_base, task_obj, task_update_data_filtered)
 
     if changes:
         task_crud.create_task_history_entries(data_base, task_id, user_id, changes)

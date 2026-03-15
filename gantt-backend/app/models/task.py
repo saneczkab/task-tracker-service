@@ -17,6 +17,7 @@ class Task(base.Base):
 
     assigned_users = orm.relationship("UserTask", back_populates="task")
     tags = orm.relationship("TaskTag", back_populates="task")
+    custom_field_values = orm.relationship("TaskCustomFieldValue", back_populates="task", cascade="all, delete-orphan")
 
     @property
     def tag_list(self):
@@ -69,4 +70,3 @@ class TaskHistory(base.Base):
 
     task = orm.relationship("Task", backref=orm.backref("history", cascade="all, delete-orphan"))
     changed_by = orm.relationship("User")
-
