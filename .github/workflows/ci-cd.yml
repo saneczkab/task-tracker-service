@@ -45,4 +45,4 @@ jobs:
         run: docker compose build
 
       - name: Run tests (backend)
-        run: docker compose run --rm backend pytest app/tests
+        run: docker compose run --rm backend "cd /app && pytest"
