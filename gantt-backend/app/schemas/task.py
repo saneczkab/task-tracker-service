@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.tag import TagResponse
+from app.schemas.custom_field import TaskCustomFieldValue, TaskCustomFieldValueBase
 
 
 class TaskCreate(BaseModel):
@@ -15,6 +16,7 @@ class TaskCreate(BaseModel):
     deadline: datetime | None = None
     position: int | None = None
     tag_ids: list[int] | None = None
+    custom_fields: list[TaskCustomFieldValueBase] | None = None
 
 
 class TaskUpdate(BaseModel):
@@ -27,6 +29,7 @@ class TaskUpdate(BaseModel):
     deadline: datetime | None = None
     position: int | None = None
     tag_ids: list[int] | None = None
+    custom_fields: list[TaskCustomFieldValueBase] | None = None
 
 
 class TaskRelationResponse(BaseModel):
@@ -52,6 +55,7 @@ class TaskResponse(BaseModel):
     position: int
     relations: list[TaskRelationResponse] = []
     tags: list[TagResponse] = Field(default_factory=list, alias="tag_list")
+    custom_field_values: list[TaskCustomFieldValue] = []
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -73,6 +77,7 @@ class TaskResponseFull(BaseModel):
     project_name: str | None = None
     stream_name: str | None = None
     tags: list[TagResponse] = Field(default_factory=list, alias="tag_list")
+    custom_field_values: list[TaskCustomFieldValue] = []
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
