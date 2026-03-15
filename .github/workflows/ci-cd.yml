@@ -44,5 +44,8 @@ jobs:
       - name: Build
         run: docker compose build
 
+      - name: Debug
+        run: docker compose run --rm backend bash -c "pwd && ls -R"
+
       - name: Run tests (backend)
         run: docker compose run --rm backend "cd /app && pytest"
