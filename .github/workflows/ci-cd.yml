@@ -45,6 +45,4 @@ jobs:
         run: docker compose build
 
       - name: Run tests (backend)
-        run: docker compose run --rm backend pytest
-        env:
-          PYTHONPATH: /app
+        run: docker compose run -e PYTHONPATH=/app --rm backend pytest
