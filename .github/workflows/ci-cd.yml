@@ -47,4 +47,4 @@ jobs:
       - name: Run tests (backend)
         run: docker compose run --rm backend pytest
         env:
-          PYTHONPATH: /app
+          PYTHONPATH: /
