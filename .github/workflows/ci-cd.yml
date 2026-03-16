@@ -50,3 +50,49 @@ jobs:
 
       - name: Run tests (backend)
         run: pytest
+
+  build:
+    runs-on: ubuntu-22.04
+    needs: [lint, tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/ci-cd'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Github registry login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Build and push
+        run: |
+          docker compose build
+          docker compose push
+        env:
+          IMAGE_REPO: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: ${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: [build]
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo ${{ secrets.REGISTRY_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            cd /var/www/task-tracker/task-tracker-service
+            
+            export IMAGE_REPO=ghcr.io/${{ github.repository }}
+            export IMAGE_TAG=${{ github.sha }}
+            
+            docker compose pull
+            docker compose down
+            docker compose up -d
