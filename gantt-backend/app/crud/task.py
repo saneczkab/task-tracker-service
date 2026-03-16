@@ -8,7 +8,12 @@ def get_task_by_id(db: orm.Session, task_id: int):
 
 
 def get_tasks_by_stream(db: orm.Session, stream_id: int):
-    return db.query(task.Task).filter(task.Task.stream_id == stream_id).all()
+    tasks = db.query(task.Task).filter(task.Task.stream_id == stream_id).all()
+    for task_obj in tasks:
+        if task_obj.assigned_users:
+            task_obj.assignee_email = task_obj.assigned_users[0].user.email
+
+    return tasks
 
 
 def get_tasks_by_project(db: orm.Session, project_obj):
@@ -16,6 +21,11 @@ def get_tasks_by_project(db: orm.Session, project_obj):
     for stream_obj in project_obj.streams:
         stream_tasks = db.query(task.Task).filter(task.Task.stream_id == stream_obj.id).all()
         tasks.extend(stream_tasks)
+
+    for task_obj in tasks:
+        if task_obj.assigned_users:
+            task_obj.assignee_email = task_obj.assigned_users[0].user.email
+
     return tasks
 
 
