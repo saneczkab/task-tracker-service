@@ -16,10 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-#      - name: Init .env
-#        run: echo "$DOT_ENV" > .env
-#        env:
-#          DOT_ENV: ${{ secrets.DOT_ENV }}
+      - name: Init .env
+        run: echo "$DOT_ENV" > .env
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
 
       - name: Build
         run: docker compose build
@@ -36,10 +36,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-#      - name: Init .env
-#        run: echo "$DOT_ENV" > .env
-#        env:
-#          DOT_ENV: ${{ secrets.DOT_ENV }}
+      - name: Init .env
+        run: echo "$DOT_ENV" > .env
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
 
       - name: Init python
         uses: actions/setup-python@v5
@@ -48,9 +48,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r gantt-backend/requirements.txt
-
-#      - name: Build
-#        run: docker compose build
 
       - name: Run tests (backend)
         run: pytest
