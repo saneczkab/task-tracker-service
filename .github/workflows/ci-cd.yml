@@ -102,5 +102,6 @@ jobs:
             docker-compose pull
             docker-compose down
             docker-compose up -d
-          env:
-            DOT_ENV: ${{ secrets.DOT_ENV }}
+          envs: DOT_ENV
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
