@@ -2,6 +2,8 @@ import os
 
 os.environ.setdefault("AUTH_SECRET_KEY", "test-secret-key")
 os.environ.setdefault("AUTH_DATABASE_URL", "sqlite://")
+os.environ.setdefault("AUTH_VAPID_PRIVATE_KEY", "test-vapid-key")
+os.environ.setdefault("AUTH_VAPID_CLAIMS_SUB", "https://gantt-tracker.ru")
 
 from unittest.mock import patch
 import pytest
