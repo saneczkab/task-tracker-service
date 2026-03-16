@@ -35,8 +35,8 @@ const KanbanBoard = () => {
     return map;
   }, [priorities]);
 
-  const handleAddTask = () => {
-    setSelectedTask(null);
+  const handleAddTask = (statusId = null) => {
+    setSelectedTask({ status_id: statusId });
     setFormOpen(true);
   };
 
