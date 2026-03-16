@@ -93,8 +93,8 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             echo ${{ secrets.REGISTRY_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            echo "$DOT_ENV" > .env
             cd /var/www/task-tracker/task-tracker-service
+            echo "$DOT_ENV" > .env
             
             export IMAGE_REPO=ghcr.io/${{ github.repository }}
             export IMAGE_TAG=${{ github.sha }}
