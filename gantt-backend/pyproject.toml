@@ -23,6 +23,3 @@ ignore = [
     "B008",
     "B904",
 ]
-
-[tool.pytest.ini_options]
-pythonpath = ["app"]
