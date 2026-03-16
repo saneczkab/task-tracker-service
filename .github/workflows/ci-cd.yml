@@ -3,8 +3,7 @@ name: CI/CD
 on:
   push:
     branches:
-      - main
-      - ci-cd
+      - "*"
   pull_request:
     branches:
       - "*"
