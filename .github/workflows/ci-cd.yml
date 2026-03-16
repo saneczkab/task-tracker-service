@@ -85,6 +85,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Init .env
+        run: echo "$DOT_ENV" > .env
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
+
       - name: Deploy
         uses: appleboy/ssh-action@master
         with:
