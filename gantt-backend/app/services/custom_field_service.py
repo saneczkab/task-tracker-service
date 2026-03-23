@@ -10,6 +10,13 @@ from app.services import permissions
 def create_custom_field_service(data_base: orm.Session, team_id: int, user_id: int,
                                 field_data: custom_field_schema.CustomFieldBase):
     permissions.check_team_access(data_base, team_id, user_id, need_lead=True)
+    existing_field = custom_field_crud.get_custom_field_by_team_and_name(
+        db=data_base,
+        team_id=team_id,
+        name=field_data.name,
+    )
+    if existing_field:
+        return existing_field
     return custom_field_crud.create_custom_field(db=data_base, team_id=team_id, field=field_data)
 
 

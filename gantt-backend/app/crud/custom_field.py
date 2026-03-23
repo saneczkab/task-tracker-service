@@ -4,6 +4,17 @@ from app.models import custom_field as custom_field_model
 from app.schemas import custom_field as custom_field_schema
 
 
+def get_custom_field_by_team_and_name(db: Session, team_id: int, name: str):
+    return (
+        db.query(custom_field_model.CustomField)
+        .filter(
+            custom_field_model.CustomField.team_id == team_id,
+            custom_field_model.CustomField.name == name,
+        )
+        .first()
+    )
+
+
 def create_custom_field(db: Session, team_id: int, field: custom_field_schema.CustomFieldBase):
     db_field = custom_field_model.CustomField(**field.model_dump(), team_id=team_id)
     db.add(db_field)
@@ -49,4 +60,16 @@ def set_task_custom_field_value(db: Session, task_id: int, field_value: custom_f
 
     db.commit()
     db.refresh(db_value)
+    return db_value
+
+
+def delete_task_custom_field_value(db: Session, task_id: int, custom_field_id: int):
+    """Удалить значение кастомного поля для задачи."""
+    db_value = db.query(custom_field_model.TaskCustomFieldValue).filter_by(
+        task_id=task_id,
+        custom_field_id=custom_field_id
+    ).first()
+    if db_value:
+        db.delete(db_value)
+        db.commit()
     return db_value
