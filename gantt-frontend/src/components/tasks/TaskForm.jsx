@@ -113,8 +113,8 @@ const TaskForm = ({
     setSearchResults([]);
     setSelectedTask(null);
     setSelectedConnectionType("");
-    setSelectedTagIds(task.tag_list.map((tag) => tag.id));
-    setTeamTags(task.tag_list);
+    setSelectedTagIds(task.tag_list.map((tag) => tag.id) || []);
+    setTeamTags(task.tag_list || []);
 
     return () => {
       if (searchDebounceTimer) {
