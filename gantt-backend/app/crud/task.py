@@ -124,8 +124,35 @@ def get_tasks_by_team_id(db: orm.Session, team_id: int, user_id: int | None = No
     return query.all()
 
 
+def get_tasks_by_team_ids(db: orm.Session, team_ids: list[int], user_id: int | None = None):
+    projects = db.query(project_model.Project).filter(project_model.Project.team_id.in_(team_ids)).all()
+    project_ids = [p.id for p in projects]
+    streams = db.query(stream_model.Stream).filter(stream_model.Stream.project_id.in_(project_ids)).all()
+    stream_ids = [s.id for s in streams]
+    query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
+    if user_id:
+        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+    return query.all()
+
+
+def get_tasks_by_project_ids(db: orm.Session, project_ids: list[int], user_id: int | None = None):
+    streams = db.query(stream_model.Stream).filter(stream_model.Stream.project_id.in_(project_ids)).all()
+    stream_ids = [s.id for s in streams]
+    query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
+    if user_id:
+        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+    return query.all()
+
+
 def get_tasks_by_stream_id(db: orm.Session, stream_id: int, user_id: int | None = None):
     query = db.query(task.Task).filter(task.Task.stream_id == stream_id)
+    if user_id:
+        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+    return query.all()
+
+
+def get_tasks_by_stream_ids(db: orm.Session, stream_ids: list[int], user_id: int | None = None):
+    query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
     if user_id:
         query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
     return query.all()
