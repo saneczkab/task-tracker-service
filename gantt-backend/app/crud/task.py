@@ -48,7 +48,7 @@ def create_task(db: orm.Session, stream_id: int, task_data):
 
 
 def update_task(db: orm.Session, task_obj, task_update_data):
-    for field, value in task_update_data.model_dump(exclude_unset=True).items():
+    for field, value in task_update_data.items():
         setattr(task_obj, field, value)
     db.commit()
     db.refresh(task_obj)

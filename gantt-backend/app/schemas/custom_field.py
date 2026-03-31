@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -23,6 +23,7 @@ class TaskCustomFieldValueBase(BaseModel):
     value_string: Optional[str] = None
     value_text: Optional[str] = None
     value_date: Optional[date] = None
+    value_datetime: Optional[datetime] = None
     value_bool: Optional[bool] = None
 
 
@@ -31,6 +32,7 @@ class TaskCustomFieldValueUpdate(BaseModel):
     value_string: Optional[str] = None
     value_text: Optional[str] = None
     value_date: Optional[date] = None
+    value_datetime: Optional[datetime] = None
     value_bool: Optional[bool] = None
 
 
