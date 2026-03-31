@@ -60,8 +60,7 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
             task.Task.position.desc()).first()
         task_data.position = (last_pos.position + 1) if last_pos else 1
 
-    task_create_data = task_data.model_dump(exclude={'custom_fields'})
-    new_task = task_crud.create_task(data_base, stream_id, task_create_data)
+    new_task = task_crud.create_task(data_base, stream_id, task_data)
 
     if task_data.assignee_email:
         assignee_user = data_base.query(user.User).filter(user.User.email == task_data.assignee_email).first()
@@ -129,6 +128,11 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
         data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=task_id))
 
     if task_update_data.tag_ids is not None:
+        old_tag_ids = [t.tag_id for t in task_obj.tags]
+        new_tag_ids = task_update_data.tag_ids
+        if old_tag_ids != new_tag_ids:
+            changes["tag_ids"] = (old_tag_ids, new_tag_ids)
+
         data_base.query(tag.TaskTag).filter(tag.TaskTag.task_id == task_id).delete()
 
         for tag_id in task_update_data.tag_ids:
@@ -144,6 +148,11 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
             data_base.add(tag.TaskTag(task_id=task_id, tag_id=tag_id))
 
     if task_update_data.custom_fields is not None:
+        old_custom_fields = {cf.custom_field_id: cf.value for cf in task_obj.custom_field_values}
+        new_custom_fields = {cf.custom_field_id: cf.value for cf in task_update_data.custom_fields}
+        if old_custom_fields != new_custom_fields:
+            changes["custom_fields"] = (old_custom_fields, new_custom_fields)
+
         for field_value in task_update_data.custom_fields:
             custom_field_crud.set_task_custom_field_value(data_base, task_id, field_value)
 
