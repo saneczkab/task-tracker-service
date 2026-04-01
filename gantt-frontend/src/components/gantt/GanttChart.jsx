@@ -46,6 +46,7 @@ import {
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchGoalsApi, updateGoalApi, deleteGoalApi } from "../../api/goal.js";
 import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
+import { fetchTeamTagsApi } from "../../api/tag.js";
 import { generateRelationColors } from "../../utils/relationColors.js";
 
 const GanttChart = ({ projId, teamId }) => {
@@ -74,6 +75,7 @@ const GanttChart = ({ projId, teamId }) => {
 
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
+  const [tags, setTags] = useState([]);
 
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(null);
@@ -207,7 +209,16 @@ const GanttChart = ({ projId, teamId }) => {
 
     setStatuses(statusesResp.statuses);
     setPriorities(prioritiesResp.priorities);
-  }, [processError]);
+
+    if (teamId) {
+      const tagsResp = await fetchTeamTagsApi(teamId, token);
+      if (tagsResp.ok) {
+        setTags(tagsResp.tags || []);
+      } else {
+        processError(tagsResp);
+      }
+    }
+  }, [teamId, token]);
 
   useEffect(() => {
     loadStreamsData();
@@ -1683,6 +1694,7 @@ const GanttChart = ({ projId, teamId }) => {
         task={historyTask}
         statuses={statuses}
         priorities={priorities}
+        tags={tags}
       />
 
       <Menu
