@@ -32,6 +32,7 @@ import {
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
+import { fetchTeamTagsApi } from "../../api/tag.js";
 import { fetchUserEmailApi } from "../../api/user.js";
 import {
   CELL_STYLES,
@@ -47,6 +48,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
+  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -160,9 +162,18 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
     } else {
       processError(emailResponse.status);
     }
+    
+    if (teamId) {
+      const tagsResponse = await fetchTeamTagsApi(teamId, token);
+      if (tagsResponse.ok) {
+        setTags(tagsResponse.tags || []);
+      } else {
+        processError(tagsResponse.status);
+      }
+    }
 
     setLoading(false);
-  }, [streamId, token]);
+  }, [streamId, token, teamId]);
 
   useEffect(() => {
     loadAll();
@@ -477,6 +488,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
         task={historyTask}
         statuses={statuses}
         priorities={priorities}
+        tags={tags}
       />
     </>
   );
