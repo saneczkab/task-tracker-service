@@ -4,6 +4,7 @@ import { Box, CircularProgress } from "@mui/material";
 import KanbanElement from "./KanbanElement.jsx";
 import TaskForm from "./TaskForm.jsx";
 import TaskHistory from "./TaskHistory.jsx";
+import ExportTasksButton from "../ui/ExportTasksButton.jsx";
 import StreamLayout from "../layout/StreamLayout.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
@@ -200,6 +201,10 @@ const KanbanBoard = () => {
             streamId={streamId}
             onProjIdLoaded={setProjId}
           >
+            <div className="mb-4">
+              <ExportTasksButton />
+            </div>
+
             <Box
               sx={{
                 display: "flex",

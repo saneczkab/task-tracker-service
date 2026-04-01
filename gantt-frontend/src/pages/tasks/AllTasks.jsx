@@ -4,6 +4,7 @@ import { CircularProgress } from "@mui/material";
 import StreamLayout from "../../components/layout/StreamLayout.jsx";
 import AllTasksTable from "../../components/tasks/AllTasksTable.jsx";
 import AdvancedFiltersPanel from "../../components/tasks/AdvancedFiltersPanel.jsx";
+import ExportTasksButton from "../../components/ui/ExportTasksButton.jsx";
 import { fetchAllUserTasksApi } from "../../api/task.js";
 import { fetchUserEmailApi } from "../../api/user.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
@@ -121,6 +122,10 @@ const AllTasks = () => {
         <div className="flex flex-1">
           <StreamLayout teamId={teamId} showHeader={false}>
             <h2 className="font-bold text-lg mb-4">Все задачи</h2>
+
+            <div className="mb-4">
+              <ExportTasksButton />
+            </div>
 
             <AdvancedFiltersPanel
               tasks={tasks}
