@@ -8,6 +8,9 @@ scheduler = AsyncIOScheduler()
 
 
 def start_scheduler():
+    if scheduler.running:
+        return
+
     scheduler.start()
 
     db = SessionLocal()
