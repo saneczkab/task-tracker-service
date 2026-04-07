@@ -1,47 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core import exception
 from main import app
 
 client = TestClient(app, raise_server_exceptions=False)
-
-
-@pytest.fixture
-def current_user():
-    user = Mock()
-    user.id = 42
-    return user
-
-
-@pytest.fixture
-def task():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test task"
-    obj.description = None
-    obj.status_id = None
-    obj.priority_id = None
-    obj.stream_id = 42
-    obj.start_date = None
-    obj.deadline = None
-    obj.assignee_email = None
-    obj.position = 1
-    obj.relations = []
-    return obj
-
-
-@pytest.fixture
-def relation():
-    obj = Mock()
-    obj.id = 42
-    obj.task_id_1 = 42
-    obj.task_id_2 = 43
-    obj.connection_id = 42
-    obj.connection_name = "Test connection"
-    return obj
 
 
 @patch("app.services.user_service.get_current_user_service")

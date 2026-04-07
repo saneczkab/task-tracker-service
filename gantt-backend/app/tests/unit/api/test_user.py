@@ -1,29 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core import exception
 from main import app
 
 client = TestClient(app, raise_server_exceptions=False)
-
-
-@pytest.fixture
-def current_user():
-    obj = Mock()
-    obj.id = 42
-    obj.email = "test@example.com"
-    obj.nickname = "Test user"
-    return obj
-
-
-@pytest.fixture
-def team():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test team"
-    return obj
 
 
 @patch("app.services.user_service.get_current_user_service")
@@ -40,7 +22,7 @@ def test_get_user_by_token_success(
     data = response.json()
     assert data["id"] == 42
     assert data["email"] == "test@example.com"
-    assert data["nickname"] == "Test user"
+    assert data["nickname"] == "test_user"
     assert len(data["teams"]) == 1
     assert data["teams"][0]["id"] == 42
     assert data["teams"][0]["name"] == "Test team"
@@ -71,7 +53,7 @@ def test_get_user_success(mock_service, mock_user, current_user, team, auth_head
     data = response.json()
     assert data["id"] == 42
     assert data["email"] == "test@example.com"
-    assert data["nickname"] == "Test user"
+    assert data["nickname"] == "test_user"
     assert len(data["teams"]) == 1
     assert data["teams"][0]["id"] == 42
     assert data["teams"][0]["name"] == "Test team"

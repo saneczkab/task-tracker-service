@@ -1,46 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core import exception
 from main import app
 
 client = TestClient(app, raise_server_exceptions=False)
-
-
-@pytest.fixture
-def current_user():
-    user = Mock()
-    user.id = 42
-    return user
-
-
-@pytest.fixture
-def team():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test team"
-    return obj
-
-
-@pytest.fixture
-def user_with_role():
-    obj = Mock()
-    obj.id = 42
-    obj.email = "test@example.com"
-    obj.nickname = "Test user"
-    obj.role = "Reader"
-    return obj
-
-
-@pytest.fixture
-def project():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test project"
-    obj.team_id = 42
-    return obj
 
 
 @patch("app.services.user_service.get_current_user_service")
@@ -200,7 +165,7 @@ def test_get_team_projects_success(
     data = response.json()
     assert len(data) == 1
     assert data[0]["id"] == 42
-    assert data[0]["name"] == "Test project"
+    assert data[0]["name"] == project.name
     assert data[0]["team_id"] == 42
 
 
@@ -245,7 +210,7 @@ def test_create_project_success(
     assert response.status_code == 201
     data = response.json()
     assert data["id"] == 42
-    assert data["name"] == "Test project"
+    assert data["name"] == project.name
     assert data["team_id"] == 42
 
 

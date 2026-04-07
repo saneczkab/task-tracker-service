@@ -1,32 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.core import exception
 from main import app
 
 client = TestClient(app, raise_server_exceptions=False)
-
-
-@pytest.fixture
-def current_user():
-    user = Mock()
-    user.id = 42
-    return user
-
-
-@pytest.fixture
-def goal():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test goal"
-    obj.description = None
-    obj.start_date = None
-    obj.deadline = None
-    obj.stream_id = 42
-    obj.position = 1
-    return obj
 
 
 @patch("app.services.user_service.get_current_user_service")

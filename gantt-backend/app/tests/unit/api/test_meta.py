@@ -1,35 +1,10 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from main import app
 
 client = TestClient(app, raise_server_exceptions=False)
-
-
-@pytest.fixture
-def status():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test"
-    return obj
-
-
-@pytest.fixture
-def priority():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test"
-    return obj
-
-
-@pytest.fixture
-def connection():
-    obj = Mock()
-    obj.id = 42
-    obj.name = "Test"
-    return obj
 
 
 @patch("app.crud.meta.get_team_statuses")
@@ -42,7 +17,7 @@ def test_get_statuses_success(mock_crud, status):
     data = response.json()
     assert len(data) == 1
     assert data[0]["id"] == 42
-    assert data[0]["name"] == "Test"
+    assert data[0]["name"] == "To Do"
 
 
 @patch("app.crud.meta.get_team_statuses")
@@ -65,7 +40,7 @@ def test_get_priorities_success(mock_crud, priority):
     data = response.json()
     assert len(data) == 1
     assert data[0]["id"] == 42
-    assert data[0]["name"] == "Test"
+    assert data[0]["name"] == "Low"
 
 
 @patch("app.crud.meta.get_team_priorities")
@@ -88,7 +63,7 @@ def test_get_connection_types_success(mock_crud, connection):
     data = response.json()
     assert len(data) == 1
     assert data[0]["id"] == 42
-    assert data[0]["name"] == "Test"
+    assert data[0]["name"] == "Test connection"
 
 
 @patch("app.crud.meta.get_connection_types")

@@ -1,5 +1,4 @@
 from datetime import datetime
-import pytest
 
 from app.models import (
     goal as goal_model,
@@ -7,22 +6,6 @@ from app.models import (
     project as project_model,
     team as team_model,
 )
-
-
-@pytest.fixture
-def goal_obj(seed_db):
-    g = goal_model.Goal(
-        id=42,
-        name="Test",
-        description="",
-        start_date=None,
-        deadline=datetime(2026, 12, 31),
-        stream_id=42,
-        position=1,
-    )
-    seed_db.add(g)
-    seed_db.commit()
-    return g
 
 
 def test_get_stream_goals_success(client, seed_db, goal_obj, auth_headers):
@@ -97,7 +80,17 @@ def test_create_goal_forbidden(client, seed_db, auth_headers):
     assert response.status_code == 403
 
 
-def test_create_goal_conflict(client, seed_db, goal_obj, auth_headers):
+def test_create_goal_conflict(client, seed_db, auth_headers):
+    existing_goal = goal_model.Goal(
+        id=42,
+        name="Test",
+        deadline=datetime(2026, 12, 31),
+        stream_id=42,
+        position=1,
+    )
+    seed_db.add(existing_goal)
+    seed_db.commit()
+
     payload = {"name": "Test", "deadline": "2026-12-31T00:00:00"}
 
     response = client.post(
@@ -115,7 +108,7 @@ def test_update_goal_success(client, seed_db, goal_obj, auth_headers):
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == 42
-    assert data["name"] == "Test"
+    assert data["name"] == goal_obj.name
 
 
 def test_update_goal_not_found(client, seed_db, auth_headers):
@@ -127,12 +120,6 @@ def test_update_goal_not_found(client, seed_db, auth_headers):
 
 
 def test_update_goal_forbidden(client, seed_db, auth_headers):
-    from app.models import (
-        stream as stream_model,
-        project as project_model,
-        team as team_model,
-    )
-
     other_team = team_model.Team(id=99, name="Other team")
     seed_db.add(other_team)
     other_project = project_model.Project(id=99, name="Other project", team_id=99)
@@ -156,7 +143,16 @@ def test_update_goal_forbidden(client, seed_db, auth_headers):
     assert response.status_code == 403
 
 
-def test_update_goal_conflict(client, seed_db, goal_obj, auth_headers):
+def test_update_goal_conflict(client, seed_db, auth_headers):
+    existing_goal = goal_model.Goal(
+        id=42,
+        name="Test",
+        deadline=datetime(2026, 12, 31),
+        stream_id=42,
+        position=1,
+    )
+    seed_db.add(existing_goal)
+
     second_goal = goal_model.Goal(
         id=43,
         name="Test 2",
@@ -187,12 +183,6 @@ def test_delete_goal_not_found(client, seed_db, auth_headers):
 
 
 def test_delete_goal_forbidden(client, seed_db, auth_headers):
-    from app.models import (
-        stream as stream_model,
-        project as project_model,
-        team as team_model,
-    )
-
     other_team = team_model.Team(id=99, name="Other team")
     seed_db.add(other_team)
     other_project = project_model.Project(id=99, name="Other project", team_id=99)
