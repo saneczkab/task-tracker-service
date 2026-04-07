@@ -1,9 +1,13 @@
 import os
-from pathlib import Path
+
+os.environ["AUTH_SECRET_KEY"] = "test-secret-key"
+os.environ["AUTH_DATABASE_URL"] = "sqlite://"
+os.environ["AUTH_VAPID_PRIVATE_KEY"] = "test-vapid-key"
+os.environ["AUTH_VAPID_CLAIMS_SUB"] = "https://gantt-tracker.ru"
+
 from unittest.mock import patch
 
 import pytest
-from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -30,13 +34,6 @@ from app.tests.factories import (
     build_team,
     build_user,
 )
-
-os.environ.setdefault("AUTH_SECRET_KEY", "test-secret-key")
-os.environ.setdefault("AUTH_DATABASE_URL", "sqlite://")
-os.environ.setdefault("AUTH_VAPID_PRIVATE_KEY", "test-vapid-key")
-os.environ.setdefault("AUTH_VAPID_CLAIMS_SUB", "https://gantt-tracker.ru")
-
-load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 _engine = create_engine(
     "sqlite://",
