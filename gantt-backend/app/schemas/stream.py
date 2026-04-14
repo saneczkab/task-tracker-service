@@ -1,9 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StreamCreate(BaseModel):
-    name: str
-    position: int | None = None
+    name: str = Field(..., min_length=1)
+    position: int | None = Field(None, ge=0)
 
 
 class StreamResponse(BaseModel):
@@ -16,5 +16,5 @@ class StreamResponse(BaseModel):
 
 
 class StreamUpdate(BaseModel):
-    name: str | None = None
-    position: int | None = None
+    name: str | None = Field(None, min_length=1)
+    position: int | None = Field(None, ge=0)
