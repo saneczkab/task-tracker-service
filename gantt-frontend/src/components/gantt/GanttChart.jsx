@@ -49,7 +49,12 @@ import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
 import { fetchTeamTagsApi } from "../../api/tag.js";
 import { generateRelationColors } from "../../utils/relationColors.js";
 
-const GanttChart = ({ projId, teamId }) => {
+const GanttChart = ({
+  projId,
+  teamId,
+  sidebarStreams,
+  onSidebarStreamsUpdate,
+}) => {
   const [streamsData, setStreamsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef(null);
@@ -227,6 +232,29 @@ const GanttChart = ({ projId, teamId }) => {
   useEffect(() => {
     loadMeta();
   }, []);
+
+  useEffect(() => {
+    if (Array.isArray(sidebarStreams) && sidebarStreams.length > 0) {
+      const updatedStreams = sidebarStreams.map((s) => {
+        const existingStream = streamsData.find((sd) => sd.id === s.id);
+        return {
+          id: s.id,
+          name: s.name,
+          goals: existingStream?.goals || [],
+          tasks: existingStream?.tasks || [],
+        };
+      });
+
+      const streamIds = updatedStreams.map((s) => s.id).join(",");
+      const currentIds = streamsData.map((s) => s.id).join(",");
+      if (
+        streamIds !== currentIds ||
+        updatedStreams.length !== streamsData.length
+      ) {
+        setStreamsData(updatedStreams);
+      }
+    }
+  }, [sidebarStreams, streamsData]);
 
   const measureChartWidth = useCallback(() => {
     if (!chartAreaRef.current) return;
@@ -587,30 +615,6 @@ const GanttChart = ({ projId, teamId }) => {
     [taskStreamId],
   );
 
-  const handleSidebarDataChanged = useCallback(
-    ({ type, action, streamId, item, goals, tasks }) => {
-      setStreamsData((prev) =>
-        prev.map((stream) => {
-          if (stream.id !== streamId) return stream;
-          if (type === "goal") {
-            if (action === "reorder") {
-              return { ...stream, goals: goals };
-            }
-            return handleGoalDataChanged(stream, item, action);
-          }
-          if (type === "task") {
-            if (action === "reorder") {
-              return { ...stream, tasks: tasks };
-            }
-            return handleTaskDataChanged(stream, item, action);
-          }
-          return stream;
-        }),
-      );
-    },
-    [],
-  );
-
   const handleTaskDataChanged = (stream, item, action) => {
     if (action === "delete")
       return { ...stream, tasks: stream.tasks.filter((t) => t.id !== item.id) };
@@ -638,6 +642,38 @@ const GanttChart = ({ projId, teamId }) => {
         goals: stream.goals.map((g) => (g.id === item.id ? item : g)),
       };
   };
+
+  const handleSidebarDataChanged = useCallback(
+    ({ type, action, streamId, item, goals, tasks, streams }) => {
+      if (type === "stream" && action === "reorder") {
+        setStreamsData(streams);
+        if (onSidebarStreamsUpdate) {
+          onSidebarStreamsUpdate(streams);
+        }
+        return;
+      }
+
+      setStreamsData((prev) =>
+        prev.map((stream) => {
+          if (stream.id !== streamId) return stream;
+          if (type === "goal") {
+            if (action === "reorder") {
+              return { ...stream, goals: goals };
+            }
+            return handleGoalDataChanged(stream, item, action);
+          }
+          if (type === "task") {
+            if (action === "reorder") {
+              return { ...stream, tasks: tasks };
+            }
+            return handleTaskDataChanged(stream, item, action);
+          }
+          return stream;
+        }),
+      );
+    },
+    [onSidebarStreamsUpdate, handleGoalDataChanged, handleTaskDataChanged],
+  );
 
   const xToTimestamp = useCallback(
     (x) => {

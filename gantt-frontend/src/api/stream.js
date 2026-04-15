@@ -62,3 +62,17 @@ export async function deleteStreamApi(streamId, token) {
     return { ok: false, status: e.response.status };
   }
 }
+
+export async function updateStreamPositionApi(streamId, position, token) {
+  try {
+    const response = await axios.patch(
+      `/api/stream/${streamId}`,
+      { position },
+      { headers: { Authorization: token } },
+    );
+
+    return { ok: true, updated: response.data };
+  } catch (e) {
+    return { ok: false, status: e.response.status };
+  }
+}
