@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { CircularProgress } from "@mui/material";
 import StreamLayout from "../../components/layout/StreamLayout.jsx";
 import TaskFilters from "../../components/ui/TaskFilters.jsx";
+import ExportTasksButton from "../../components/ui/ExportTasksButton.jsx";
 import AllTasksTable from "../../components/tasks/AllTasksTable.jsx";
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchAllUserTasksApi } from "../../api/task.js";
@@ -138,6 +139,10 @@ const ImmediateTasks = () => {
               setTeamFilter={setTeamFilter}
               teamName={teamName}
             />
+
+            <div className="mb-4">
+              <ExportTasksButton />
+            </div>
 
             <h2 className="font-bold text-lg mb-4 mt-4">Ближайшие задачи</h2>
 

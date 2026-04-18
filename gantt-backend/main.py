@@ -14,6 +14,8 @@ from app.api.team import router as team_router
 from app.api.user import router as user_router
 from app.api.reminder import router as reminder_router
 from app.api.push import router as push_router
+from app.api.custom_field import router as custom_field_router
+from app.api.calendar import router as calendar_router
 from app.core import middleware
 from app.core.db import engine
 from app.models.base import Base
@@ -34,8 +36,10 @@ app.include_router(user_router)
 app.include_router(task_router)
 app.include_router(meta_router)
 
+app.include_router(calendar_router)
 app.include_router(reminder_router)
 app.include_router(push_router)
+app.include_router(custom_field_router)
 
 @app.get("/")
 def read_root():

@@ -1,8 +1,8 @@
 from sqlalchemy import orm
 
 from app.core import exception
-from app.crud import task as task_crud
-from app.models import meta, project, task, team, user, tag, stream
+from app.crud import task as task_crud, custom_field as custom_field_crud
+from app.models import meta, project, task, team, user, tag, stream, custom_field
 from app.services import permissions
 
 
@@ -89,6 +89,10 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
 
             data_base.add(tag.TaskTag(task_id=new_task.id, tag_id=tag_id))
 
+    if task_data.custom_fields:
+        for field_value in task_data.custom_fields:
+            custom_field_crud.set_task_custom_field_value(data_base, new_task.id, field_value)
+
     data_base.commit()
     data_base.refresh(new_task)
     return new_task
@@ -97,6 +101,20 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
 def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task_update_data):
     task_obj, stream_obj, project_obj, team_obj = permissions.check_task_access(data_base, task_id, user_id,
                                                                                 need_lead=True)
+
+    tracked_fields = ["name", "description", "status_id", "priority_id", "start_date", "deadline", "position"]
+    changes = {}
+    for field in tracked_fields:
+        if field in task_update_data.model_fields_set:
+            old_val = getattr(task_obj, field)
+            new_val = getattr(task_update_data, field)
+            if old_val != new_val:
+                changes[field] = (old_val, new_val)
+
+    if task_update_data.assignee_email is not None:
+        old_assignee = task_obj.assigned_users[0].user.email if task_obj.assigned_users else None
+        if old_assignee != task_update_data.assignee_email:
+            changes["assignee_email"] = (old_assignee, task_update_data.assignee_email)
 
     if task_update_data.assignee_email:
         assignee_user = data_base.query(user.User).filter(user.User.email == task_update_data.assignee_email).first()
@@ -110,6 +128,11 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
         data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=task_id))
 
     if task_update_data.tag_ids is not None:
+        old_tag_ids = [t.tag_id for t in task_obj.tags]
+        new_tag_ids = task_update_data.tag_ids
+        if old_tag_ids != new_tag_ids:
+            changes["tag_ids"] = (old_tag_ids, new_tag_ids)
+
         data_base.query(tag.TaskTag).filter(tag.TaskTag.task_id == task_id).delete()
 
         for tag_id in task_update_data.tag_ids:
@@ -124,7 +147,22 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
 
             data_base.add(tag.TaskTag(task_id=task_id, tag_id=tag_id))
 
-    task_crud.update_task(data_base, task_obj, task_update_data)
+    if task_update_data.custom_fields is not None:
+        old_custom_fields = {cf.custom_field_id: cf.value for cf in task_obj.custom_field_values}
+        new_custom_fields = {cf.custom_field_id: cf.value for cf in task_update_data.custom_fields}
+        if old_custom_fields != new_custom_fields:
+            changes["custom_fields"] = (old_custom_fields, new_custom_fields)
+
+        for field_value in task_update_data.custom_fields:
+            custom_field_crud.set_task_custom_field_value(data_base, task_id, field_value)
+
+    task_update_data_filtered = task_update_data.model_dump(exclude_unset=True, exclude={'custom_fields'})
+    task_crud.update_task(data_base, task_obj, task_update_data_filtered)
+
+    if changes:
+        task_crud.create_task_history_entries(data_base, task_id, user_id, changes)
+        data_base.commit()
+
     return task_obj
 
 
@@ -162,3 +200,31 @@ def create_task_relation_service(data_base: orm.Session, task_id_1: int, task_id
         raise exception.NotFoundError("Тип связи не найден")
 
     return task_crud.create_task_relation(data_base, task_id_1, task_id_2, connection_id)
+
+
+def get_task_history_service(data_base: orm.Session, task_id: int, user_id: int):
+    """Получить историю изменений задачи."""
+    task_obj, _, _, _ = permissions.check_task_access(data_base, task_id, user_id)
+    history = task_crud.get_task_history(data_base, task_id)
+
+    for entry in history:
+        if entry.changed_by:
+            entry.changed_by_email = entry.changed_by.email
+
+    return history
+
+
+def delete_task_custom_field_service(data_base: orm.Session, task_id: int, custom_field_id: int, user_id: int):
+    """Удалить значение кастомного поля для задачи."""
+    task_obj, _, _, team_obj = permissions.check_task_access(data_base, task_id, user_id, need_lead=True)
+
+    custom_field_obj = data_base.query(custom_field.TaskCustomFieldValue).filter_by(
+        task_id=task_id,
+        custom_field_id=custom_field_id
+    ).first()
+
+    if not custom_field_obj:
+        raise exception.NotFoundError()
+
+    return custom_field_crud.delete_task_custom_field_value(data_base, task_id, custom_field_id)
+

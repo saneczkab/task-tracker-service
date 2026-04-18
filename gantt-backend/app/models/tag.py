@@ -5,7 +5,7 @@ from app.models import base
 
 class Tag(base.Base):
     __tablename__ = "Tags"
-    __table_args__ = UniqueConstraint("name", "team_id", name="uq_tag_name_team")
+    __table_args__ = (UniqueConstraint("name", "team_id", name="uq_tag_name_team"),)
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
