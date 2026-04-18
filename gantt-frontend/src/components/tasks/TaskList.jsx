@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   CircularProgress,
   Table,
@@ -12,8 +12,6 @@ import {
   Button,
   Menu,
   MenuItem,
-  ToggleButtonGroup,
-  ToggleButton,
   Chip,
   Box,
 } from "@mui/material";
@@ -25,11 +23,16 @@ import {
 } from "@mui/icons-material";
 import TaskForm from "./TaskForm.jsx";
 import TaskHistory from "./TaskHistory.jsx";
-import { getContrastColor } from "../../utils/taskUtils.js";
+import AdvancedFiltersPanel from "./AdvancedFiltersPanel.jsx";
+import {
+  getContrastColor,
+  applyAdvancedFilters,
+} from "../../utils/taskUtils.js";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
+import { fetchTeamTagsApi } from "../../api/tag.js";
 import { fetchUserEmailApi } from "../../api/user.js";
 import {
   CELL_STYLES,
@@ -38,7 +41,6 @@ import {
   TASKS_TABLE_BODY_STYLES,
   TABLE_CONTAINER_STYLES,
   CREATE_BUTTON_STYLES,
-  TOGGLE_BUTTON_STYLES,
 } from "./tableStyles.js";
 import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
@@ -46,6 +48,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
+  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -57,10 +60,23 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTask, setHistoryTask] = useState(null);
 
-  const [filterMode, setFilterMode] = useState("all");
   const [userEmail, setUserEmail] = useState("");
   const [sortField, setSortField] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [advancedFilters, setAdvancedFilters] = useState({
+    searchText: "",
+    assignee: [],
+    team: [],
+    project: [],
+    stream: [],
+    priority: [],
+    status: [],
+    tags: [],
+    startDate: "",
+    startDateEnd: "",
+    deadline: "",
+    deadlineEnd: "",
+  });
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -114,69 +130,54 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
     return map;
   }, [priorities]);
 
-  const fetchTasks = async () => {
-    const response = await fetchTasksApi(streamId, token);
-
-    if (!response.ok) {
-      processError(response.status);
-      return [];
-    }
-
-    return response.tasks;
-  };
-
-  const fetchStatuses = async () => {
-    const response = await fetchStatusesApi();
-
-    if (!response.ok) {
-      processError(response.status);
-      return [];
-    }
-
-    return response.statuses;
-  };
-
-  const fetchPriorities = async () => {
-    const response = await fetchPrioritiesApi();
-
-    if (!response.ok) {
-      processError(response.status);
-      return [];
-    }
-
-    return response.priorities;
-  };
-
-  const fetchUserEmail = async () => {
-    const response = await fetchUserEmailApi(token);
-
-    if (!response.ok) {
-      processError(response.status);
-      return "";
-    }
-
-    return response.email;
-  };
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
 
-    const tasks = await fetchTasks();
-    const statuses = await fetchStatuses();
-    const priorities = await fetchPriorities();
-    const email = await fetchUserEmail();
+    const tasksResponse = await fetchTasksApi(streamId, token);
+    const statusesResponse = await fetchStatusesApi();
+    const prioritiesResponse = await fetchPrioritiesApi();
+    const emailResponse = await fetchUserEmailApi(token);
 
-    setTasks(tasks || []);
-    setStatuses(statuses || []);
-    setPriorities(priorities || []);
-    setUserEmail(email || "");
+    if (tasksResponse.ok) {
+      setTasks(tasksResponse.tasks || []);
+    } else {
+      processError(tasksResponse.status);
+      setTasks([]);
+    }
+
+    if (statusesResponse.ok) {
+      setStatuses(statusesResponse.statuses || []);
+    } else {
+      processError(statusesResponse.status);
+    }
+
+    if (prioritiesResponse.ok) {
+      setPriorities(prioritiesResponse.priorities || []);
+    } else {
+      processError(prioritiesResponse.status);
+    }
+
+    if (emailResponse.ok) {
+      setUserEmail(emailResponse.email || "");
+    } else {
+      processError(emailResponse.status);
+    }
+    
+    if (teamId) {
+      const tagsResponse = await fetchTeamTagsApi(teamId, token);
+      if (tagsResponse.ok) {
+        setTags(tagsResponse.tags || []);
+      } else {
+        processError(tagsResponse.status);
+      }
+    }
 
     setLoading(false);
-  };
+  }, [streamId, token, teamId]);
 
   useEffect(() => {
     loadAll();
-  }, [streamId]);
+  }, [loadAll]);
 
   const closeMenu = () => {
     setMenuAnchorEl(null);
@@ -205,11 +206,14 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   };
 
   const filteredTasks = useMemo(() => {
-    if (filterMode === "my") {
-      return tasks.filter((task) => task.assignee_email === userEmail);
-    }
-    return tasks;
-  }, [tasks, filterMode, userEmail]);
+    return applyAdvancedFilters(
+      tasks,
+      advancedFilters,
+      statusMap,
+      priorityMap,
+      userEmail,
+    );
+  }, [tasks, advancedFilters, statusMap, priorityMap, userEmail]);
 
   const sortedTasks = useMemo(() => {
     const sorted = [...filteredTasks];
@@ -279,54 +283,14 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
 
   return (
     <>
-      <div
-        style={{
-          backgroundColor: "#F5F6F7",
-          padding: "12px",
-          borderRadius: "8px",
-          marginBottom: "16px",
-          display: "inline-block",
-        }}
-      >
-        <ToggleButtonGroup
-          value={filterMode}
-          exclusive
-          onChange={(e, newValue) => {
-            if (newValue !== null) {
-              setFilterMode(newValue);
-            }
-          }}
-          aria-label="task filter"
-          size="small"
-          sx={{
-            "& .MuiToggleButtonGroup-grouped": {
-              border: "none",
-              "&:not(:first-of-type)": {
-                borderRadius: "8px",
-                marginLeft: "8px",
-              },
-              "&:first-of-type": {
-                borderRadius: "8px",
-              },
-            },
-          }}
-        >
-          <ToggleButton
-            value="all"
-            aria-label="all tasks"
-            sx={TOGGLE_BUTTON_STYLES}
-          >
-            Все задачи
-          </ToggleButton>
-          <ToggleButton
-            value="my"
-            aria-label="my tasks"
-            sx={TOGGLE_BUTTON_STYLES}
-          >
-            Назначенные мне
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </div>
+      <AdvancedFiltersPanel
+        tasks={tasks}
+        onFiltersChange={setAdvancedFilters}
+        statuses={statuses}
+        priorities={priorities}
+        currentUserEmail={userEmail}
+        showTeamProjectStreamFilters={false}
+      />
 
       {filteredTasks.length > 0 ? (
         <div>
@@ -524,6 +488,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
         task={historyTask}
         statuses={statuses}
         priorities={priorities}
+        tags={tags}
       />
     </>
   );

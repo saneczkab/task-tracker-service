@@ -7,11 +7,15 @@ import {
   Typography,
   Box,
   CircularProgress,
+  Chip,
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { fetchTaskHistoryApi } from "../../api/task.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
+import { getContrastColor } from "../../utils/taskUtils.js";
+import StatusBadge from "../ui/StatusBadge.jsx";
+
 
 const FIELD_LABELS = {
   name: "Название",
@@ -25,7 +29,7 @@ const FIELD_LABELS = {
   tag_ids: "Теги",
 };
 
-function formatValue(value, fieldName, statuses, priorities) {
+function formatValue(value, fieldName, statuses, priorities, tags) {
   if (value === null || value === undefined || value === "") return "-";
 
   if (fieldName === "status_id") {
@@ -36,6 +40,20 @@ function formatValue(value, fieldName, statuses, priorities) {
     const p = priorities.find((x) => String(x.id) === String(value));
     return p ? p.name : value;
   }
+  if (fieldName === "tag_ids") {
+    try {
+      const tagIds = typeof value === "string" ? JSON.parse(value) : value;
+      if (!Array.isArray(tagIds) || tagIds.length === 0) return "-";
+      return tagIds
+        .map((id) => {
+          const tag = tags?.find((t) => String(t.id) === String(id));
+          return tag ? tag.name : `ID: ${id}`;
+        })
+        .join(", ");
+    } catch {
+      return value;
+    }
+  }
 
   const dateRegex = /^\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}/;
   if (dateRegex.test(value)) {
@@ -45,12 +63,41 @@ function formatValue(value, fieldName, statuses, priorities) {
   return value;
 }
 
+function parseTagIds(value) {
+  try {
+    return typeof value === "string" ? JSON.parse(value) : value;
+  } catch {
+    return [];
+  }
+}
+
+function getAddedAndRemovedTags(oldValue, newValue, tags) {
+  const oldIds = parseTagIds(oldValue);
+  const newIds = parseTagIds(newValue);
+
+  const removed = oldIds
+    .filter((id) => !newIds.includes(id))
+    .map((id) => tags?.find((t) => String(t.id) === String(id)))
+    .filter(Boolean);
+
+  const added = newIds
+    .filter((id) => !oldIds.includes(id))
+    .map((id) => tags?.find((t) => String(t.id) === String(id)))
+    .filter(Boolean);
+
+  return {
+    removed: removed.length > 0 ? removed : null,
+    added: added.length > 0 ? added : null,
+  };
+}
+
 const TaskHistory = ({
   open,
   onClose,
   task,
   statuses = [],
   priorities = [],
+  tags = [],
 }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -73,7 +120,22 @@ const TaskHistory = ({
         return;
       }
 
-      const sorted = [...response.history].sort(
+      const filtered = response.history.filter((entry) => {
+        if (!entry.old_value && !entry.new_value) return false;
+
+        if (entry.field_name === "start_date" || entry.field_name === "deadline") {
+          const oldTime = entry.old_value ? new Date(entry.old_value).getTime() : null;
+          const newTime = entry.new_value ? new Date(entry.new_value).getTime() : null;
+          if (oldTime === newTime) return false;
+        }
+
+        const oldVal = formatValue(entry.old_value, entry.field_name, statuses, priorities);
+        const newVal = formatValue(entry.new_value, entry.field_name, statuses, priorities);
+        
+        return oldVal !== newVal && entry.old_value !== entry.new_value;
+      });
+
+      const sorted = [...filtered].sort(
         (a, b) => new Date(b.changed_at) - new Date(a.changed_at),
       );
       setHistory(sorted);
@@ -81,7 +143,29 @@ const TaskHistory = ({
     };
 
     load();
-  }, [open, task?.id, token]);
+  }, [open, task?.id, token, statuses, priorities]);
+
+  const groupedHistory = useMemo(() => {
+    const groups = [];
+    history.forEach((entry) => {
+      const lastGroup = groups[groups.length - 1];
+      if (
+        lastGroup &&
+        lastGroup.changed_at === entry.changed_at &&
+        lastGroup.changed_by_email === entry.changed_by_email
+      ) {
+        lastGroup.entries.push(entry);
+      } else {
+        groups.push({
+          id: entry.id,
+          changed_at: entry.changed_at,
+          changed_by_email: entry.changed_by_email,
+          entries: [entry],
+        });
+      }
+    });
+    return groups;
+  }, [history]);
 
   return (
     <Dialog
@@ -114,7 +198,7 @@ const TaskHistory = ({
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={32} />
           </Box>
-        ) : history.length === 0 ? (
+        ) : groupedHistory.length === 0 ? (
           <Box sx={{ py: 4, px: 3, textAlign: "center" }}>
             <Typography
               variant="body2"
@@ -127,14 +211,15 @@ const TaskHistory = ({
             </Typography>
           </Box>
         ) : (
-          history.map((entry) => (
+          groupedHistory.map((group) => (
             <Box
-              key={entry.id}
+              key={group.id}
               sx={{
-                borderBottom: "1px solid #e0e0e0",
-                px: 3,
-                py: 2,
-                "&:last-child": { borderBottom: "none" },
+                border: "1px solid #e0e0e0",
+                borderRadius: 2,
+                backgroundColor: "#ffffff",
+                m: 2,
+                p: 2,
               }}
             >
               <Box
@@ -142,7 +227,7 @@ const TaskHistory = ({
                   display: "flex",
                   gap: 1.5,
                   alignItems: "center",
-                  mb: 1,
+                  mb: 1.5,
                   flexWrap: "wrap",
                 }}
               >
@@ -153,7 +238,7 @@ const TaskHistory = ({
                     fontFamily: "Montserrat, sans-serif",
                   }}
                 >
-                  {toLocaleDateWithTimeHM(entry.changed_at)}
+                  {toLocaleDateWithTimeHM(group.changed_at)}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -172,89 +257,187 @@ const TaskHistory = ({
                     color: "text.primary",
                   }}
                 >
-                  {entry.changed_by_email}
+                  {group.changed_by_email}
                 </Typography>
               </Box>
 
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 700,
-                  fontFamily: "Montserrat, sans-serif",
-                  mb: 0.75,
-                  color: "text.primary",
-                }}
-              >
-                {FIELD_LABELS[entry.field_name] || entry.field_name}
-              </Typography>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  flexWrap: "wrap",
-                }}
-              >
-                {entry.old_value ? (
+              {group.entries.map((entry) => (
+                <Box key={entry.id} sx={{ mb: 1.5, "&:last-child": { mb: 0 } }}>
                   <Typography
-                    variant="body2"
+                    variant="subtitle2"
                     sx={{
-                      textDecoration: "line-through",
-                      color: "text.secondary",
+                      fontWeight: 700,
                       fontFamily: "Montserrat, sans-serif",
-                      maxWidth: 180,
-                      wordBreak: "break-word",
+                      mb: 0.75,
+                      color: "text.primary",
                     }}
                   >
-                    {formatValue(
-                      entry.old_value,
-                      entry.field_name,
-                      statuses,
-                      priorities,
-                    )}
+                    {FIELD_LABELS[entry.field_name] || entry.field_name}
                   </Typography>
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      textDecoration: "line-through",
-                      color: "text.secondary",
-                      fontFamily: "Montserrat, sans-serif",
-                    }}
-                  >
-                    -
-                  </Typography>
-                )}
 
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary",
-                    fontFamily: "Montserrat, sans-serif",
-                  }}
-                >
-                  ->
-                </Typography>
+                  {entry.field_name === "tag_ids" ? (
+                    (() => {
+                      const { removed, added } = getAddedAndRemovedTags(
+                        entry.old_value,
+                        entry.new_value,
+                        tags,
+                      );
+                      return (
+                        <Box
+                          sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+                        >
+                          {removed && removed.length > 0 && (
+                            <Box
+                              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontFamily: "Montserrat, sans-serif",
+                                  minWidth: "fit-content",
+                                }}
+                              >
+                                Удалено:
+                              </Typography>
+                              <Box
+                                sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                              >
+                                {removed.map((tag) => (
+                                  <Chip
+                                    key={tag.id}
+                                    size="small"
+                                    label={tag.name}
+                                    sx={{
+                                      fontSize: "0.7rem",
+                                      backgroundColor: tag.color,
+                                      color: getContrastColor(tag.color),
+                                      fontWeight: 600,
+                                      opacity: 0.6,
+                                      textDecoration: "line-through",
+                                    }}
+                                  />
+                                ))}
+                              </Box>
+                            </Box>
+                          )}
+                          {added && added.length > 0 && (
+                            <Box
+                              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontFamily: "Montserrat, sans-serif",
+                                  minWidth: "fit-content",
+                                }}
+                              >
+                                Добавлено:
+                              </Typography>
+                              <Box
+                                sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                              >
+                                {added.map((tag) => (
+                                  <Chip
+                                    key={tag.id}
+                                    size="small"
+                                    label={tag.name}
+                                    sx={{
+                                      fontSize: "0.7rem",
+                                      backgroundColor: tag.color,
+                                      color: getContrastColor(tag.color),
+                                      fontWeight: 600,
+                                    }}
+                                  />
+                                ))}
+                              </Box>
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })()
+                  ) : (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {entry.old_value ? (
+                        entry.field_name === "status_id" ? (
+                          <Box sx={{ opacity: 0.6 }}>
+                            <StatusBadge statusName={formatValue(entry.old_value, entry.field_name, statuses, priorities)} />
+                          </Box>
+                        ) : (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              textDecoration: "line-through",
+                              color: "text.secondary",
+                              fontFamily: "Montserrat, sans-serif",
+                              maxWidth: 180,
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {formatValue(
+                              entry.old_value,
+                              entry.field_name,
+                              statuses,
+                              priorities,
+                              tags,
+                            )}
+                          </Typography>
+                        )
+                      ) : (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            textDecoration: "line-through",
+                            color: "text.secondary",
+                            fontFamily: "Montserrat, sans-serif",
+                          }}
+                        >
+                          -
+                        </Typography>
+                      )}
 
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.primary",
-                    fontWeight: 500,
-                    fontFamily: "Montserrat, sans-serif",
-                    maxWidth: 180,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {formatValue(
-                    entry.new_value,
-                    entry.field_name,
-                    statuses,
-                    priorities,
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          fontFamily: "Montserrat, sans-serif",
+                        }}
+                      >
+                        ➡️
+                      </Typography>
+
+                      {entry.field_name === "status_id" ? (
+                        <StatusBadge statusName={formatValue(entry.new_value, entry.field_name, statuses, priorities)} />
+                      ) : (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "text.primary",
+                            fontWeight: 500,
+                            fontFamily: "Montserrat, sans-serif",
+                            maxWidth: 180,
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {formatValue(
+                            entry.new_value,
+                            entry.field_name,
+                            statuses,
+                            priorities,
+                            tags,
+                          )}
+                        </Typography>
+                      )}
+                    </Box>
                   )}
-                </Typography>
-              </Box>
+                </Box>
+              ))}
             </Box>
           ))
         )}

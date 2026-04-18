@@ -2,7 +2,7 @@ from sqlalchemy import orm
 
 from app.core import exception
 from app.crud import task as task_crud, custom_field as custom_field_crud
-from app.models import meta, project, task, team, user, tag, stream
+from app.models import meta, project, task, team, user, tag, stream, custom_field
 from app.services import permissions
 
 
@@ -60,8 +60,7 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
             task.Task.position.desc()).first()
         task_data.position = (last_pos.position + 1) if last_pos else 1
 
-    task_create_data = task_data.model_dump(exclude={'custom_fields'})
-    new_task = task_crud.create_task(data_base, stream_id, task_create_data)
+    new_task = task_crud.create_task(data_base, stream_id, task_data)
 
     if task_data.assignee_email:
         assignee_user = data_base.query(user.User).filter(user.User.email == task_data.assignee_email).first()
@@ -129,6 +128,11 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
         data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=task_id))
 
     if task_update_data.tag_ids is not None:
+        old_tag_ids = [t.tag_id for t in task_obj.tags]
+        new_tag_ids = task_update_data.tag_ids
+        if old_tag_ids != new_tag_ids:
+            changes["tag_ids"] = (old_tag_ids, new_tag_ids)
+
         data_base.query(tag.TaskTag).filter(tag.TaskTag.task_id == task_id).delete()
 
         for tag_id in task_update_data.tag_ids:
@@ -144,6 +148,11 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
             data_base.add(tag.TaskTag(task_id=task_id, tag_id=tag_id))
 
     if task_update_data.custom_fields is not None:
+        old_custom_fields = {cf.custom_field_id: cf.value for cf in task_obj.custom_field_values}
+        new_custom_fields = {cf.custom_field_id: cf.value for cf in task_update_data.custom_fields}
+        if old_custom_fields != new_custom_fields:
+            changes["custom_fields"] = (old_custom_fields, new_custom_fields)
+
         for field_value in task_update_data.custom_fields:
             custom_field_crud.set_task_custom_field_value(data_base, task_id, field_value)
 
@@ -203,4 +212,19 @@ def get_task_history_service(data_base: orm.Session, task_id: int, user_id: int)
             entry.changed_by_email = entry.changed_by.email
 
     return history
+
+
+def delete_task_custom_field_service(data_base: orm.Session, task_id: int, custom_field_id: int, user_id: int):
+    """Удалить значение кастомного поля для задачи."""
+    task_obj, _, _, team_obj = permissions.check_task_access(data_base, task_id, user_id, need_lead=True)
+
+    custom_field_obj = data_base.query(custom_field.TaskCustomFieldValue).filter_by(
+        task_id=task_id,
+        custom_field_id=custom_field_id
+    ).first()
+
+    if not custom_field_obj:
+        raise exception.NotFoundError()
+
+    return custom_field_crud.delete_task_custom_field_value(data_base, task_id, custom_field_id)
 

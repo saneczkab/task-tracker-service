@@ -1,13 +1,13 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.custom_field import CustomFieldType
 
 
 class CustomFieldBase(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1)
     type: CustomFieldType
 
 
@@ -19,10 +19,11 @@ class CustomField(CustomFieldBase):
 
 
 class TaskCustomFieldValueBase(BaseModel):
-    custom_field_id: int
+    custom_field_id: int = Field(..., gt=0)
     value_string: Optional[str] = None
     value_text: Optional[str] = None
     value_date: Optional[date] = None
+    value_datetime: Optional[datetime] = None
     value_bool: Optional[bool] = None
 
 
@@ -31,6 +32,7 @@ class TaskCustomFieldValueUpdate(BaseModel):
     value_string: Optional[str] = None
     value_text: Optional[str] = None
     value_date: Optional[date] = None
+    value_datetime: Optional[datetime] = None
     value_bool: Optional[bool] = None
 
 

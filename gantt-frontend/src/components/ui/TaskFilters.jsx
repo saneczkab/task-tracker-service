@@ -1,6 +1,7 @@
 import React from "react";
 import { ToggleButtonGroup, ToggleButton } from "@mui/material";
 import { TOGGLE_BUTTON_STYLES } from "../tasks/tableStyles.js";
+import ExportTasksButton from "./ExportTasksButton.jsx";
 
 const TaskFilters = ({
   filterMode,
@@ -12,108 +13,120 @@ const TaskFilters = ({
   return (
     <div
       style={{
-        display: "inline-flex",
-        gap: "16px",
-        flexWrap: "wrap",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
         marginBottom: "16px",
       }}
     >
       <div
         style={{
-          backgroundColor: "#F5F6F7",
-          padding: "8px 12px",
-          borderRadius: "8px",
           display: "inline-flex",
-          alignItems: "center",
+          gap: "16px",
+          flexWrap: "wrap",
         }}
       >
-        <ToggleButtonGroup
-          value={teamFilter}
-          exclusive
-          onChange={(e, newValue) => {
-            if (newValue !== null) {
-              setTeamFilter(newValue);
-            }
-          }}
-          aria-label="team filter"
-          size="small"
-          sx={{
-            "& .MuiToggleButtonGroup-grouped": {
-              border: "none",
-              "&:not(:first-of-type)": {
-                borderRadius: "8px",
-                marginLeft: "8px",
-              },
-              "&:first-of-type": {
-                borderRadius: "8px",
-              },
-            },
+        <div
+          style={{
+            backgroundColor: "#F5F6F7",
+            padding: "8px 12px",
+            borderRadius: "8px",
+            display: "inline-flex",
+            alignItems: "center",
           }}
         >
-          <ToggleButton
-            value="selected"
-            aria-label="selected team"
-            sx={TOGGLE_BUTTON_STYLES}
+          <ToggleButtonGroup
+            value={teamFilter}
+            exclusive
+            onChange={(e, newValue) => {
+              if (newValue !== null) {
+                setTeamFilter(newValue);
+              }
+            }}
+            aria-label="team filter"
+            size="small"
+            sx={{
+              "& .MuiToggleButtonGroup-grouped": {
+                border: "none",
+                "&:not(:first-of-type)": {
+                  borderRadius: "8px",
+                  marginLeft: "8px",
+                },
+                "&:first-of-type": {
+                  borderRadius: "8px",
+                },
+              },
+            }}
           >
-            {teamName}
-          </ToggleButton>
-          <ToggleButton
-            value="all"
-            aria-label="all teams"
-            sx={TOGGLE_BUTTON_STYLES}
+            <ToggleButton
+              value="selected"
+              aria-label="selected team"
+              sx={TOGGLE_BUTTON_STYLES}
+            >
+              {teamName}
+            </ToggleButton>
+            <ToggleButton
+              value="all"
+              aria-label="all teams"
+              sx={TOGGLE_BUTTON_STYLES}
+            >
+              Все команды
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </div>
+
+        <div
+          style={{
+            backgroundColor: "#F5F6F7",
+            padding: "8px 12px",
+            borderRadius: "8px",
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          <ToggleButtonGroup
+            value={filterMode}
+            exclusive
+            onChange={(e, newValue) => {
+              if (newValue !== null) {
+                setFilterMode(newValue);
+              }
+            }}
+            aria-label="task filter"
+            size="small"
+            sx={{
+              "& .MuiToggleButtonGroup-grouped": {
+                border: "none",
+                "&:not(:first-of-type)": {
+                  borderRadius: "8px",
+                  marginLeft: "8px",
+                },
+                "&:first-of-type": {
+                  borderRadius: "8px",
+                },
+              },
+            }}
           >
-            Все команды
-          </ToggleButton>
-        </ToggleButtonGroup>
+            <ToggleButton
+              value="all"
+              aria-label="all tasks"
+              sx={TOGGLE_BUTTON_STYLES}
+            >
+              Все задачи
+            </ToggleButton>
+            <ToggleButton
+              value="my"
+              aria-label="my tasks"
+              sx={TOGGLE_BUTTON_STYLES}
+            >
+              Назначенные мне
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </div>
       </div>
 
-      <div
-        style={{
-          backgroundColor: "#F5F6F7",
-          padding: "8px 12px",
-          borderRadius: "8px",
-          display: "inline-flex",
-          alignItems: "center",
-        }}
-      >
-        <ToggleButtonGroup
-          value={filterMode}
-          exclusive
-          onChange={(e, newValue) => {
-            if (newValue !== null) {
-              setFilterMode(newValue);
-            }
-          }}
-          aria-label="task filter"
-          size="small"
-          sx={{
-            "& .MuiToggleButtonGroup-grouped": {
-              border: "none",
-              "&:not(:first-of-type)": {
-                borderRadius: "8px",
-                marginLeft: "8px",
-              },
-              "&:first-of-type": {
-                borderRadius: "8px",
-              },
-            },
-          }}
-        >
-          <ToggleButton
-            value="all"
-            aria-label="all tasks"
-            sx={TOGGLE_BUTTON_STYLES}
-          >
-            Все задачи
-          </ToggleButton>
-          <ToggleButton
-            value="my"
-            aria-label="my tasks"
-            sx={TOGGLE_BUTTON_STYLES}
-          >
-            Назначенные мне
-          </ToggleButton>
-        </ToggleButtonGroup>
+      <div>
+        <ExportTasksButton />
       </div>
     </div>
   );
