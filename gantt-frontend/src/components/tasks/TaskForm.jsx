@@ -42,8 +42,15 @@ import {
   createTeamTagApi,
   deleteTeamTagApi,
 } from "../../api/tag.js";
+import {
+  fetchTeamCustomFieldsApi,
+  createTeamCustomFieldApi,
+  deleteTeamCustomFieldApi,
+  deleteTaskCustomFieldValueApi,
+} from "../../api/customField.js";
 import TagSelector from "./TagSelector.jsx";
 import { getContrastColor } from "../../utils/taskUtils.js";
+import TaskCustomFieldsSection from "./TaskCustomFieldsSection.jsx";
 
 const TaskForm = ({
   open,
@@ -82,6 +89,14 @@ const TaskForm = ({
 
   const [teamTags, setTeamTags] = useState([]);
   const [selectedTagIds, setSelectedTagIds] = useState([]);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState({});
+  const [initialCustomFieldValues, setInitialCustomFieldValues] = useState({});
+  const [activeCustomFieldIds, setActiveCustomFieldIds] = useState([]);
+  const [initialActiveCustomFieldIds, setInitialActiveCustomFieldIds] =
+    useState([]);
+  const [removedCustomFieldIds, setRemovedCustomFieldIds] = useState([]);
+  const [creatingCustomField, setCreatingCustomField] = useState(false);
 
   const isEdit = Boolean(task?.id);
   const token = useMemo(
@@ -113,8 +128,15 @@ const TaskForm = ({
     setSearchResults([]);
     setSelectedTask(null);
     setSelectedConnectionType("");
-    setSelectedTagIds(task?.tag_list?.map((tag) => tag.id) || []);
-    setTeamTags(task?.tag_list || []);
+    const taskTags = task?.tag_list ?? [];
+    setSelectedTagIds(taskTags.map((tag) => tag.id));
+    setTeamTags(taskTags);
+    setCustomFields([]);
+    setCustomFieldValues({});
+    setInitialCustomFieldValues({});
+    setActiveCustomFieldIds([]);
+    setInitialActiveCustomFieldIds([]);
+    setRemovedCustomFieldIds([]);
 
     return () => {
       if (searchDebounceTimer) {
@@ -155,8 +177,132 @@ const TaskForm = ({
       if (tagsResponse.ok) {
         setTeamTags(tagsResponse.tags);
       }
+
+      const customFieldsResponse = await fetchTeamCustomFieldsApi(
+        teamId,
+        token,
+      );
+      if (customFieldsResponse.ok) {
+        const fieldDefs = customFieldsResponse.fields;
+        const taskCustomFieldValues = task?.custom_field_values ?? [];
+        const initialFieldIds = taskCustomFieldValues.map(
+          (value) => value.custom_field_id,
+        );
+        const initialValues =
+          TaskCustomFieldsSection.buildInitialCustomFieldValues(
+            fieldDefs,
+            taskCustomFieldValues,
+          );
+
+        setCustomFields(fieldDefs);
+        setCustomFieldValues(initialValues);
+        setInitialCustomFieldValues(initialValues);
+        setActiveCustomFieldIds(initialFieldIds);
+        setInitialActiveCustomFieldIds(initialFieldIds);
+        setRemovedCustomFieldIds([]);
+      } else {
+        processError(customFieldsResponse.status);
+      }
+    } else {
+      setCustomFields([]);
+      setCustomFieldValues({});
+      setInitialCustomFieldValues({});
+      setActiveCustomFieldIds([]);
+      setInitialActiveCustomFieldIds([]);
+      setRemovedCustomFieldIds([]);
     }
   };
+
+  const handleCustomFieldValueChange = (fieldId, value) => {
+    setCustomFieldValues((prev) => ({
+      ...prev,
+      [fieldId]: value,
+    }));
+  };
+
+  const handleCreateCustomField = async (field) => {
+    if (!teamId) {
+      return false;
+    }
+
+    setCreatingCustomField(true);
+    const response = await createTeamCustomFieldApi(teamId, field, token);
+    setCreatingCustomField(false);
+
+    if (!response.ok) {
+      processError(response.status);
+      return false;
+    }
+
+    const createdField = response.field;
+    setCustomFields((prev) => [...prev, createdField]);
+    setCustomFieldValues((prev) => ({
+      ...prev,
+      [createdField.id]: "",
+    }));
+    setInitialCustomFieldValues((prev) => ({
+      ...prev,
+      [createdField.id]: "",
+    }));
+    setActiveCustomFieldIds((prev) => [...prev, createdField.id]);
+    setRemovedCustomFieldIds((prev) =>
+      prev.filter((id) => id !== createdField.id),
+    );
+
+    return createdField;
+  };
+
+  const handleAddExistingCustomField = (fieldId) => {
+    setActiveCustomFieldIds((prev) =>
+      prev.includes(fieldId) ? prev : [...prev, fieldId],
+    );
+    setRemovedCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
+  };
+
+  const handleRemoveCustomField = (fieldId) => {
+    setActiveCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
+
+    if (initialActiveCustomFieldIds.includes(fieldId)) {
+      setRemovedCustomFieldIds((prev) =>
+        prev.includes(fieldId) ? prev : [...prev, fieldId],
+      );
+    }
+  };
+
+  const handleDeleteCustomFieldDefinition = async (fieldId) => {
+    const response = await deleteTeamCustomFieldApi(fieldId, token);
+
+    if (!response.ok) {
+      processError(response.status);
+      return;
+    }
+
+    setCustomFields((prev) => prev.filter((field) => field.id !== fieldId));
+    setActiveCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
+    setInitialActiveCustomFieldIds((prev) =>
+      prev.filter((id) => id !== fieldId),
+    );
+    setRemovedCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
+    setCustomFieldValues((prev) => {
+      const copy = { ...prev };
+      delete copy[fieldId];
+      return copy;
+    });
+    setInitialCustomFieldValues((prev) => {
+      const copy = { ...prev };
+      delete copy[fieldId];
+      return copy;
+    });
+  };
+
+  const getCustomFieldsPayload = () =>
+    TaskCustomFieldsSection.buildCustomFieldsPayload(
+      customFields,
+      customFieldValues,
+      initialCustomFieldValues,
+      activeCustomFieldIds,
+      initialActiveCustomFieldIds,
+    );
 
   const getTaskNameById = (taskId) => {
     const foundTask = projectTasks.find((t) => t.id === taskId);
@@ -299,6 +445,7 @@ const TaskForm = ({
       start_date: toISOStringOrNull(startDate, startTime),
       deadline: toISOStringOrNull(deadlineDate, deadlineTime),
       tag_ids: selectedTagIds,
+      custom_fields: getCustomFieldsPayload(),
     };
 
     const response = isEdit
@@ -311,6 +458,11 @@ const TaskForm = ({
     }
 
     const savedTask = response.task;
+
+    for (const fieldId of removedCustomFieldIds) {
+      await deleteTaskCustomFieldValueApi(savedTask.id, fieldId, token);
+    }
+
     onSaved?.(savedTask);
     onClose?.();
   };
@@ -480,6 +632,18 @@ const TaskForm = ({
               </Box>
             </FormRow>
           )}
+
+          <TaskCustomFieldsSection
+            fields={customFields}
+            activeFieldIds={activeCustomFieldIds}
+            values={customFieldValues}
+            onChange={handleCustomFieldValueChange}
+            onRemoveField={handleRemoveCustomField}
+            onAddExistingField={handleAddExistingCustomField}
+            onCreateField={handleCreateCustomField}
+            onDeleteFieldDefinition={handleDeleteCustomFieldDefinition}
+            creatingField={creatingCustomField}
+          />
 
           {isEdit && projectId && teamId && (
             <>
