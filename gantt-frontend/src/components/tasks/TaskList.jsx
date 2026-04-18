@@ -21,6 +21,7 @@ import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
 } from "@mui/icons-material";
+import AlarmIcon from "@mui/icons-material/Alarm";
 import TaskForm from "./TaskForm.jsx";
 import TaskHistory from "./TaskHistory.jsx";
 import AdvancedFiltersPanel from "./AdvancedFiltersPanel.jsx";
@@ -359,34 +360,54 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
                 {(sortedTasks || []).map((task) => (
                   <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
                     <TableCell sx={CELL_STYLES}>
-                      <Box>
+                    <Box>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
                         {task.name}
-                        {task.tag_list.length > 0 && (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: 0.5,
-                              mt: 0.5,
-                            }}
-                          >
-                            {task.tag_list.map((tag) => (
-                              <Chip
-                                key={tag.id}
-                                size="small"
-                                label={tag.name}
-                                sx={{
-                                  backgroundColor: tag.color,
-                                  color: getContrastColor(tag.color),
-                                  fontWeight: 600,
-                                  fontFamily: "Montserrat, sans-serif",
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        )}
-                      </Box>
-                    </TableCell>
+                        {task.deadline &&
+                          (() => {
+                            const normalized = task.deadline + "Z";
+                            const diff = new Date(normalized) - Date.now();
+                            return diff > 0 && diff < 24 * 60 * 60 * 1000;
+                          })() && (
+                            <AlarmIcon
+                              sx={{
+                                fontSize: 16,
+                              }}
+                            />
+                          )}
+                      </span>
+                      {task.tag_list.length > 0 && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 0.5,
+                            mt: 0.5,
+                          }}
+                        >
+                          {task.tag_list.map((tag) => (
+                            <Chip
+                              key={tag.id}
+                              size="small"
+                              label={tag.name}
+                              sx={{
+                                backgroundColor: tag.color,
+                                color: getContrastColor(tag.color),
+                                fontWeight: 600,
+                                fontFamily: "Montserrat, sans-serif",
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  </TableCell>
 
                     <TableCell sx={CELL_STYLES}>
                       {task.assignee_email || "-"}
