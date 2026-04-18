@@ -1,3 +1,5 @@
+starlette
+ics
 pywebpush
 apscheduler
 fastapi==0.120.1

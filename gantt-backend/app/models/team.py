@@ -11,6 +11,8 @@ class Team(base.Base):
 
     user_teams = relationship("UserTeam", back_populates="team")
     projects = relationship("Project", back_populates="team")
+    tags = relationship("Tag", back_populates="team", cascade="all, delete-orphan")
+    custom_fields = relationship("CustomField", back_populates="team", cascade="all, delete-orphan")
 
 
 class UserTeam(base.Base):
