@@ -7,11 +7,13 @@ import {
   Typography,
   Box,
   CircularProgress,
+  Chip,
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { fetchTaskHistoryApi } from "../../api/task.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
+import { getContrastColor } from "../../utils/taskUtils.js";
 
 const FIELD_LABELS = {
   name: "Название",
@@ -25,7 +27,7 @@ const FIELD_LABELS = {
   tag_ids: "Теги",
 };
 
-function formatValue(value, fieldName, statuses, priorities) {
+function formatValue(value, fieldName, statuses, priorities, tags) {
   if (value === null || value === undefined || value === "") return "-";
 
   if (fieldName === "status_id") {
@@ -36,6 +38,20 @@ function formatValue(value, fieldName, statuses, priorities) {
     const p = priorities.find((x) => String(x.id) === String(value));
     return p ? p.name : value;
   }
+  if (fieldName === "tag_ids") {
+    try {
+      const tagIds = typeof value === "string" ? JSON.parse(value) : value;
+      if (!Array.isArray(tagIds) || tagIds.length === 0) return "-";
+      return tagIds
+        .map((id) => {
+          const tag = tags?.find((t) => String(t.id) === String(id));
+          return tag ? tag.name : `ID: ${id}`;
+        })
+        .join(", ");
+    } catch {
+      return value;
+    }
+  }
 
   const dateRegex = /^\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}/;
   if (dateRegex.test(value)) {
@@ -45,12 +61,41 @@ function formatValue(value, fieldName, statuses, priorities) {
   return value;
 }
 
+function parseTagIds(value) {
+  try {
+    return typeof value === "string" ? JSON.parse(value) : value;
+  } catch {
+    return [];
+  }
+}
+
+function getAddedAndRemovedTags(oldValue, newValue, tags) {
+  const oldIds = parseTagIds(oldValue);
+  const newIds = parseTagIds(newValue);
+
+  const removed = oldIds
+    .filter((id) => !newIds.includes(id))
+    .map((id) => tags?.find((t) => String(t.id) === String(id)))
+    .filter(Boolean);
+
+  const added = newIds
+    .filter((id) => !oldIds.includes(id))
+    .map((id) => tags?.find((t) => String(t.id) === String(id)))
+    .filter(Boolean);
+
+  return {
+    removed: removed.length > 0 ? removed : null,
+    added: added.length > 0 ? added : null,
+  };
+}
+
 const TaskHistory = ({
   open,
   onClose,
   task,
   statuses = [],
   priorities = [],
+  tags = [],
 }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -188,73 +233,157 @@ const TaskHistory = ({
                 {FIELD_LABELS[entry.field_name] || entry.field_name}
               </Typography>
 
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  flexWrap: "wrap",
-                }}
-              >
-                {entry.old_value ? (
+              {entry.field_name === "tag_ids" ? (
+                (() => {
+                  const { removed, added } = getAddedAndRemovedTags(
+                    entry.old_value,
+                    entry.new_value,
+                    tags,
+                  );
+                  return (
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+                    >
+                      {removed && removed.length > 0 && (
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontFamily: "Montserrat, sans-serif",
+                              minWidth: "fit-content",
+                            }}
+                          >
+                            Удалено:
+                          </Typography>
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                          >
+                            {removed.map((tag) => (
+                              <Chip
+                                key={tag.id}
+                                size="small"
+                                label={tag.name}
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  backgroundColor: tag.color,
+                                  color: getContrastColor(tag.color),
+                                  fontWeight: 600,
+                                  opacity: 0.6,
+                                  textDecoration: "line-through",
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                      {added && added.length > 0 && (
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontFamily: "Montserrat, sans-serif",
+                              minWidth: "fit-content",
+                            }}
+                          >
+                            Добавлено:
+                          </Typography>
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                          >
+                            {added.map((tag) => (
+                              <Chip
+                                key={tag.id}
+                                size="small"
+                                label={tag.name}
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  backgroundColor: tag.color,
+                                  color: getContrastColor(tag.color),
+                                  fontWeight: 600,
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                })()
+              ) : (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {entry.old_value ? (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        textDecoration: "line-through",
+                        color: "text.secondary",
+                        fontFamily: "Montserrat, sans-serif",
+                        maxWidth: 180,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {formatValue(
+                        entry.old_value,
+                        entry.field_name,
+                        statuses,
+                        priorities,
+                        tags,
+                      )}
+                    </Typography>
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        textDecoration: "line-through",
+                        color: "text.secondary",
+                        fontFamily: "Montserrat, sans-serif",
+                      }}
+                    >
+                      -
+                    </Typography>
+                  )}
+
                   <Typography
                     variant="body2"
                     sx={{
-                      textDecoration: "line-through",
                       color: "text.secondary",
+                      fontFamily: "Montserrat, sans-serif",
+                    }}
+                  >
+                    {"\u2192"}
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.primary",
+                      fontWeight: 500,
                       fontFamily: "Montserrat, sans-serif",
                       maxWidth: 180,
                       wordBreak: "break-word",
                     }}
                   >
                     {formatValue(
-                      entry.old_value,
+                      entry.new_value,
                       entry.field_name,
                       statuses,
                       priorities,
+                      tags,
                     )}
                   </Typography>
-                ) : (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      textDecoration: "line-through",
-                      color: "text.secondary",
-                      fontFamily: "Montserrat, sans-serif",
-                    }}
-                  >
-                    -
-                  </Typography>
-                )}
-
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary",
-                    fontFamily: "Montserrat, sans-serif",
-                  }}
-                >
-                  ->
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.primary",
-                    fontWeight: 500,
-                    fontFamily: "Montserrat, sans-serif",
-                    maxWidth: 180,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {formatValue(
-                    entry.new_value,
-                    entry.field_name,
-                    statuses,
-                    priorities,
-                  )}
-                </Typography>
-              </Box>
+                </Box>
+              )}
             </Box>
           ))
         )}

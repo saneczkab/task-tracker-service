@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserRole(str, Enum):
@@ -18,7 +18,7 @@ class UserWithRoleResponse(BaseModel):
 
 
 class TeamCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1)
 
 
 class TeamResponse(BaseModel):
@@ -29,6 +29,6 @@ class TeamResponse(BaseModel):
 
 
 class TeamUpdate(BaseModel):
-    name: str | None = None
+    name: str | None = Field(None, min_length=1)
     newUsers: list[EmailStr] | None = None
     deleteUsers: list[EmailStr] | None = None
