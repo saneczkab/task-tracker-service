@@ -40,11 +40,19 @@ import {
   fetchStreamsApi,
   updateStreamNameApi,
   deleteStreamApi,
+  updateStreamPositionApi,
 } from "../../api/stream.js";
 import { fetchTeamNameApi } from "../../api/team.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
 
-const Sidebar = ({ teamId, projId, streamId }) => {
+const Sidebar = ({
+  teamId,
+  projId,
+  streamId,
+  onStreamsReorder,
+  onGanttStreamsReorder,
+  sidebarStreams,
+}) => {
   const [isTeamEditOpen, setIsTeamEditOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
@@ -71,6 +79,8 @@ const Sidebar = ({ teamId, projId, streamId }) => {
   const [user] = useState(null);
 
   const [uiProjects, setUiProjects] = useState([]);
+  const [draggedStream, setDraggedStream] = useState(null);
+  const [dropTargetStream, setDropTargetStream] = useState(null);
 
   const getProjectColor = (id) => {
     const colors = [
@@ -103,7 +113,9 @@ const Sidebar = ({ teamId, projId, streamId }) => {
       if (!mounted) return;
       setUiProjects(response.projects);
     };
-    if (teamId) load();
+    if (teamId && token) {
+      load();
+    }
     return () => {
       mounted = false;
     };
@@ -325,6 +337,115 @@ const Sidebar = ({ teamId, projId, streamId }) => {
     setEditedStreamName("");
   };
 
+  const refreshProjectStreams = useCallback(
+    (projId) => {
+      const proj = uiProjects.find((p) => p.id === projId);
+      if (proj && proj.isStreamsLoaded) {
+        fetchProjectStreams(projId);
+      }
+    },
+    [uiProjects, fetchProjectStreams],
+  );
+
+  const handleStreamDragStart = (stream, projectId) => {
+    setDraggedStream({ stream, projectId });
+  };
+
+  const handleStreamDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleStreamDragEnter = (stream, projectId) => {
+    if (draggedStream && draggedStream.projectId === projectId) {
+      setDropTargetStream({ stream, projectId });
+    }
+  };
+
+  const handleStreamDrop = async (targetStream, projectId) => {
+    if (!draggedStream || draggedStream.projectId !== projectId) {
+      setDraggedStream(null);
+      setDropTargetStream(null);
+      return;
+    }
+
+    const sourceStream = draggedStream.stream;
+    if (sourceStream.id === targetStream.id) {
+      setDraggedStream(null);
+      setDropTargetStream(null);
+      return;
+    }
+
+    const project = uiProjects.find((p) => p.id === projectId);
+    if (!project || !project.streams) {
+      setDraggedStream(null);
+      setDropTargetStream(null);
+      return;
+    }
+
+    const streamList = project.streams;
+    const sourceIdx = streamList.findIndex((s) => s.id === sourceStream.id);
+    const targetIdx = streamList.findIndex((s) => s.id === targetStream.id);
+
+    if (sourceIdx === -1 || targetIdx === -1) {
+      setDraggedStream(null);
+      setDropTargetStream(null);
+      return;
+    }
+
+    const reordered = [...streamList];
+    const [removed] = reordered.splice(sourceIdx, 1);
+    reordered.splice(targetIdx, 0, removed);
+
+    for (let i = 0; i < reordered.length; i++) {
+      const stream = reordered[i];
+      const newPosition = i + 1;
+      const response = await updateStreamPositionApi(
+        stream.id,
+        newPosition,
+        token,
+      );
+      if (!response.ok) {
+        processError(response.status);
+        setDraggedStream(null);
+        setDropTargetStream(null);
+        return;
+      }
+    }
+
+    setUiProjects((prev) =>
+      prev.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              streams: reordered.map((s, idx) => ({
+                ...s,
+                position: idx + 1,
+              })),
+            }
+          : p,
+      ),
+    );
+
+    if (onStreamsReorder) {
+      onStreamsReorder(
+        reordered.map((s, idx) => ({
+          id: s.id,
+          name: s.name,
+          position: idx + 1,
+        })),
+      );
+    }
+
+    setDraggedStream(null);
+    setDropTargetStream(null);
+  };
+
+  const handleStreamDragEnd = () => {
+    setDraggedStream(null);
+    setDropTargetStream(null);
+  };
+
   // TODO: перенести в профиль юзера
   useEffect(() => {
     const fetchTeamName = async () => {
@@ -335,8 +456,28 @@ const Sidebar = ({ teamId, projId, streamId }) => {
       }
       setTeamName(response.name);
     };
-    fetchTeamName();
-  }, [teamId, token, processError]);
+    if (teamId && token) {
+      fetchTeamName();
+    }
+  }, [teamId, token]);
+
+  useEffect(() => {
+    if (Array.isArray(sidebarStreams) && projId && sidebarStreams.length > 0) {
+      setUiProjects((prev) =>
+        prev.map((p) =>
+          p.id === projId
+            ? {
+                ...p,
+                streams: sidebarStreams.map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                })),
+              }
+            : p,
+        ),
+      );
+    }
+  }, [sidebarStreams, projId]);
 
   return (
     <aside className="w-75 min-h-screen bg-[#F5F6F7] flex flex-col">
@@ -738,6 +879,21 @@ const Sidebar = ({ teamId, projId, streamId }) => {
                   <ListItem
                     key={stream.id}
                     disablePadding
+                    draggable
+                    onDragStart={() => handleStreamDragStart(stream, proj.id)}
+                    onDragOver={handleStreamDragOver}
+                    onDragEnter={() => handleStreamDragEnter(stream, proj.id)}
+                    onDrop={() => handleStreamDrop(stream, proj.id)}
+                    onDragEnd={handleStreamDragEnd}
+                    sx={{
+                      pl: 0,
+                      opacity: draggedStream?.stream.id === stream.id ? 0.5 : 1,
+                      backgroundColor:
+                        dropTargetStream?.stream.id === stream.id
+                          ? "rgba(66, 165, 245, 0.1)"
+                          : "transparent",
+                      transition: "all 0.2s ease",
+                    }}
                     secondaryAction={
                       <Box
                         sx={{
@@ -794,7 +950,6 @@ const Sidebar = ({ teamId, projId, streamId }) => {
                         )}
                       </Box>
                     }
-                    sx={{ pl: 0 }}
                   >
                     <ListItemButton
                       component="a"

@@ -109,3 +109,132 @@ export const filterTasksByTeamAndUser = (
 
   return filtered;
 };
+
+export const applyAdvancedFilters = (
+  tasks,
+  filters,
+  statusMap = {},
+  priorityMap = {},
+  userEmail = "",
+) => {
+  if (!filters) return tasks;
+
+  return tasks.filter((task) => {
+    const searchText = (filters.searchText || "").toLowerCase();
+
+    if (searchText) {
+      const searchableText = [
+        task.name || "",
+        task.assignee_email || "",
+        task.team_name || "",
+        task.project_name || "",
+        task.stream_name || "",
+        statusMap[task.status_id] || "",
+        priorityMap[task.priority_id] || "",
+        (task.tag_list || []).map((task) => task.name).join(" ") || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      if (!searchableText.includes(searchText)) {
+        return false;
+      }
+    }
+
+    if (filters.assignee && filters.assignee.length > 0) {
+      const isMyTask =
+        filters.assignee.includes("__my__") &&
+        task.assignee_email === userEmail;
+      const isOtherAssignee = filters.assignee.some(
+        (a) => a !== "__my__" && task.assignee_email === a,
+      );
+      if (!isMyTask && !isOtherAssignee) {
+        return false;
+      }
+    }
+
+    if (
+      filters.team &&
+      filters.team.length > 0 &&
+      !filters.team.includes(task.team_name)
+    ) {
+      return false;
+    }
+
+    if (
+      filters.project &&
+      filters.project.length > 0 &&
+      !filters.project.includes(task.project_name)
+    ) {
+      return false;
+    }
+
+    if (
+      filters.stream &&
+      filters.stream.length > 0 &&
+      !filters.stream.includes(task.stream_name)
+    ) {
+      return false;
+    }
+
+    if (
+      filters.priority &&
+      filters.priority.length > 0 &&
+      !filters.priority.includes(task.priority_id)
+    ) {
+      return false;
+    }
+
+    if (
+      filters.status &&
+      filters.status.length > 0 &&
+      !filters.status.includes(task.status_id)
+    ) {
+      return false;
+    }
+
+    if (filters.tags && filters.tags.length > 0) {
+      const taskTagIds = (task.tag_list || []).map((tag) => tag.id);
+      const hasAllTags = filters.tags.some((tagId) =>
+        taskTagIds.includes(tagId),
+      );
+      if (!hasAllTags) {
+        return false;
+      }
+    }
+
+    if (filters.startDate) {
+      const filterDate = new Date(filters.startDate);
+      const taskDate = task.start_date ? new Date(task.start_date) : null;
+      if (taskDate === null || taskDate < filterDate) {
+        return false;
+      }
+    }
+
+    if (filters.startDateEnd) {
+      const filterDate = new Date(filters.startDateEnd);
+      const taskDate = task.start_date ? new Date(task.start_date) : null;
+      if (taskDate === null || taskDate > filterDate) {
+        return false;
+      }
+    }
+
+    if (filters.deadline) {
+      const filterDate = new Date(filters.deadline);
+      const taskDate = task.deadline ? new Date(task.deadline) : null;
+      if (taskDate === null || taskDate < filterDate) {
+        return false;
+      }
+    }
+
+    if (filters.deadlineEnd) {
+      const filterDate = new Date(filters.deadlineEnd);
+      const taskDate = task.deadline ? new Date(task.deadline) : null;
+      if (taskDate === null || taskDate > filterDate) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+};

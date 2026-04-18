@@ -61,3 +61,16 @@ def get_task_history(task_id: int, current_user=fastapi.Depends(auth.get_current
         raise fastapi.HTTPException(404, str(e))
     except exception.ForbiddenError as e:
         raise fastapi.HTTPException(403, str(e))
+
+
+@router.delete("/api/task/{task_id}/custom_fields/{custom_field_id}", status_code=204)
+def delete_task_custom_field(task_id: int, custom_field_id: int, 
+                             current_user=fastapi.Depends(auth.get_current_user),
+                             data_base: orm.Session = fastapi.Depends(db.get_db)):
+    """Удалить значение кастомного поля для задачи."""
+    try:
+        task_service.delete_task_custom_field_service(data_base, task_id, custom_field_id, current_user.id)
+    except exception.NotFoundError as e:
+        raise fastapi.HTTPException(404, str(e))
+    except exception.ForbiddenError as e:
+        raise fastapi.HTTPException(403, str(e))
