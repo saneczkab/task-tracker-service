@@ -1,35 +1,49 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.tag import TagResponse
 from app.schemas.custom_field import TaskCustomFieldValue, TaskCustomFieldValueBase
 
 
 class TaskCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1)
     description: str | None = None
-    status_id: int | None
-    priority_id: int | None
+    status_id: int | None = Field(None, gt=0)
+    priority_id: int | None = Field(None, gt=0)
     assignee_email: str | None = None
     start_date: datetime | None = None
     deadline: datetime | None = None
-    position: int | None = None
+    position: int | None = Field(None, ge=0)
     tag_ids: list[int] | None = None
     custom_fields: list[TaskCustomFieldValueBase] | None = None
+
+    @field_validator("deadline")
+    def validate_deadline(cls, deadline, info):
+        start_date = info.data.get("start_date")
+        if start_date and deadline and deadline <= start_date:
+            raise ValueError("deadline должен быть больше start_date")
+        return deadline
 
 
 class TaskUpdate(BaseModel):
-    name: str | None = None
+    name: str | None = Field(None, min_length=1)
     description: str | None = None
-    status_id: int | None = None
-    priority_id: int | None = None
+    status_id: int | None = Field(None, gt=0)
+    priority_id: int | None = Field(None, gt=0)
     assignee_email: str | None = None
     start_date: datetime | None = None
     deadline: datetime | None = None
-    position: int | None = None
+    position: int | None = Field(None, ge=0)
     tag_ids: list[int] | None = None
     custom_fields: list[TaskCustomFieldValueBase] | None = None
+
+    @field_validator("deadline")
+    def validate_deadline(cls, deadline, info):
+        start_date = info.data.get("start_date")
+        if start_date and deadline and deadline <= start_date:
+            raise ValueError("deadline должен быть больше start_date")
+        return deadline
 
 
 class TaskRelationResponse(BaseModel):
