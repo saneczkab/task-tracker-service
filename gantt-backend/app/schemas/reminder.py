@@ -12,7 +12,6 @@ class ReminderCreate(BaseModel):
             raise ValueError("remind_at должен быть в будущем")
         return remind_at
 
-
 class ReminderUpdate(BaseModel):
     remind_at: datetime | None = None
 

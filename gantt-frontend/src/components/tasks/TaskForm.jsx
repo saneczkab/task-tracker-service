@@ -59,6 +59,7 @@ const TaskForm = ({
   streamId,
   task = null,
   onSaved,
+  onBeforeCreate,
   statuses: statusesProp,
   priorities: prioritiesProp,
   projectId = null,
@@ -72,6 +73,7 @@ const TaskForm = ({
   const [assigneeEmail, setAssigneeEmail] = useState("");
   const [statusId, setStatusId] = useState("");
   const [priorityId, setPriorityId] = useState("");
+  const [position, setPosition] = useState(null);
 
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -120,6 +122,7 @@ const TaskForm = ({
     setAssigneeEmail(task?.assignee_email || "");
     setStatusId(task?.status_id ?? "");
     setPriorityId(task?.priority_id ?? "");
+    setPosition(task?.position ?? null);
     setStartDate(task?.start_date ? toInputDate(task.start_date) : "");
     setStartTime(task?.start_date ? toInputTime(task.start_date) : "");
     setDeadlineDate(task?.deadline ? toInputDate(task.deadline) : "");
@@ -447,7 +450,12 @@ const TaskForm = ({
       deadline: toISOStringOrNull(deadlineDate, deadlineTime),
       tag_ids: selectedTagIds,
       custom_fields: getCustomFieldsPayload(),
+      position: position,
     };
+
+    if (!isEdit && position != null && onBeforeCreate) {
+      await onBeforeCreate(position);
+    }
 
     const response = isEdit
       ? await updateTaskApi(task.id, payload, token)

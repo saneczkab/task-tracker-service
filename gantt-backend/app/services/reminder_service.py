@@ -7,6 +7,12 @@ from app.crud import reminder as reminder_crud
 from app.services import permissions
 
 
+def check_task_permissions(data_base: orm.Session, task_id: int, user_id: int):
+    """Проверить доступ пользователя к задаче"""
+    task_obj, _, _, _ = permissions.check_task_access(data_base, task_id, user_id)
+    return task_obj
+
+
 def get_user_reminders_service(data_base: orm.Session, user_id: int):
     """Получить все напоминания пользователя"""
     return reminder_crud.get_reminders_by_user(data_base, user_id)
@@ -14,7 +20,7 @@ def get_user_reminders_service(data_base: orm.Session, user_id: int):
 
 def get_task_reminders_service(data_base: orm.Session, task_id: int, user_id: int):
     """Получить напоминания по задаче"""
-    _, _, _, _ = permissions.check_task_access(data_base, task_id, user_id)
+    check_task_permissions(data_base, task_id, user_id)
     return reminder_crud.get_reminders_by_task_and_user(data_base, task_id, user_id)
 
 
@@ -25,7 +31,7 @@ def create_reminder_service(
     reminder_data
 ):
     """Создать напоминание"""
-    _, _, _, _ = permissions.check_task_access(data_base, task_id, user_id)
+    check_task_permissions(data_base, task_id, user_id)
 
     if reminder_data.remind_at < datetime.utcnow():
         raise exception.ConflictError("Время напоминания не может быть в прошлом")

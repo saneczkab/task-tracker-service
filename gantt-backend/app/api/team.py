@@ -3,7 +3,9 @@ from sqlalchemy import orm
 
 from app.api import auth
 from app.core import db, exception
-from app.schemas import team as team_schemas, tag as tag_schemas, project as project_schemas
+from app.schemas import project as project_schemas
+from app.schemas import tag as tag_schemas
+from app.schemas import team as team_schemas
 from app.services import project_service, team_service, task_service, tag_service
 
 router = fastapi.APIRouter()
@@ -86,7 +88,7 @@ def create_team_tag(team_id: int, tag_data: tag_schemas.TagCreate, current_user=
 
 
 @router.delete("/api/team/{team_id}/tags/{tag_id}", status_code=204)
-def delete_team_tag(tag_id: int, current_user=fastapi.Depends(auth.get_current_user),
+def delete_team_tag(team_id: int, tag_id: int, current_user=fastapi.Depends(auth.get_current_user),
                     data_base: orm.Session = fastapi.Depends(db.get_db)):
     try:
         tag_service.delete_tag_service(data_base, tag_id, current_user.id)
@@ -97,7 +99,7 @@ def delete_team_tag(tag_id: int, current_user=fastapi.Depends(auth.get_current_u
 
 
 @router.delete("/api/team/{team_id}/relation/{relation_id}", status_code=204)
-def delete_task_relation(relation_id: int, current_user=fastapi.Depends(auth.get_current_user),
+def delete_task_relation(team_id: int, relation_id: int, current_user=fastapi.Depends(auth.get_current_user),
                          data_base: orm.Session = fastapi.Depends(db.get_db)):
     try:
         task_service.delete_task_relation_service(data_base, relation_id, current_user.id)
