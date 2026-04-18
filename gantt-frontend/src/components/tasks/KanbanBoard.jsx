@@ -4,11 +4,13 @@ import { Box, CircularProgress } from "@mui/material";
 import KanbanElement from "./KanbanElement.jsx";
 import TaskForm from "./TaskForm.jsx";
 import TaskHistory from "./TaskHistory.jsx";
+import ExportTasksButton from "../ui/ExportTasksButton.jsx";
 import StreamLayout from "../layout/StreamLayout.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
+import { fetchTeamTagsApi } from "../../api/tag.js";
 
 const KanbanBoard = () => {
   const { teamId, streamId } = useParams();
@@ -16,6 +18,7 @@ const KanbanBoard = () => {
   const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
+  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [projId, setProjId] = useState(null);
 
@@ -113,21 +116,36 @@ const KanbanBoard = () => {
     return response.priorities;
   };
 
+  const fetchTags = async () => {
+    if (!teamId) return [];
+    const response = await fetchTeamTagsApi(teamId, token);
+
+    if (!response.ok) {
+      processError(response.status);
+      return [];
+    }
+
+    return response.tags || [];
+  };
+
   const loadAll = useCallback(async () => {
     setLoading(true);
 
-    const [tasksData, statusesData, prioritiesData] = await Promise.all([
-      fetchTasks(),
-      fetchStatuses(),
-      fetchPriorities(),
-    ]);
+    const [tasksData, statusesData, prioritiesData, tagsData] =
+      await Promise.all([
+        fetchTasks(),
+        fetchStatuses(),
+        fetchPriorities(),
+        fetchTags(),
+      ]);
 
     setTasks(tasksData || []);
     setStatuses(statusesData);
     setPriorities(prioritiesData);
+    setTags(tagsData || []);
 
     setLoading(false);
-  }, [streamId, token]);
+  }, [streamId, token, teamId]);
 
   useEffect(() => {
     loadAll();
@@ -183,6 +201,10 @@ const KanbanBoard = () => {
             streamId={streamId}
             onProjIdLoaded={setProjId}
           >
+            <div className="mb-4">
+              <ExportTasksButton />
+            </div>
+
             <Box
               sx={{
                 display: "flex",
@@ -234,6 +256,7 @@ const KanbanBoard = () => {
               task={historyTask}
               statuses={statuses}
               priorities={priorities}
+              tags={tags}
             />
           </StreamLayout>
         </div>
