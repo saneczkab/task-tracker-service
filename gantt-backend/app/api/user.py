@@ -24,6 +24,8 @@ def get_user_by_token(current_user=fastapi.Depends(auth.get_current_user),
         }
     except exception.NotFoundError as e:
         raise fastapi.HTTPException(status_code=404, detail=str(e))
+    except exception.ValidationError as e:
+        raise fastapi.HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/api/user/{user_id}", response_model=user_schemas.UserResponse, status_code=fastapi.status.HTTP_200_OK)
@@ -42,6 +44,8 @@ def get_user(user_id: int, current_user=fastapi.Depends(auth.get_current_user),
         raise fastapi.HTTPException(status_code=403, detail=str(e))
     except exception.NotFoundError as e:
         raise fastapi.HTTPException(status_code=404, detail=str(e))
+    except exception.ValidationError as e:
+        raise fastapi.HTTPException(status_code=400, detail=str(e))
 
 
 @router.patch("/api/user/{user_id}")
@@ -56,3 +60,5 @@ def delete_user(user_id: int, current_user: user.User = fastapi.Depends(auth.get
                 data_base: orm.Session = fastapi.Depends(db.get_db)):
     """Удалить юзер user_id"""
     pass
+
+
