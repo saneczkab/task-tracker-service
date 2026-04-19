@@ -1,0 +1,46 @@
+from pydantic import BaseModel
+from datetime import date, datetime
+from typing import Optional, List
+
+
+class TaskAnalytics(BaseModel):
+    total_tasks: int
+    completed_on_time: int
+    in_progress: int
+    overdue: int
+    completion_rate: float
+
+
+class UserTaskStats(BaseModel):
+    user_id: int
+    email: str
+    nickname: str
+    total_tasks: int
+    completed_tasks: int
+    overdue_tasks: int
+    in_progress_tasks: int
+
+
+class TaskBrief(BaseModel):
+    id: int
+    name: str
+    status_id: int
+    deadline: Optional[datetime]
+    assigned_users: List[str]
+
+
+class PeriodFilter(BaseModel):
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    period: Optional[str] = None
+
+
+class TeamAnalyticsResponse(BaseModel):
+    team_id: int
+    team_name: str
+    analytics: TaskAnalytics
+    users_stats: List[UserTaskStats]
+    tasks: List[TaskBrief]
+    users: List[dict]
+    period: PeriodFilter
+    ai_summary: Optional[str] = None
