@@ -10,6 +10,8 @@ from app.models.stream import Stream
 from app.models.task import Task, TaskRelation
 from app.models.goal import Goal
 from app.models.meta import Status, Priority, ConnectionType
+from app.models.tag import Tag, TaskTag
+from app.models.custom_field import CustomField, TaskCustomFieldValue
 from app.core.security import get_password_hash
 
 

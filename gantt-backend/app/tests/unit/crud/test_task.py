@@ -119,7 +119,7 @@ def test_create_task_uses_empty_string_when_no_description(db_session, stream_ob
 def test_update_task_updates_fields(db_session, task_obj):
     update_data = TaskUpdate(name="Updated task", description="New description")
 
-    result = update_task(db_session, task_obj, update_data)
+    result = update_task(db_session, task_obj, update_data.model_dump(exclude_unset=True))
 
     assert task_obj.name == "Updated task"
     assert task_obj.description == "New description"
@@ -128,10 +128,10 @@ def test_update_task_updates_fields(db_session, task_obj):
 
 def test_update_task_only_provided_fields(db_session, task_obj):
     update_data = TaskUpdate(name="Test")
-
-    update_task(db_session, task_obj, update_data)
-
     updated_fields = update_data.model_dump(exclude_unset=True)
+
+    update_task(db_session, task_obj, updated_fields)
+
     assert "name" in updated_fields
     assert "description" not in updated_fields
     assert "status_id" not in updated_fields
@@ -140,7 +140,7 @@ def test_update_task_only_provided_fields(db_session, task_obj):
 def test_update_task_empty_data(db_session, task_obj):
     update_data = TaskUpdate()
 
-    result = update_task(db_session, task_obj, update_data)
+    result = update_task(db_session, task_obj, update_data.model_dump(exclude_unset=True))
 
     assert result is task_obj
 
