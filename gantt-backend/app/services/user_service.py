@@ -33,8 +33,10 @@ def register_user_service(data_base: orm.Session, email: str, nickname: str, pas
     except exception.ConflictError:
         raise exception.ConflictError("Email или никнейм уже используются")
 
-    token = security.create_access_token({"sub": str(new_user.id)})
-    return {"access_token": token, "token_type": "Bearer"}
+    user_data = {"sub": str(new_user.id)}
+    access_token = security.create_access_token(user_data)
+    refresh_token = security.create_refresh_token(user_data)
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "Bearer"}
 
 
 def login_user_service(data_base: orm.Session, email: str, password: str):
@@ -42,8 +44,10 @@ def login_user_service(data_base: orm.Session, email: str, password: str):
     if not u or not security.verify_password(password, u.password_hash):
         raise exception.ForbiddenError("Неверные данные для входа")
 
-    token = security.create_access_token({"sub": str(u.id)})
-    return {"access_token": token, "token_type": "Bearer"}
+    user_data = {"sub": str(u.id)}
+    access_token = security.create_access_token(user_data)
+    refresh_token = security.create_refresh_token(user_data)
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "Bearer"}
 
 
 def get_user_by_token_service(data_base: orm.Session, current_user_id: int):
