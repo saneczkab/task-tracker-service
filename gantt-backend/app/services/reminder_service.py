@@ -4,31 +4,12 @@ from sqlalchemy import orm
 
 from app.core import exception
 from app.crud import reminder as reminder_crud
-from app.crud import task as task_crud
-from app.models import project, stream, team
+from app.services import permissions
 
 
 def check_task_permissions(data_base: orm.Session, task_id: int, user_id: int):
     """Проверить доступ пользователя к задаче"""
-    task_obj = task_crud.get_task_by_id(data_base, task_id)
-    if not task_obj:
-        raise exception.NotFoundError("Задача не найдена")
-
-    stream_obj = data_base.query(stream.Stream).filter(stream.Stream.id == task_obj.stream_id).first()
-    if not stream_obj:
-        raise exception.NotFoundError("Стрим не найден")
-
-    project_obj = data_base.query(project.Project).filter(project.Project.id == stream_obj.project_id).first()
-    if not project_obj:
-        raise exception.NotFoundError("Проект не найден")
-
-    user_team = data_base.query(team.UserTeam).filter(
-        team.UserTeam.team_id == project_obj.team.id,
-        team.UserTeam.user_id == user_id
-    ).first()
-    if not user_team:
-        raise exception.ForbiddenError("У вас нет доступа к задаче")
-
+    task_obj, _, _, _ = permissions.check_task_access(data_base, task_id, user_id)
     return task_obj
 
 
