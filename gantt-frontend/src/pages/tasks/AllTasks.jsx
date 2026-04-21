@@ -5,6 +5,9 @@ import StreamLayout from "../../components/layout/StreamLayout.jsx";
 import AllTasksTable from "../../components/tasks/AllTasksTable.jsx";
 import AdvancedFiltersPanel from "../../components/tasks/AdvancedFiltersPanel.jsx";
 import ExportTasksButton from "../../components/ui/ExportTasksButton.jsx";
+import TasksStatisticsChart from "../../components/tasks/TasksStatisticsChart.jsx";
+import AISummaryButton from "../../components/tasks/AISummaryButton.jsx";
+import { getTeamAnalyticsApi } from "../../api/analytics.js";
 import { fetchAllUserTasksApi } from "../../api/task.js";
 import { fetchUserEmailApi } from "../../api/user.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
@@ -17,6 +20,9 @@ const AllTasks = () => {
   const [priorities, setPriorities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+  const [statistics, setStatistics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState("");
 
   const [sortField, setSortField] = useState("deadline");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -104,6 +110,83 @@ const AllTasks = () => {
     );
   }, [filteredTasks, sortField, sortOrder, statusMap, priorityMap]);
 
+  const analyticsFilters = useMemo(() => {
+    const params = {};
+
+    if (advancedFilters.deadline) {
+      params.start_date = advancedFilters.deadline;
+    } else if (advancedFilters.startDate) {
+      params.start_date = advancedFilters.startDate;
+    }
+
+    if (advancedFilters.deadlineEnd) {
+      params.end_date = advancedFilters.deadlineEnd;
+    } else if (advancedFilters.startDateEnd) {
+      params.end_date = advancedFilters.startDateEnd;
+    }
+
+    if (advancedFilters.project.length === 1) {
+      const selectedProjectName = advancedFilters.project[0];
+      const matchedTask = tasks.find(
+        (t) => t.project_name === selectedProjectName,
+      );
+      if (matchedTask?.project_id) {
+        params.project_id = matchedTask.project_id;
+      }
+    }
+
+    if (advancedFilters.stream.length === 1) {
+      const selectedStreamName = advancedFilters.stream[0];
+      const matchedTask = tasks.find(
+        (t) => t.stream_name === selectedStreamName,
+      );
+      if (matchedTask?.stream_id) {
+        params.stream_id = matchedTask.stream_id;
+      }
+    }
+
+    return params;
+  }, [advancedFilters, tasks]);
+
+  useEffect(() => {
+    if (!teamId || !token) {
+      setStatistics(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadAnalytics = async () => {
+      setAnalyticsLoading(true);
+      setAnalyticsError("");
+
+      const response = await getTeamAnalyticsApi(
+        teamId,
+        analyticsFilters,
+        token,
+      );
+
+      if (isCancelled) {
+        return;
+      }
+
+      if (response.ok) {
+        setStatistics(response.statistics);
+      } else {
+        setStatistics(null);
+        setAnalyticsError("Не удалось загрузить статистику");
+      }
+
+      setAnalyticsLoading(false);
+    };
+
+    loadAnalytics();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [teamId, token, analyticsFilters]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F5F6F7]">
@@ -117,14 +200,36 @@ const AllTasks = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F6F7]">
+    <div
+      className="min-h-screen flex flex-col bg-[#F5F6F7]"
+      style={{ fontFamily: "Montserrat, sans-serif" }}
+    >
       <div className="flex flex-1 gap-4">
         <div className="flex flex-1">
           <StreamLayout teamId={teamId} showHeader={false}>
             <h2 className="font-bold text-lg mb-4">Все задачи</h2>
 
             <div className="mb-4">
-              <ExportTasksButton />
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <TasksStatisticsChart
+                    statistics={statistics}
+                    loading={loading || analyticsLoading}
+                    error={analyticsError}
+                  />
+                </div>
+                <div className="shrink-0 flex items-start">
+                  <ExportTasksButton />
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <AISummaryButton
+                  tasks={sortedTasks}
+                  teamId={teamId}
+                  analyticsFilters={analyticsFilters}
+                  token={token}
+                />
+              </div>
             </div>
 
             <AdvancedFiltersPanel

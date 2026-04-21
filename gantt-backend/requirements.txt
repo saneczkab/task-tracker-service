@@ -11,5 +11,6 @@ passlib>=1.7.4
 SQLAlchemy>=2.0.44
 psycopg2-binary>=2.9.6
 email-validator
+yandex-gpt-api
 pytest
 python-dotenv
