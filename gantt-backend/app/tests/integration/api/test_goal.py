@@ -14,8 +14,8 @@ def test_get_stream_goals_success(client, seed_db, goal_obj, auth_headers):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["id"] == 42
-    assert data[0]["name"] == "Test"
+    assert data[0]["id"] == goal_obj.id
+    assert data[0]["name"] == goal_obj.name
 
 
 def test_get_stream_goals_not_found(client, seed_db, auth_headers):

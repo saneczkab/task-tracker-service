@@ -1,81 +1,91 @@
-from unittest.mock import patch
-
-from fastapi.testclient import TestClient
+from unittest.mock import DEFAULT, patch
 
 from app.core import exception
-from main import app
-
-client = TestClient(app, raise_server_exceptions=False)
 
 
-@patch("app.services.user_service.get_current_user_service")
-@patch("app.services.user_service.get_user_by_token_service")
-def test_get_user_by_token_success(
-    mock_service, mock_user, current_user, team, auth_headers
-):
-    mock_user.return_value = current_user
-    mock_service.return_value = (current_user, [team])
+class ValidationError(Exception):
+    pass
+
+
+@patch.multiple(
+    "app.services.user_service",
+    get_current_user_service=DEFAULT,
+    get_user_by_token_service=DEFAULT,
+)
+def test_get_user_by_token_success(client, current_user, team, auth_headers, **mocks):
+    mocks["get_current_user_service"].return_value = current_user
+    mocks["get_user_by_token_service"].return_value = (current_user, [team])
 
     response = client.get("/api/user_by_token", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == 42
-    assert data["email"] == "test@example.com"
-    assert data["nickname"] == "test_user"
+    assert data["id"] == current_user.id
+    assert data["email"] == current_user.email
+    assert data["nickname"] == current_user.nickname
     assert len(data["teams"]) == 1
-    assert data["teams"][0]["id"] == 42
-    assert data["teams"][0]["name"] == "Test team"
+    assert data["teams"][0]["id"] == team.id
+    assert data["teams"][0]["name"] == team.name
 
 
-@patch("app.services.user_service.get_current_user_service")
-@patch("app.services.user_service.get_user_by_token_service")
-def test_get_user_by_token_not_found(
-    mock_service, mock_user, current_user, auth_headers
-):
-    mock_user.return_value = current_user
-    mock_service.side_effect = exception.NotFoundError()
+@patch.multiple(
+    "app.services.user_service",
+    get_current_user_service=DEFAULT,
+    get_user_by_token_service=DEFAULT,
+)
+def test_get_user_by_token_not_found(client, current_user, auth_headers, **mocks):
+    mocks["get_current_user_service"].return_value = current_user
+    mocks["get_user_by_token_service"].side_effect = exception.NotFoundError()
 
     response = client.get("/api/user_by_token", headers=auth_headers)
 
     assert response.status_code == 404
 
 
-@patch("app.services.user_service.get_current_user_service")
-@patch("app.services.user_service.get_user_service")
-def test_get_user_success(mock_service, mock_user, current_user, team, auth_headers):
-    mock_user.return_value = current_user
-    mock_service.return_value = (current_user, [team])
+@patch.multiple(
+    "app.services.user_service",
+    get_current_user_service=DEFAULT,
+    get_user_service=DEFAULT,
+)
+def test_get_user_success(client, current_user, team, auth_headers, **mocks):
+    mocks["get_current_user_service"].return_value = current_user
+    mocks["get_user_service"].return_value = (current_user, [team])
 
-    response = client.get("/api/user/42", headers=auth_headers)
+    response = client.get(f"/api/user/{current_user.id}", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == 42
-    assert data["email"] == "test@example.com"
-    assert data["nickname"] == "test_user"
+    assert data["id"] == current_user.id
+    assert data["email"] == current_user.email
+    assert data["nickname"] == current_user.nickname
     assert len(data["teams"]) == 1
-    assert data["teams"][0]["id"] == 42
-    assert data["teams"][0]["name"] == "Test team"
+    assert data["teams"][0]["id"] == team.id
+    assert data["teams"][0]["name"] == team.name
 
 
-@patch("app.services.user_service.get_current_user_service")
-@patch("app.services.user_service.get_user_service")
-def test_get_user_forbidden(mock_service, mock_user, current_user, auth_headers):
-    mock_user.return_value = current_user
-    mock_service.side_effect = exception.ForbiddenError()
+@patch.multiple(
+    "app.services.user_service",
+    get_current_user_service=DEFAULT,
+    get_user_service=DEFAULT,
+)
+def test_get_user_forbidden(client, current_user, auth_headers, **mocks):
+    mocks["get_current_user_service"].return_value = current_user
+    mocks["get_user_service"].side_effect = exception.ForbiddenError()
 
-    response = client.get("/api/user/42", headers=auth_headers)
+    response = client.get(f"/api/user/{current_user.id}", headers=auth_headers)
 
     assert response.status_code == 403
 
 
-@patch("app.services.user_service.get_current_user_service")
-@patch("app.services.user_service.get_user_service")
-def test_get_user_not_found(mock_service, mock_user, current_user, auth_headers):
-    mock_user.return_value = current_user
-    mock_service.side_effect = exception.NotFoundError()
+@patch.multiple(
+    "app.services.user_service",
+    get_current_user_service=DEFAULT,
+    get_user_service=DEFAULT,
+)
+def test_get_user_not_found(client, current_user, auth_headers, **mocks):
+    mocks["get_current_user_service"].return_value = current_user
+    mocks["get_user_service"].side_effect = exception.NotFoundError()
 
-    response = client.get("/api/user/42", headers=auth_headers)
+    response = client.get(f"/api/user/{current_user.id}", headers=auth_headers)
 
     assert response.status_code == 404

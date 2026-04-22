@@ -10,7 +10,6 @@ from app.crud.stream import (
     delete_stream,
 )
 from app.schemas.stream import StreamCreate, StreamUpdate
-from app.tests.factories import build_goal, build_task
 
 
 def test_get_streams_by_project_id_returns_list(db_session, stream_obj):
@@ -105,13 +104,9 @@ def test_update_stream_none_name_skips_update(db_session, stream_obj):
     assert result is stream_obj
 
 
-def test_delete_stream_deletes_tasks_goals_and_stream(db_session, stream_obj):
-    task = build_task(task_id=50, stream_id=stream_obj.id, name="T")
-    goal = build_goal(goal_id=50, stream_id=stream_obj.id, name="G")
-    db_session.add(task)
-    db_session.add(goal)
-    db_session.commit()
-
+def test_delete_stream_deletes_tasks_goals_and_stream(
+    db_session, stream_obj, task_obj, goal_obj
+):
     delete_stream(db_session, stream_obj.id)
 
     assert get_streams_by_project_id(db_session, stream_obj.project_id) == []

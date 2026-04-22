@@ -14,25 +14,30 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.db import get_db
-from app.core.security import create_access_token, get_password_hash
+from app.core.security import create_access_token
 from app.models import goal as goal_model
-from app.models import meta as meta_model
 from app.models import project as project_model
 from app.models import stream as stream_model
-from app.models import task as task_model
 from app.models import team as team_model
-from app.models import user as user_model
 from app.models.base import Base
 from app.tests.factories import (
     build_connection_type,
+    build_custom_field,
     build_goal,
+    build_push_subscription,
     build_priority,
     build_project,
+    build_reminder,
+    build_role,
     build_status,
     build_stream,
     build_task,
+    build_task_custom_field_value,
+    build_task_relation,
+    build_tag,
     build_team,
     build_user,
+    build_user_team,
 )
 
 _engine = create_engine(
@@ -92,7 +97,7 @@ def auth_headers():
 
 @pytest.fixture
 def role_editor():
-    return team_model.Role(id=2, name="Editor")
+    return build_role()
 
 
 @pytest.fixture
@@ -134,11 +139,7 @@ def goal():
 
 @pytest.fixture
 def relation():
-    relation_obj = task_model.TaskRelation(
-        id=42, task_id_1=42, task_id_2=43, connection_id=42
-    )
-    relation_obj.connection = build_connection_type()
-    return relation_obj
+    return build_task_relation()
 
 
 @pytest.fixture
@@ -160,11 +161,9 @@ def connection():
 def user_obj(db_session):
     return _persist(
         db_session,
-        user_model.User(
-            id=42,
+        build_user(
+            user_id=42,
             email="test@test.com",
-            nickname="test_nick",
-            password_hash="hash",
         ),
     )
 
@@ -173,26 +172,24 @@ def user_obj(db_session):
 def second_user_obj(db_session):
     return _persist(
         db_session,
-        user_model.User(
-            id=43,
+        build_user(
+            user_id=43,
             email="second@test.com",
             nickname="second_nick",
-            password_hash="hash",
         ),
     )
 
 
 @pytest.fixture
 def team_obj(db_session):
-    return _persist(db_session, team_model.Team(id=42, name="Test team"))
+    return _persist(db_session, build_team())
 
 
 @pytest.fixture
 def user_team_obj(db_session, role_editor, user_obj, team_obj):
     return _persist(
         db_session,
-        team_model.UserTeam(
-            id=42,
+        build_user_team(
             user_id=user_obj.id,
             team_id=team_obj.id,
             role_id=role_editor.id,
@@ -204,7 +201,7 @@ def user_team_obj(db_session, role_editor, user_obj, team_obj):
 def project_obj(db_session, team_obj):
     return _persist(
         db_session,
-        project_model.Project(id=42, name="Test project", team_id=team_obj.id),
+        build_project(team_id=team_obj.id),
     )
 
 
@@ -212,7 +209,7 @@ def project_obj(db_session, team_obj):
 def stream_obj(db_session, project_obj):
     return _persist(
         db_session,
-        stream_model.Stream(id=42, name="Test stream", project_id=project_obj.id),
+        build_stream(project_id=project_obj.id),
     )
 
 
@@ -220,7 +217,7 @@ def stream_obj(db_session, project_obj):
 def second_stream_obj(db_session, project_obj):
     return _persist(
         db_session,
-        stream_model.Stream(id=43, name="Second stream", project_id=project_obj.id),
+        build_stream(stream_id=43, project_id=project_obj.id),
     )
 
 
@@ -242,7 +239,7 @@ def goal_obj(db_session):
             db_session.query(team_model.Team).filter(team_model.Team.id == 42).first()
         )
         if team is None:
-            team = _persist(db_session, team_model.Team(id=42, name="Test team"))
+            team = _persist(db_session, build_team())
 
         project = (
             db_session.query(project_model.Project)
@@ -252,86 +249,151 @@ def goal_obj(db_session):
         if project is None:
             project = _persist(
                 db_session,
-                project_model.Project(id=42, name="Test project", team_id=team.id),
+                build_project(team_id=team.id),
             )
 
         stream = _persist(
             db_session,
-            stream_model.Stream(id=42, name="Test stream", project_id=project.id),
+            build_stream(project_id=project.id),
         )
 
+    goal = build_goal(stream_id=stream.id)
+    return _persist(db_session, goal)
+
+
+@pytest.fixture
+def task_obj(db_session, stream_obj):
+    deadline = build_goal().deadline
     return _persist(
         db_session,
-        goal_model.Goal(
-            id=42,
-            name="Test",
-            description=None,
-            start_date=None,
-            deadline=build_goal().deadline,
-            stream_id=stream.id,
-            position=1,
+        build_task(
+            stream_id=stream_obj.id,
+            start_date=deadline,
+            deadline=deadline,
         ),
     )
 
 
 @pytest.fixture
-def task_obj(db_session, stream_obj):
+def second_task_obj(db_session, second_stream_obj):
+    deadline = build_goal().deadline
     return _persist(
         db_session,
-        task_model.Task(
-            id=42,
-            stream_id=stream_obj.id,
-            name="Test task",
-            description=None,
-            status_id=None,
-            priority_id=None,
-            start_date=None,
-            deadline=None,
-            position=1,
+        build_task(
+            task_id=43,
+            stream_id=second_stream_obj.id,
+            start_date=deadline,
+            deadline=deadline,
+            position=2,
         ),
+    )
+
+
+@pytest.fixture
+def push_subscription_obj(db_session, user_obj):
+    return _persist(
+        db_session,
+        build_push_subscription(
+            user_id=user_obj.id,
+        ),
+    )
+
+
+@pytest.fixture
+def second_push_subscription_obj(db_session, second_user_obj):
+    return _persist(
+        db_session,
+        build_push_subscription(
+            subscription_id=43,
+            user_id=second_user_obj.id,
+        ),
+    )
+
+
+@pytest.fixture
+def reminder_obj(db_session, task_obj, user_obj):
+    return _persist(
+        db_session,
+        build_reminder(
+            task_id=task_obj.id,
+            user_id=user_obj.id,
+        ),
+    )
+
+
+@pytest.fixture
+def second_reminder_obj(db_session, second_task_obj, user_obj):
+    return _persist(
+        db_session,
+        build_reminder(
+            reminder_id=43,
+            task_id=second_task_obj.id,
+            user_id=user_obj.id,
+            sent=True,
+        ),
+    )
+
+
+@pytest.fixture
+def custom_field_obj(db_session, team_obj):
+    return _persist(
+        db_session,
+        build_custom_field(team_id=team_obj.id),
+    )
+
+
+@pytest.fixture
+def task_custom_field_value_obj(db_session, task_obj, custom_field_obj):
+    return _persist(
+        db_session,
+        build_task_custom_field_value(
+            task_id=task_obj.id,
+            custom_field_id=custom_field_obj.id,
+        ),
+    )
+
+
+@pytest.fixture
+def tag_obj(db_session, team_obj):
+    return _persist(
+        db_session,
+        build_tag(team_id=team_obj.id),
     )
 
 
 @pytest.fixture
 def status_obj(db_session):
-    return _persist(db_session, meta_model.Status(id=42, name="To Do"))
+    return _persist(db_session, build_status())
 
 
 @pytest.fixture
 def priority_obj(db_session):
-    return _persist(db_session, meta_model.Priority(id=42, name="Low"))
+    return _persist(db_session, build_priority())
 
 
 @pytest.fixture
 def connection_type_obj(db_session):
-    return _persist(db_session, meta_model.ConnectionType(id=1, name="FS"))
+    return _persist(db_session, build_connection_type())
 
 
 @pytest.fixture
 def seed_db(db_session):
-    _persist(db_session, team_model.Role(id=2, name="Editor"))
+    _persist(db_session, build_role())
     test_user = _persist(
         db_session,
-        user_model.User(
-            id=42,
-            email="test@test.com",
-            nickname="test_user",
-            password_hash=get_password_hash("password"),
-        ),
+        build_user(),
     )
-    test_team = _persist(db_session, team_model.Team(id=42, name="Test team"))
+    test_team = _persist(db_session, build_team())
     _persist(
         db_session,
-        team_model.UserTeam(
-            id=42, user_id=test_user.id, team_id=test_team.id, role_id=2
-        ),
+        build_user_team(user_id=test_user.id, team_id=test_team.id),
     )
     test_project = _persist(
         db_session,
-        project_model.Project(id=42, name="Test project", team_id=test_team.id),
+        build_project(team_id=test_team.id),
     )
     _persist(
         db_session,
-        stream_model.Stream(id=42, name="Test stream", project_id=test_project.id),
+        build_stream(project_id=test_project.id),
     )
     return db_session
