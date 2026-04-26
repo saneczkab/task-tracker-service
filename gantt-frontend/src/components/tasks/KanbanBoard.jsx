@@ -3,14 +3,11 @@ import { useParams } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import KanbanElement from "./KanbanElement.jsx";
 import TaskForm from "./TaskForm.jsx";
-import TaskHistory from "./TaskHistory.jsx";
-import ExportTasksButton from "../ui/ExportTasksButton.jsx";
 import StreamLayout from "../layout/StreamLayout.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
-import { fetchTeamTagsApi } from "../../api/tag.js";
 
 const KanbanBoard = () => {
   const { teamId, streamId } = useParams();
@@ -18,15 +15,11 @@ const KanbanBoard = () => {
   const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
-  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [projId, setProjId] = useState(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyTask, setHistoryTask] = useState(null);
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -78,11 +71,6 @@ const KanbanBoard = () => {
     setTasks((prev) => (prev || []).filter((t) => t.id !== task.id));
   };
 
-  const handleTaskHistory = (task) => {
-    setHistoryTask(task);
-    setHistoryOpen(true);
-  };
-
   const fetchTasks = async () => {
     const response = await fetchTasksApi(streamId, token);
 
@@ -116,36 +104,21 @@ const KanbanBoard = () => {
     return response.priorities;
   };
 
-  const fetchTags = async () => {
-    if (!teamId) return [];
-    const response = await fetchTeamTagsApi(teamId, token);
-
-    if (!response.ok) {
-      processError(response.status);
-      return [];
-    }
-
-    return response.tags || [];
-  };
-
   const loadAll = useCallback(async () => {
     setLoading(true);
 
-    const [tasksData, statusesData, prioritiesData, tagsData] =
-      await Promise.all([
-        fetchTasks(),
-        fetchStatuses(),
-        fetchPriorities(),
-        fetchTags(),
-      ]);
+    const [tasksData, statusesData, prioritiesData] = await Promise.all([
+      fetchTasks(),
+      fetchStatuses(),
+      fetchPriorities(),
+    ]);
 
     setTasks(tasksData || []);
     setStatuses(statusesData);
     setPriorities(prioritiesData);
-    setTags(tagsData || []);
 
     setLoading(false);
-  }, [streamId, token, teamId]);
+  }, [streamId, token]);
 
   useEffect(() => {
     loadAll();
@@ -201,10 +174,6 @@ const KanbanBoard = () => {
             streamId={streamId}
             onProjIdLoaded={setProjId}
           >
-            <div className="mb-4">
-              <ExportTasksButton />
-            </div>
-
             <Box
               sx={{
                 display: "flex",
@@ -229,7 +198,6 @@ const KanbanBoard = () => {
                     onTaskEdit={handleEditTask}
                     onAddTask={handleAddTask}
                     onTaskDelete={handleTaskDelete}
-                    onTaskHistory={handleTaskHistory}
                   />
                 </div>
               ))}
@@ -248,15 +216,6 @@ const KanbanBoard = () => {
               projectId={projId}
               teamId={teamId}
               onSaved={handleTaskSaved}
-            />
-
-            <TaskHistory
-              open={historyOpen}
-              onClose={() => setHistoryOpen(false)}
-              task={historyTask}
-              statuses={statuses}
-              priorities={priorities}
-              tags={tags}
             />
           </StreamLayout>
         </div>

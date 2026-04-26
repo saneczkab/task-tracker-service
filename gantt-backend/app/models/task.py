@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Text, orm
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, orm
 
 from app.models import base
 
@@ -16,12 +16,6 @@ class Task(base.Base):
     position = Column(Integer, nullable=False, default=0)
 
     assigned_users = orm.relationship("UserTask", back_populates="task")
-    tags = orm.relationship("TaskTag", back_populates="task")
-    custom_field_values = orm.relationship("TaskCustomFieldValue", back_populates="task", cascade="all, delete-orphan")
-
-    @property
-    def tag_list(self):
-        return [link.tag for link in self.tags]
 
     @property
     def relations(self):
@@ -55,18 +49,3 @@ class TaskReminder(base.Base):
 
     remind_at = Column(DateTime, nullable=False)
     sent = Column(Boolean, default=False)
-
-
-class TaskHistory(base.Base):
-    __tablename__ = "TaskHistory"
-
-    id = Column(Integer, primary_key=True)
-    task_id = Column(Integer, ForeignKey("Tasks.id", ondelete="CASCADE"), nullable=False)
-    changed_by_id = Column(Integer, ForeignKey("Users.id"), nullable=False)
-    changed_at = Column(DateTime, nullable=False)
-    field_name = Column(String, nullable=False)
-    old_value = Column(Text, nullable=True)
-    new_value = Column(Text, nullable=True)
-
-    task = orm.relationship("Task", backref=orm.backref("history", cascade="all, delete-orphan"))
-    changed_by = orm.relationship("User")

@@ -9,17 +9,10 @@ import {
   MenuItem,
 } from "@mui/material";
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
-import { getContrastColor } from "../../utils/taskUtils.js";
-import { toLocaleDateWithTimeHM, formatDatetime } from "../../utils/datetime.js";
+import { formatDatetime } from "../../utils/datetime.js";
 
-const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
-  const {
-    name,
-    assignee_email,
-    deadline,
-    priority_id,
-    tag_list = [],
-  } = task || {};
+const TaskCard = ({ task, priorityMap, onEdit, onDelete }) => {
+  const { name, assignee_email, deadline, priority_id } = task || {};
 
   const [menuAnchor, setMenuAnchor] = useState(null);
   const menuOpen = Boolean(menuAnchor);
@@ -33,7 +26,7 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
   }, [priority_id, priorityMap]);
 
   const deadlineLabel = useMemo(() => {
-    return deadline ? toLocaleDateWithTimeHM(deadline) : "-";
+    return deadline ? formatDatetime(deadline) : "-";
   }, [deadline]);
 
   const assigneeLabel = useMemo(() => {
@@ -110,17 +103,6 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
                 </MenuItem>
               )}
 
-              {onHistory && (
-                <MenuItem
-                  onClick={() => {
-                    onHistory(task);
-                    setMenuAnchor(null);
-                  }}
-                >
-                  История изменений
-                </MenuItem>
-              )}
-
               <MenuItem
                 onClick={() => {
                   onDelete(task);
@@ -133,24 +115,6 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
           </>
         )}
       </Box>
-
-      {tag_list.length > 0 && (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
-          {tag_list.map((tag) => (
-            <Chip
-              key={tag.id}
-              size="small"
-              label={tag.name}
-              sx={{
-                fontSize: "0.7rem",
-                backgroundColor: tag.color,
-                color: getContrastColor(tag.color),
-                fontWeight: 600,
-              }}
-            />
-          ))}
-        </Box>
-      )}
 
       {priorityLabel !== "No priority" && (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>

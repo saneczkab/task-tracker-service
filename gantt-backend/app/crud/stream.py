@@ -6,9 +6,8 @@ from app.schemas import stream as stream_schemas
 
 
 def get_streams_by_project_id(data_base: orm.Session, proj_id: int):
-    """"Получить все стримы по project_id отсортированные по position"""
-    return data_base.query(stream.Stream).filter(stream.Stream.project_id == proj_id).order_by(
-        stream.Stream.position).all()
+    """"Получить все стримы по project_id"""
+    return data_base.query(stream.Stream).filter(stream.Stream.project_id == proj_id).all()
 
 
 def get_stream_by_id(data_base: orm.Session, stream_id: int):
@@ -24,7 +23,7 @@ def get_stream_by_name_and_proj_id(data_base: orm.Session, name: str, proj_id: i
 
 
 def create_new_stream(data_base: orm.Session, proj_id: int, stream_data: stream_schemas.StreamCreate):
-    new_stream = stream.Stream(name=stream_data.name, project_id=proj_id, position=stream_data.position)
+    new_stream = stream.Stream(name=stream_data.name, project_id=proj_id)
     data_base.add(new_stream)
     data_base.commit()
     data_base.refresh(new_stream)
@@ -40,9 +39,6 @@ def update_stream(data_base: orm.Session, stream_obj: stream.Stream, stream_upda
             raise exception.ConflictError("Стрим с таким названием уже существует в проекте")
 
         stream_obj.name = stream_update_data.name
-
-    if stream_update_data.position is not None:
-        stream_obj.position = stream_update_data.position
 
     data_base.commit()
     data_base.refresh(stream_obj)

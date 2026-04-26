@@ -9,7 +9,6 @@ class Stream(base.Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     project_id = Column(Integer, ForeignKey("Projects.id"), nullable=False)
-    position = Column(Integer, nullable=False, default=0)
 
     project = relationship("Project", back_populates="streams")
     goals = relationship("Goal", back_populates="stream")

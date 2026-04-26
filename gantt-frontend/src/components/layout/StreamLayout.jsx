@@ -11,61 +11,49 @@ const StreamLayout = ({
   children,
   showHeader = true,
   onProjIdLoaded,
-  onStreamsReorder,
-  onGanttStreamsReorder,
-  sidebarStreams,
 }) => {
-  const location = useLocation();
-  const processError = useProcessError();
+  const [streamName, setStreamName] = useState("");
+  const [projId, setProjId] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
     [],
   );
-
-  const [projId, setProjId] = useState(null);
-  const [streamName, setStreamName] = useState("Стрим");
-  const [loading, setLoading] = useState(true);
+  const processError = useProcessError();
+  const location = useLocation();
 
   useEffect(() => {
-    let mounted = true;
-    const loadStream = async () => {
-      if (!streamId || !token) return;
+    const load = async () => {
+      setLoading(true);
       const response = await fetchStreamApi(streamId, token);
-      if (!mounted) return;
-      if (response.ok) {
-        setStreamName(response.stream.name || "Стрим");
-        setProjId(response.stream.project_id);
-        if (onProjIdLoaded) {
-          onProjIdLoaded(response.stream.project_id);
-        }
-      } else {
+      if (!response.ok) {
         processError(response.status);
+        setLoading(false);
+        return;
+      }
+      const streamData = response.stream;
+      setStreamName(streamData.name || "");
+      setProjId(streamData.project_id);
+      if (onProjIdLoaded && streamData.project_id) {
+        onProjIdLoaded(streamData.project_id);
       }
       setLoading(false);
     };
-
-    loadStream();
-    return () => {
-      mounted = false;
-    };
+    if (streamId) {
+      load();
+    }
   }, [streamId, token]);
 
-  const basePath = `/team/${teamId}/project/${projId}/stream/${streamId}`;
-  const ganttPath = `${basePath}/gantt`;
-  const kanbanPath = `${basePath}/kanban`;
+  const basePath = `/team/${teamId}/stream/${streamId}`;
+  const kanbanPath = `/team/${teamId}/stream/${streamId}/kanban`;
+  const ganttPath = `/team/${teamId}/project/${projId}/stream/${streamId}/gantt`;
 
   const isActive = (path) => location.pathname === path;
 
   return (
     <div className="flex w-full">
-      <Sidebar
-        teamId={teamId}
-        projId={projId}
-        streamId={streamId}
-        onStreamsReorder={onStreamsReorder}
-        onGanttStreamsReorder={onGanttStreamsReorder}
-        sidebarStreams={sidebarStreams}
-      />
+      <Sidebar teamId={teamId} projId={projId} streamId={streamId} />
       <div className="p-4 flex flex-col overflow-hidden flex-1">
         <div className="border border-gray-300 rounded-lg bg-white flex flex-col overflow-hidden flex-1">
           {showHeader && (

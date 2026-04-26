@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import GoalList from "../../components/tasks/GoalList.jsx";
 import TaskList from "../../components/tasks/TaskList.jsx";
-import ExportTasksButton from "../../components/ui/ExportTasksButton.jsx";
 import StreamLayout from "../../components/layout/StreamLayout.jsx";
 
 const StreamPage = () => {
@@ -22,11 +21,6 @@ const StreamPage = () => {
             <GoalList streamId={Number(streamId)} />
 
             <h2 className="font-bold text-lg mb-4 mt-8">Задачи стрима</h2>
-
-            <div className="mb-4">
-              <ExportTasksButton />
-            </div>
-
             <TaskList
               streamId={Number(streamId)}
               projectId={projId}
