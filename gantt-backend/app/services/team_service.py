@@ -3,25 +3,11 @@ from sqlalchemy import orm
 from app.core import exception
 from app.crud import team as team_crud
 from app.models import goal, project, role, stream, task, team
-
-
-def check_team_permissions(data_base: orm.Session, team_id: int, user_id: int, need_lead=False):
-    team_obj = team_crud.get_team_by_id(data_base, team_id)
-    if not team_obj:
-        raise exception.NotFoundError("Команда не найдена")
-
-    member = team_crud.get_user_team(data_base, team_id, user_id)
-    if not member:
-        raise exception.ForbiddenError("Вы не состоите в этой команде")
-
-    if need_lead and member.role_id != role.Role.EDITOR:
-        raise exception.ForbiddenError("Недостаточно прав")
-
-    return member
+from app.services import permissions
 
 
 def get_team_users_service(data_base: orm.Session, team_id: int, user_id: int):
-    check_team_permissions(data_base, team_id, user_id)
+    permissions.check_team_access(data_base, team_id, user_id)
 
     users = team_crud.get_team_users(data_base, team_id)
 
@@ -52,7 +38,7 @@ def update_team_service(data_base: orm.Session, team_id: int, user_id: int, upda
     if not team_obj:
         raise exception.NotFoundError("Команда не найдена")
 
-    check_team_permissions(data_base, team_id, user_id, need_lead=True)
+    permissions.check_team_access(data_base, team_id, user_id, need_lead=True)
 
     if update_data.name:
         team_obj.name = update_data.name
@@ -84,7 +70,7 @@ def delete_team_service(db: orm.Session, team_id: int, user_id: int):
     if not team_obj:
         raise exception.NotFoundError("Команда не найдена")
 
-    check_team_permissions(db, team_id, user_id, need_lead=True)
+    permissions.check_team_access(db, team_id, user_id, need_lead=True)
 
     projects = db.query(project.Project).filter_by(team_id=team_id).all()
     project_ids = [p.id for p in projects]

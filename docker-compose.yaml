@@ -1,6 +1,7 @@
 services:
   backend:
     build: ./gantt-backend
+    image: ${IMAGE_REPO:-localhost}/backend:${IMAGE_TAG:-latest}
     ports:
       - "8000:8000"
     environment:
@@ -37,8 +38,11 @@ services:
 
   frontend:
     build: ./gantt-frontend
+    image: ${IMAGE_REPO:-localhost}/frontend:${IMAGE_TAG:-latest}
     ports:
       - "5173:5173"
+    environment:
+      - VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY}
     depends_on:
       - backend
     networks:
