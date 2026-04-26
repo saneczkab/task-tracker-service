@@ -13,3 +13,5 @@ psycopg2-binary>=2.9.6
 email-validator
 pytest
 python-dotenv
+ruff
+httpx
