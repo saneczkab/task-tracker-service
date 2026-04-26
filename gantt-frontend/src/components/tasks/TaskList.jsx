@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   CircularProgress,
   Table,
@@ -12,8 +12,8 @@ import {
   Button,
   Menu,
   MenuItem,
-  Chip,
-  Box,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import {
   MoreVert as MoreVertIcon,
@@ -21,19 +21,11 @@ import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
 } from "@mui/icons-material";
-import AlarmIcon from "@mui/icons-material/Alarm";
 import TaskForm from "./TaskForm.jsx";
-import TaskHistory from "./TaskHistory.jsx";
-import AdvancedFiltersPanel from "./AdvancedFiltersPanel.jsx";
-import {
-  getContrastColor,
-  applyAdvancedFilters,
-} from "../../utils/taskUtils.js";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
-import { fetchTeamTagsApi } from "../../api/tag.js";
 import { fetchUserEmailApi } from "../../api/user.js";
 import {
   CELL_STYLES,
@@ -42,6 +34,7 @@ import {
   TASKS_TABLE_BODY_STYLES,
   TABLE_CONTAINER_STYLES,
   CREATE_BUTTON_STYLES,
+  TOGGLE_BUTTON_STYLES,
 } from "./tableStyles.js";
 import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
@@ -49,7 +42,6 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
-  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -58,26 +50,10 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyTask, setHistoryTask] = useState(null);
-
+  const [filterMode, setFilterMode] = useState("all");
   const [userEmail, setUserEmail] = useState("");
   const [sortField, setSortField] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
-  const [advancedFilters, setAdvancedFilters] = useState({
-    searchText: "",
-    assignee: [],
-    team: [],
-    project: [],
-    stream: [],
-    priority: [],
-    status: [],
-    tags: [],
-    startDate: "",
-    startDateEnd: "",
-    deadline: "",
-    deadlineEnd: "",
-  });
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -99,13 +75,6 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
     const t = (tasks || []).find((x) => x.id === menuTaskId);
     setSelectedTask(t || null);
     setFormOpen(true);
-    closeMenu();
-  };
-
-  const handleShowHistory = () => {
-    const t = (tasks || []).find((x) => x.id === menuTaskId);
-    setHistoryTask(t || null);
-    setHistoryOpen(true);
     closeMenu();
   };
 
@@ -131,54 +100,69 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
     return map;
   }, [priorities]);
 
-  const loadAll = useCallback(async () => {
+  const fetchTasks = async () => {
+    const response = await fetchTasksApi(streamId, token);
+
+    if (!response.ok) {
+      processError(response.status);
+      return [];
+    }
+
+    return response.tasks;
+  };
+
+  const fetchStatuses = async () => {
+    const response = await fetchStatusesApi();
+
+    if (!response.ok) {
+      processError(response.status);
+      return [];
+    }
+
+    return response.statuses;
+  };
+
+  const fetchPriorities = async () => {
+    const response = await fetchPrioritiesApi();
+
+    if (!response.ok) {
+      processError(response.status);
+      return [];
+    }
+
+    return response.priorities;
+  };
+
+  const fetchUserEmail = async () => {
+    const response = await fetchUserEmailApi(token);
+
+    if (!response.ok) {
+      processError(response.status);
+      return "";
+    }
+
+    return response.email;
+  };
+
+  const loadAll = async () => {
     setLoading(true);
 
-    const tasksResponse = await fetchTasksApi(streamId, token);
-    const statusesResponse = await fetchStatusesApi();
-    const prioritiesResponse = await fetchPrioritiesApi();
-    const emailResponse = await fetchUserEmailApi(token);
+    const tasks = await fetchTasks();
+    const statuses = await fetchStatuses();
+    const priorities = await fetchPriorities();
+    const email = await fetchUserEmail();
 
-    if (tasksResponse.ok) {
-      setTasks(tasksResponse.tasks || []);
-    } else {
-      processError(tasksResponse.status);
-      setTasks([]);
-    }
-
-    if (statusesResponse.ok) {
-      setStatuses(statusesResponse.statuses || []);
-    } else {
-      processError(statusesResponse.status);
-    }
-
-    if (prioritiesResponse.ok) {
-      setPriorities(prioritiesResponse.priorities || []);
-    } else {
-      processError(prioritiesResponse.status);
-    }
-
-    if (emailResponse.ok) {
-      setUserEmail(emailResponse.email || "");
-    } else {
-      processError(emailResponse.status);
-    }
-    
-    if (teamId) {
-      const tagsResponse = await fetchTeamTagsApi(teamId, token);
-      if (tagsResponse.ok) {
-        setTags(tagsResponse.tags || []);
-      } else {
-        processError(tagsResponse.status);
-      }
-    }
+    setTasks(tasks || []);
+    setStatuses(statuses || []);
+    setPriorities(priorities || []);
+    setUserEmail(email || "");
 
     setLoading(false);
-  }, [streamId, token, teamId]);
+  };
 
   useEffect(() => {
     loadAll();
-  }, [loadAll]);
+  }, [streamId]);
 
   const closeMenu = () => {
     setMenuAnchorEl(null);
@@ -207,14 +191,11 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   };
 
   const filteredTasks = useMemo(() => {
-    return applyAdvancedFilters(
-      tasks,
-      advancedFilters,
-      statusMap,
-      priorityMap,
-      userEmail,
-    );
-  }, [tasks, advancedFilters, statusMap, priorityMap, userEmail]);
+    if (filterMode === "my") {
+      return tasks.filter((task) => task.assignee_email === userEmail);
+    }
+    return tasks;
+  }, [tasks, filterMode, userEmail]);
 
   const sortedTasks = useMemo(() => {
     const sorted = [...filteredTasks];
@@ -284,14 +265,54 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
 
   return (
     <>
-      <AdvancedFiltersPanel
-        tasks={tasks}
-        onFiltersChange={setAdvancedFilters}
-        statuses={statuses}
-        priorities={priorities}
-        currentUserEmail={userEmail}
-        showTeamProjectStreamFilters={false}
-      />
+      <div
+        style={{
+          backgroundColor: "#F5F6F7",
+          padding: "12px",
+          borderRadius: "8px",
+          marginBottom: "16px",
+          display: "inline-block",
+        }}
+      >
+        <ToggleButtonGroup
+          value={filterMode}
+          exclusive
+          onChange={(e, newValue) => {
+            if (newValue !== null) {
+              setFilterMode(newValue);
+            }
+          }}
+          aria-label="task filter"
+          size="small"
+          sx={{
+            "& .MuiToggleButtonGroup-grouped": {
+              border: "none",
+              "&:not(:first-of-type)": {
+                borderRadius: "8px",
+                marginLeft: "8px",
+              },
+              "&:first-of-type": {
+                borderRadius: "8px",
+              },
+            },
+          }}
+        >
+          <ToggleButton
+            value="all"
+            aria-label="all tasks"
+            sx={TOGGLE_BUTTON_STYLES}
+          >
+            Все задачи
+          </ToggleButton>
+          <ToggleButton
+            value="my"
+            aria-label="my tasks"
+            sx={TOGGLE_BUTTON_STYLES}
+          >
+            Назначенные мне
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </div>
 
       {filteredTasks.length > 0 ? (
         <div>
@@ -359,55 +380,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
               <TableBody>
                 {(sortedTasks || []).map((task) => (
                   <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
-                    <TableCell sx={CELL_STYLES}>
-                    <Box>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        {task.name}
-                        {task.deadline &&
-                          (() => {
-                            const normalized = task.deadline + "Z";
-                            const diff = new Date(normalized) - Date.now();
-                            return diff > 0 && diff < 24 * 60 * 60 * 1000;
-                          })() && (
-                            <AlarmIcon
-                              sx={{
-                                fontSize: 16,
-                              }}
-                            />
-                          )}
-                      </span>
-                      {task.tag_list.length > 0 && (
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 0.5,
-                            mt: 0.5,
-                          }}
-                        >
-                          {task.tag_list.map((tag) => (
-                            <Chip
-                              key={tag.id}
-                              size="small"
-                              label={tag.name}
-                              sx={{
-                                backgroundColor: tag.color,
-                                color: getContrastColor(tag.color),
-                                fontWeight: 600,
-                                fontFamily: "Montserrat, sans-serif",
-                              }}
-                            />
-                          ))}
-                        </Box>
-                      )}
-                    </Box>
-                  </TableCell>
+                    <TableCell sx={CELL_STYLES}>{task.name}</TableCell>
 
                     <TableCell sx={CELL_STYLES}>
                       {task.assignee_email || "-"}
@@ -470,8 +443,6 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
           >
             <MenuItem onClick={handleEdit}>Редактировать</MenuItem>
 
-            <MenuItem onClick={handleShowHistory}>История изменений</MenuItem>
-
             <MenuItem onClick={handleDelete}>Удалить</MenuItem>
           </Menu>
         </div>
@@ -501,15 +472,6 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
           setFormOpen(false);
           loadAll();
         }}
-      />
-
-      <TaskHistory
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        task={historyTask}
-        statuses={statuses}
-        priorities={priorities}
-        tags={tags}
       />
     </>
   );

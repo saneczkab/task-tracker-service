@@ -18,11 +18,9 @@ import {
   IconButton,
   Autocomplete,
   CircularProgress,
-  Chip,
 } from "@mui/material";
 import { Delete as DeleteIcon, Add as AddIcon } from "@mui/icons-material";
 import FormRow from "./FormRow.jsx";
-import RemindersSection from "./RemindersSection.jsx";
 import {
   toInputDate,
   toInputTime,
@@ -38,20 +36,6 @@ import {
   deleteTaskRelationApi,
 } from "../../api/task.js";
 import { fetchConnectionTypesApi } from "../../api/meta.js";
-import {
-  fetchTeamTagsApi,
-  createTeamTagApi,
-  deleteTeamTagApi,
-} from "../../api/tag.js";
-import {
-  fetchTeamCustomFieldsApi,
-  createTeamCustomFieldApi,
-  deleteTeamCustomFieldApi,
-  deleteTaskCustomFieldValueApi,
-} from "../../api/customField.js";
-import TagSelector from "./TagSelector.jsx";
-import { getContrastColor } from "../../utils/taskUtils.js";
-import TaskCustomFieldsSection from "./TaskCustomFieldsSection.jsx";
 
 const TaskForm = ({
   open,
@@ -90,17 +74,6 @@ const TaskForm = ({
   const [selectedConnectionType, setSelectedConnectionType] = useState("");
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
 
-  const [teamTags, setTeamTags] = useState([]);
-  const [selectedTagIds, setSelectedTagIds] = useState([]);
-  const [customFields, setCustomFields] = useState([]);
-  const [customFieldValues, setCustomFieldValues] = useState({});
-  const [initialCustomFieldValues, setInitialCustomFieldValues] = useState({});
-  const [activeCustomFieldIds, setActiveCustomFieldIds] = useState([]);
-  const [initialActiveCustomFieldIds, setInitialActiveCustomFieldIds] =
-    useState([]);
-  const [removedCustomFieldIds, setRemovedCustomFieldIds] = useState([]);
-  const [creatingCustomField, setCreatingCustomField] = useState(false);
-
   const isEdit = Boolean(task?.id);
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -132,15 +105,6 @@ const TaskForm = ({
     setSearchResults([]);
     setSelectedTask(null);
     setSelectedConnectionType("");
-    const taskTags = task?.tag_list ?? [];
-    setSelectedTagIds(taskTags.map((tag) => tag.id));
-    setTeamTags(taskTags);
-    setCustomFields([]);
-    setCustomFieldValues({});
-    setInitialCustomFieldValues({});
-    setActiveCustomFieldIds([]);
-    setInitialActiveCustomFieldIds([]);
-    setRemovedCustomFieldIds([]);
 
     return () => {
       if (searchDebounceTimer) {
@@ -175,138 +139,7 @@ const TaskForm = ({
         setProjectTasks(tasksResponse.tasks);
       }
     }
-
-    if (teamId) {
-      const tagsResponse = await fetchTeamTagsApi(teamId, token);
-      if (tagsResponse.ok) {
-        setTeamTags(tagsResponse.tags);
-      }
-
-      const customFieldsResponse = await fetchTeamCustomFieldsApi(
-        teamId,
-        token,
-      );
-      if (customFieldsResponse.ok) {
-        const fieldDefs = customFieldsResponse.fields;
-        const taskCustomFieldValues = task?.custom_field_values ?? [];
-        const initialFieldIds = taskCustomFieldValues.map(
-          (value) => value.custom_field_id,
-        );
-        const initialValues =
-          TaskCustomFieldsSection.buildInitialCustomFieldValues(
-            fieldDefs,
-            taskCustomFieldValues,
-          );
-
-        setCustomFields(fieldDefs);
-        setCustomFieldValues(initialValues);
-        setInitialCustomFieldValues(initialValues);
-        setActiveCustomFieldIds(initialFieldIds);
-        setInitialActiveCustomFieldIds(initialFieldIds);
-        setRemovedCustomFieldIds([]);
-      } else {
-        processError(customFieldsResponse.status);
-      }
-    } else {
-      setCustomFields([]);
-      setCustomFieldValues({});
-      setInitialCustomFieldValues({});
-      setActiveCustomFieldIds([]);
-      setInitialActiveCustomFieldIds([]);
-      setRemovedCustomFieldIds([]);
-    }
   };
-
-  const handleCustomFieldValueChange = (fieldId, value) => {
-    setCustomFieldValues((prev) => ({
-      ...prev,
-      [fieldId]: value,
-    }));
-  };
-
-  const handleCreateCustomField = async (field) => {
-    if (!teamId) {
-      return false;
-    }
-
-    setCreatingCustomField(true);
-    const response = await createTeamCustomFieldApi(teamId, field, token);
-    setCreatingCustomField(false);
-
-    if (!response.ok) {
-      processError(response.status);
-      return false;
-    }
-
-    const createdField = response.field;
-    setCustomFields((prev) => [...prev, createdField]);
-    setCustomFieldValues((prev) => ({
-      ...prev,
-      [createdField.id]: "",
-    }));
-    setInitialCustomFieldValues((prev) => ({
-      ...prev,
-      [createdField.id]: "",
-    }));
-    setActiveCustomFieldIds((prev) => [...prev, createdField.id]);
-    setRemovedCustomFieldIds((prev) =>
-      prev.filter((id) => id !== createdField.id),
-    );
-
-    return createdField;
-  };
-
-  const handleAddExistingCustomField = (fieldId) => {
-    setActiveCustomFieldIds((prev) =>
-      prev.includes(fieldId) ? prev : [...prev, fieldId],
-    );
-    setRemovedCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
-  };
-
-  const handleRemoveCustomField = (fieldId) => {
-    setActiveCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
-
-    if (initialActiveCustomFieldIds.includes(fieldId)) {
-      setRemovedCustomFieldIds((prev) =>
-        prev.includes(fieldId) ? prev : [...prev, fieldId],
-      );
-    }
-  };
-
-  const handleDeleteCustomFieldDefinition = async (fieldId) => {
-    const response = await deleteTeamCustomFieldApi(fieldId, token);
-
-    if (!response.ok) {
-      processError(response.status);
-      return;
-    }
-
-    setCustomFields((prev) => prev.filter((field) => field.id !== fieldId));
-    setActiveCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
-    setInitialActiveCustomFieldIds((prev) =>
-      prev.filter((id) => id !== fieldId),
-    );
-    setRemovedCustomFieldIds((prev) => prev.filter((id) => id !== fieldId));
-    setCustomFieldValues((prev) => {
-      const copy = { ...prev };
-      delete copy[fieldId];
-      return copy;
-    });
-    setInitialCustomFieldValues((prev) => {
-      const copy = { ...prev };
-      delete copy[fieldId];
-      return copy;
-    });
-  };
-
-  const getCustomFieldsPayload = () =>
-    TaskCustomFieldsSection.buildCustomFieldsPayload(
-      customFields,
-      customFieldValues,
-      initialCustomFieldValues,
-      activeCustomFieldIds,
-      initialActiveCustomFieldIds,
-    );
 
   const getTaskNameById = (taskId) => {
     const foundTask = projectTasks.find((t) => t.id === taskId);
@@ -407,36 +240,6 @@ const TaskForm = ({
     setRelations(relations.filter((r) => r.id !== relationId));
   };
 
-  const handleTagToggle = (tagId) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId],
-    );
-  };
-
-  const handleCreateTag = async (name, color) => {
-    if (!teamId) return;
-    const response = await createTeamTagApi(teamId, name, color, token);
-    if (response.ok) {
-      setTeamTags((prev) => [...prev, response.tag]);
-      setSelectedTagIds((prev) => [...prev, response.tag.id]);
-    } else {
-      processError(response.status);
-    }
-  };
-
-  const handleDeleteTag = async (tagId) => {
-    if (!teamId) return;
-    const response = await deleteTeamTagApi(teamId, tagId, token);
-    if (response.ok) {
-      setTeamTags((prev) => prev.filter((tag) => tag.id !== tagId));
-      setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
-    } else {
-      processError(response.status);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -448,8 +251,6 @@ const TaskForm = ({
       assignee_email: assigneeEmail?.trim() || null,
       start_date: toISOStringOrNull(startDate, startTime),
       deadline: toISOStringOrNull(deadlineDate, deadlineTime),
-      tag_ids: selectedTagIds,
-      custom_fields: getCustomFieldsPayload(),
       position: position,
     };
 
@@ -467,11 +268,6 @@ const TaskForm = ({
     }
 
     const savedTask = response.task;
-
-    for (const fieldId of removedCustomFieldIds) {
-      await deleteTaskCustomFieldValueApi(savedTask.id, fieldId, token);
-    }
-
     onSaved?.(savedTask);
     onClose?.();
   };
@@ -604,70 +400,6 @@ const TaskForm = ({
             </div>
           </FormRow>
 
-          {teamId && (
-            <FormRow label="Теги">
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
-                {selectedTagIds.length > 0 && (
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {teamTags
-                      .filter((t) => selectedTagIds.includes(t.id))
-                      .map((tag) => (
-                        <Chip
-                          key={tag.id}
-                          label={tag.name}
-                          size="small"
-                          onDelete={() => handleTagToggle(tag.id)}
-                          sx={{
-                            bgcolor: tag.color,
-                            color: getContrastColor(tag.color),
-                            "& .MuiChip-deleteIcon": {
-                              color: getContrastColor(tag.color),
-                              opacity: 0.7,
-                              "&:hover": { opacity: 1 },
-                            },
-                            fontWeight: 500,
-                          }}
-                        />
-                      ))}
-                  </Box>
-                )}
-                <TagSelector
-                  teamTags={teamTags}
-                  selectedTagIds={selectedTagIds}
-                  onTagToggle={handleTagToggle}
-                  onCreateTag={handleCreateTag}
-                  onDeleteTag={handleDeleteTag}
-                />
-              </Box>
-            </FormRow>
-          )}
-
-          <TaskCustomFieldsSection
-            fields={customFields}
-            activeFieldIds={activeCustomFieldIds}
-            values={customFieldValues}
-            onChange={handleCustomFieldValueChange}
-            onRemoveField={handleRemoveCustomField}
-            onAddExistingField={handleAddExistingCustomField}
-            onCreateField={handleCreateCustomField}
-            onDeleteFieldDefinition={handleDeleteCustomFieldDefinition}
-            creatingField={creatingCustomField}
-          />
-
-          {isEdit && (
-            <>
-              <Divider sx={{ my: 2 }} />
-              <RemindersSection
-                taskId={task.id}
-                token={token}
-                deadline={
-                  deadlineDate
-                    ? toISOStringOrNull(deadlineDate, deadlineTime)
-                    : null
-                }
-              />
-            </>
-          )}
           {isEdit && projectId && teamId && (
             <>
               <Divider sx={{ my: 2 }} />

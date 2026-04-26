@@ -18,7 +18,6 @@ import { useProcessError } from "../../hooks/useProcessError.js";
 import { deleteGoalApi, updateGoalApi } from "../../api/goal.js";
 import { deleteTaskApi, updateTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
-import { updateStreamPositionApi } from "../../api/stream.js";
 
 const GanttSidebar = forwardRef(
   (
@@ -55,8 +54,6 @@ const GanttSidebar = forwardRef(
     const [draggedGoal, setDraggedGoal] = useState(null);
     const [draggedTask, setDraggedTask] = useState(null);
     const [dropTarget, setDropTarget] = useState(null);
-    const [draggedStream, setDraggedStream] = useState(null);
-    const [dropTargetStream, setDropTargetStream] = useState(null);
 
     const grouped = useMemo(() => {
       const result = [];
@@ -394,84 +391,6 @@ const GanttSidebar = forwardRef(
       setDropTarget(null);
     };
 
-    const handleStreamDragStart = (stream) => {
-      setDraggedStream(stream);
-    };
-
-    const handleStreamDragOver = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const handleStreamDragEnter = (stream) => {
-      if (draggedStream && draggedStream.id !== stream.id) {
-        setDropTargetStream(stream);
-      }
-    };
-
-    const handleStreamDrop = async (targetStream) => {
-      if (!draggedStream || draggedStream.id === targetStream.id) {
-        setDraggedStream(null);
-        setDropTargetStream(null);
-        return;
-      }
-
-      const sourceIdx = grouped.findIndex(
-        (g) => g.stream.item.id === draggedStream.id,
-      );
-      const targetIdx = grouped.findIndex(
-        (g) => g.stream.item.id === targetStream.id,
-      );
-
-      if (sourceIdx === -1 || targetIdx === -1) {
-        setDraggedStream(null);
-        setDropTargetStream(null);
-        return;
-      }
-
-      const reordered = [...grouped];
-      const [removed] = reordered.splice(sourceIdx, 1);
-      reordered.splice(targetIdx, 0, removed);
-
-      const streamsToUpdate = reordered.map((g) => g.stream.item);
-
-      for (let i = 0; i < streamsToUpdate.length; i++) {
-        const stream = streamsToUpdate[i];
-        const newPosition = i + 1;
-        const response = await updateStreamPositionApi(
-          stream.id,
-          newPosition,
-          token,
-        );
-        if (!response.ok) {
-          processError(response.status);
-          setDraggedStream(null);
-          setDropTargetStream(null);
-          return;
-        }
-      }
-
-      onDataChanged?.({
-        type: "stream",
-        action: "reorder",
-        streams: reordered.map((group, idx) => ({
-          id: group.stream.item.id,
-          name: group.stream.item.name,
-          goals: group.goals.map((g) => g.item),
-          tasks: group.tasks.map((t) => t.item),
-          position: idx + 1,
-        })),
-      });
-
-      setDraggedStream(null);
-      setDropTargetStream(null);
-    };
-
-    const handleStreamDragEnd = () => {
-      setDraggedStream(null);
-      setDropTargetStream(null);
-    };
-
     return (
       <div
         ref={ref}
@@ -520,233 +439,209 @@ const GanttSidebar = forwardRef(
               height: renderHeight - HEADER_HEIGHT,
             }}
           >
-            {grouped.map(({ stream, goals, tasks }) => {
-              const isDraggingStream = draggedStream?.id === stream.item.id;
-              const isDropTargetStream =
-                dropTargetStream?.id === stream.item.id;
+            {grouped.map(({ stream, goals, tasks }) => (
+              <Fragment key={`stream-${stream.item.id}`}>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: (stream.labelTop || stream.top) - HEADER_HEIGHT,
+                    height: LABEL_HEIGHT,
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "12px 12px",
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  {stream.item.name}
+                </div>
+                {goals.map((goal) => {
+                  const showActions =
+                    (hoveredRow?.id === goal.item.id &&
+                      hoveredRow?.type === "goal") ||
+                    (menuOpen &&
+                      menuRow?.item?.id === goal.item.id &&
+                      menuRow?.type === "goal");
 
-              return (
-                <Fragment key={`stream-${stream.item.id}`}>
-                  <div
-                    draggable
-                    onDragStart={() => handleStreamDragStart(stream.item)}
-                    onDragOver={handleStreamDragOver}
-                    onDragEnter={() => handleStreamDragEnter(stream.item)}
-                    onDrop={() => handleStreamDrop(stream.item)}
-                    onDragEnd={handleStreamDragEnd}
-                    style={{
-                      position: "absolute",
-                      top: (stream.labelTop || stream.top) - HEADER_HEIGHT,
-                      height: LABEL_HEIGHT,
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "12px 12px",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      left: 0,
-                      right: 0,
-                      opacity: isDraggingStream ? 0.5 : 1,
-                      backgroundColor: isDropTargetStream
-                        ? "rgba(33, 150, 243, 0.1)"
-                        : "transparent",
-                      cursor: "move",
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    {stream.item.name}
-                  </div>
-                  {goals.map((goal) => {
-                    const showActions =
-                      (hoveredRow?.id === goal.item.id &&
-                        hoveredRow?.type === "goal") ||
-                      (menuOpen &&
-                        menuRow?.item?.id === goal.item.id &&
-                        menuRow?.type === "goal");
+                  const isDragging =
+                    draggedGoal?.goal.id === goal.item.id &&
+                    draggedGoal?.streamId === stream.item.id;
+                  const isDropTarget =
+                    dropTarget?.goal?.id === goal.item.id &&
+                    dropTarget?.streamId === stream.item.id;
 
-                    const isDragging =
-                      draggedGoal?.goal.id === goal.item.id &&
-                      draggedGoal?.streamId === stream.item.id;
-                    const isDropTarget =
-                      dropTarget?.goal?.id === goal.item.id &&
-                      dropTarget?.streamId === stream.item.id;
-
-                    return (
-                      <div
-                        key={`goal-${goal.item.id}`}
-                        draggable
-                        onDragStart={() =>
-                          handleGoalDragStart(goal.item, stream.item.id)
-                        }
-                        onDragOver={(e) =>
-                          handleGoalDragOver(e, goal.item, stream.item.id)
-                        }
-                        onDrop={(e) =>
-                          handleGoalDrop(e, goal.item, stream.item.id)
-                        }
-                        onDragEnd={handleGoalDragEnd}
-                        style={{
-                          position: "absolute",
-                          top: goal.top - HEADER_HEIGHT,
-                          left: 0,
-                          right: 0,
-                          height: goal.height,
-                          display: "flex",
-                          alignItems: "center",
-                          fontSize: FONT_SIZE - 1,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          opacity: isDragging ? 0.5 : 1,
-                          background: isDropTarget ? "#e3f2fd" : "transparent",
-                          borderTop: isDropTarget
-                            ? "2px solid #2196f3"
-                            : "none",
-                          cursor: "move",
+                  return (
+                    <div
+                      key={`goal-${goal.item.id}`}
+                      draggable
+                      onDragStart={() =>
+                        handleGoalDragStart(goal.item, stream.item.id)
+                      }
+                      onDragOver={(e) =>
+                        handleGoalDragOver(e, goal.item, stream.item.id)
+                      }
+                      onDrop={(e) =>
+                        handleGoalDrop(e, goal.item, stream.item.id)
+                      }
+                      onDragEnd={handleGoalDragEnd}
+                      style={{
+                        position: "absolute",
+                        top: goal.top - HEADER_HEIGHT,
+                        left: 0,
+                        right: 0,
+                        height: goal.height,
+                        display: "flex",
+                        alignItems: "center",
+                        fontSize: FONT_SIZE - 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        opacity: isDragging ? 0.5 : 1,
+                        background: isDropTarget ? "#e3f2fd" : "transparent",
+                        borderTop: isDropTarget ? "2px solid #2196f3" : "none",
+                        cursor: "move",
+                      }}
+                      title={goal.item.name}
+                      onMouseEnter={() =>
+                        setHoveredRow({ id: goal.item.id, type: "goal" })
+                      }
+                      onMouseLeave={() =>
+                        setHoveredRow((prev) =>
+                          prev?.id === goal.item.id && prev?.type === "goal"
+                            ? null
+                            : prev,
+                        )
+                      }
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddTask(stream.item.id, goal.item.position);
                         }}
-                        title={goal.item.name}
-                        onMouseEnter={() =>
-                          setHoveredRow({ id: goal.item.id, type: "goal" })
-                        }
-                        onMouseLeave={() =>
-                          setHoveredRow((prev) =>
-                            prev?.id === goal.item.id && prev?.type === "goal"
-                              ? null
-                              : prev,
-                          )
-                        }
-                      >
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddTask(stream.item.id, goal.item.position);
-                          }}
-                          sx={{
-                            position: "absolute",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            opacity: showActions ? 1 : 0,
-                          }}
-                        >
-                          <AddIcon fontSize="inherit" />
-                        </IconButton>
-                        <span style={{ marginLeft: 24 }}>{goal.item.name}</span>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openMenu(e, goal, stream.item.id);
-                          }}
-                          sx={{
-                            position: "absolute",
-                            right: 4,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            opacity: showActions ? 1 : 0,
-                          }}
-                        >
-                          <MoreVertIcon fontSize="inherit" />
-                        </IconButton>
-                      </div>
-                    );
-                  })}
-
-                  {tasks.map((task) => {
-                    const showActions =
-                      (hoveredRow?.id === task.item.id &&
-                        hoveredRow?.type === "task") ||
-                      (menuOpen &&
-                        menuRow?.item?.id === task.item.id &&
-                        menuRow?.type === "task");
-
-                    const isDragging =
-                      draggedTask?.task.id === task.item.id &&
-                      draggedTask?.streamId === stream.item.id;
-                    const isDropTarget =
-                      dropTarget?.task?.id === task.item.id &&
-                      dropTarget?.streamId === stream.item.id;
-
-                    return (
-                      <div
-                        key={`task-${task.item.id}`}
-                        draggable
-                        onDragStart={() =>
-                          handleTaskDragStart(task.item, stream.item.id)
-                        }
-                        onDragOver={(e) =>
-                          handleTaskDragOver(e, task.item, stream.item.id)
-                        }
-                        onDrop={(e) =>
-                          handleTaskDrop(e, task.item, stream.item.id)
-                        }
-                        onDragEnd={handleTaskDragEnd}
-                        style={{
+                        sx={{
                           position: "absolute",
-                          top: task.top - HEADER_HEIGHT,
-                          left: 0,
-                          right: 0,
-                          height: task.height,
-                          display: "flex",
-                          alignItems: "center",
-                          fontSize: FONT_SIZE - 1,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          opacity: isDragging ? 0.5 : 1,
-                          background: isDropTarget ? "#e3f2fd" : "transparent",
-                          borderTop: isDropTarget
-                            ? "2px solid #2196f3"
-                            : "none",
-                          cursor: "move",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          opacity: showActions ? 1 : 0,
                         }}
-                        title={task.item.name}
-                        onMouseEnter={() =>
-                          setHoveredRow({ id: task.item.id, type: "task" })
-                        }
-                        onMouseLeave={() =>
-                          setHoveredRow((prev) =>
-                            prev?.id === task.item.id && prev?.type === "task"
-                              ? null
-                              : prev,
-                          )
-                        }
                       >
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddTask(stream.item.id, task.item.position);
-                          }}
-                          sx={{
-                            position: "absolute",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            opacity: showActions ? 1 : 0,
-                          }}
-                        >
-                          <AddIcon fontSize="inherit" />
-                        </IconButton>
-                        <span style={{ marginLeft: 24 }}>{task.item.name}</span>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openMenu(e, task, stream.item.id);
-                          }}
-                          sx={{
-                            position: "absolute",
-                            right: 4,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            opacity: showActions ? 1 : 0,
-                          }}
-                        >
-                          <MoreVertIcon fontSize="inherit" />
-                        </IconButton>
-                      </div>
-                    );
-                  })}
-                </Fragment>
-              );
-            })}
+                        <AddIcon fontSize="inherit" />
+                      </IconButton>
+                      <span style={{ marginLeft: 24 }}>{goal.item.name}</span>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMenu(e, goal, stream.item.id);
+                        }}
+                        sx={{
+                          position: "absolute",
+                          right: 4,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          opacity: showActions ? 1 : 0,
+                        }}
+                      >
+                        <MoreVertIcon fontSize="inherit" />
+                      </IconButton>
+                    </div>
+                  );
+                })}
+
+                {tasks.map((task) => {
+                  const showActions =
+                    (hoveredRow?.id === task.item.id &&
+                      hoveredRow?.type === "task") ||
+                    (menuOpen &&
+                      menuRow?.item?.id === task.item.id &&
+                      menuRow?.type === "task");
+
+                  const isDragging =
+                    draggedTask?.task.id === task.item.id &&
+                    draggedTask?.streamId === stream.item.id;
+                  const isDropTarget =
+                    dropTarget?.task?.id === task.item.id &&
+                    dropTarget?.streamId === stream.item.id;
+
+                  return (
+                    <div
+                      key={`task-${task.item.id}`}
+                      draggable
+                      onDragStart={() =>
+                        handleTaskDragStart(task.item, stream.item.id)
+                      }
+                      onDragOver={(e) =>
+                        handleTaskDragOver(e, task.item, stream.item.id)
+                      }
+                      onDrop={(e) =>
+                        handleTaskDrop(e, task.item, stream.item.id)
+                      }
+                      onDragEnd={handleTaskDragEnd}
+                      style={{
+                        position: "absolute",
+                        top: task.top - HEADER_HEIGHT,
+                        left: 0,
+                        right: 0,
+                        height: task.height,
+                        display: "flex",
+                        alignItems: "center",
+                        fontSize: FONT_SIZE - 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        opacity: isDragging ? 0.5 : 1,
+                        background: isDropTarget ? "#e3f2fd" : "transparent",
+                        borderTop: isDropTarget ? "2px solid #2196f3" : "none",
+                        cursor: "move",
+                      }}
+                      title={task.item.name}
+                      onMouseEnter={() =>
+                        setHoveredRow({ id: task.item.id, type: "task" })
+                      }
+                      onMouseLeave={() =>
+                        setHoveredRow((prev) =>
+                          prev?.id === task.item.id && prev?.type === "task"
+                            ? null
+                            : prev,
+                        )
+                      }
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddTask(stream.item.id, task.item.position);
+                        }}
+                        sx={{
+                          position: "absolute",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          opacity: showActions ? 1 : 0,
+                        }}
+                      >
+                        <AddIcon fontSize="inherit" />
+                      </IconButton>
+                      <span style={{ marginLeft: 24 }}>{task.item.name}</span>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMenu(e, task, stream.item.id);
+                        }}
+                        sx={{
+                          position: "absolute",
+                          right: 4,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          opacity: showActions ? 1 : 0,
+                        }}
+                      >
+                        <MoreVertIcon fontSize="inherit" />
+                      </IconButton>
+                    </div>
+                  );
+                })}
+              </Fragment>
+            ))}
 
             {rows.map((row) => (
               <div
@@ -808,4 +703,3 @@ const GanttSidebar = forwardRef(
 );
 
 export default GanttSidebar;
-

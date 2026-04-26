@@ -105,14 +105,3 @@ export async function deleteTaskRelationApi(teamId, relationId, token) {
     return { ok: false, status: e.response.status };
   }
 }
-
-export async function fetchTaskHistoryApi(taskId, token) {
-  try {
-    const response = await axios.get(`/api/task/${taskId}/history`, {
-      headers: { Authorization: token },
-    });
-    return { ok: true, history: response.data };
-  } catch (e) {
-    return { ok: false, status: e.response.status };
-  }
-}

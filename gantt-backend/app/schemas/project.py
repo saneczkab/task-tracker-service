@@ -1,9 +1,9 @@
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class ProjectCreate(BaseModel):
-    name: str = Field(..., min_length=1)
+    name: str
 
 
 class ProjectResponse(BaseModel):
@@ -15,4 +15,4 @@ class ProjectResponse(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    name: str | None = Field(None, min_length=1)
+    name: str | None = None

@@ -1,48 +1,10 @@
-const parseDateTime = (value) => {
-  const normalized = String(value).trim().replace(" ", "T");
-  const hasTimezone =
-    /Z$/.test(normalized) || /[+-]\d{2}:\d{2}$/.test(normalized);
-  return new Date(hasTimezone ? normalized : normalized + "Z");
-};
-
 export const toInputDate = (value) => {
   if (!value) {
     return "";
   }
 
-  const datetime = parseDateTime(value);
-  if (Number.isNaN(datetime.getTime())) {
-    return "";
-  }
-
+  const datetime = new Date(value + "Z");
   return `${datetime.getFullYear()}-${String(datetime.getMonth() + 1).padStart(2, "0")}-${String(datetime.getDate()).padStart(2, "0")}`;
-};
-
-export const toInputDateValue = (value) => {
-  if (!value) {
-    return "";
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
-  }
-
-  return toInputDate(value);
-};
-
-export const toInputDateTimeValue = (value) => {
-  if (!value) {
-    return "";
-  }
-
-  const dateStr = toInputDate(value);
-  const timeStr = toInputTime(value);
-
-  if (!dateStr || !timeStr) {
-    return "";
-  }
-
-  return `${dateStr}T${timeStr}`;
 };
 
 export const toInputTime = (value) => {
@@ -50,11 +12,7 @@ export const toInputTime = (value) => {
     return "";
   }
 
-  const datetime = parseDateTime(value);
-  if (Number.isNaN(datetime.getTime())) {
-    return "";
-  }
-
+  const datetime = new Date(value + "Z");
   return `${String(datetime.getHours()).padStart(2, "0")}:${String(datetime.getMinutes()).padStart(2, "0")}`;
 };
 
@@ -73,12 +31,9 @@ export const toLocaleDateWithTimeHM = (value) => {
     return "";
   }
 
-  const normalized = value.trim().replace(" ", "T");
-  const hasTimezone =
-    /Z$/.test(normalized) || /[+-]\d{2}:\d{2}$/.test(normalized);
-  const date = new Date(hasTimezone ? normalized : normalized + "Z");
-
-  const datePart = date.toLocaleDateString("ru-RU");
+  const dateString = value + "Z";
+  const date = new Date(dateString);
+  const datePart = date.toLocaleDateString();
   const timePart = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   return `${datePart}, ${timePart}`;
 };

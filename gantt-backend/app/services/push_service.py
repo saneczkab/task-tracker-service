@@ -9,9 +9,6 @@ from app.core.db import SessionLocal
 from app.crud import push as push_crud
 from app.crud import reminder as reminder_crud
 from app.crud import task as task_crud
-from app.crud import stream as stream_crud
-from app.crud import project as project_crud
-from app.crud import team as team_crud
 
 
 def send_push(reminder_id: int):
@@ -27,10 +24,7 @@ def send_push(reminder_id: int):
     subscriptions = push_crud.get_subscriptions_by_user(db, reminder.user_id)
     task_id = reminder.task_id
     task = task_crud.get_task_by_id(db, task_id)
-    stream = stream_crud.get_stream_by_id(db, task.stream_id) if task else None
-    project = project_crud.get_project_by_id(db, stream.project_id) if stream else None
-    team = team_crud.get_team_by_id(db, project.team_id) if project else None
-    if not task or not stream or not project or not team:
+    if not task:
         db.close()
         return
 
@@ -38,8 +32,6 @@ def send_push(reminder_id: int):
         {
             "title": "Напоминание",
             "body": f"Приближается дедлайн по задаче {task.name}",
-            "stream_id": stream.id,
-            "team_id": team.id,
         }
     )
 
