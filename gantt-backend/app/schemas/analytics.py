@@ -35,6 +35,13 @@ class PeriodFilter(BaseModel):
     period: Optional[str] = None
 
 
+class RequestLimitInfo(BaseModel):
+    limit: int
+    used: int
+    remaining: int
+    reset_time: str
+
+
 class TeamAnalyticsResponse(BaseModel):
     team_id: int
     team_name: str
@@ -44,3 +51,4 @@ class TeamAnalyticsResponse(BaseModel):
     users: List[dict]
     period: PeriodFilter
     ai_summary: Optional[str] = None
+    request_limit : RequestLimitInfo
