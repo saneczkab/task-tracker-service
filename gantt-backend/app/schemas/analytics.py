@@ -35,6 +35,14 @@ class PeriodFilter(BaseModel):
     period: Optional[str] = None
 
 
+class AnalyticsFilters(BaseModel):
+    project_ids: Optional[List[int]] = None
+    stream_ids: Optional[List[int]] = None
+    status_ids: Optional[List[int]] = None
+    priority_ids: Optional[List[int]] = None
+    assigned_user_ids: Optional[List[int]] = None
+
+
 class TeamAnalyticsResponse(BaseModel):
     team_id: int
     team_name: str
@@ -43,4 +51,5 @@ class TeamAnalyticsResponse(BaseModel):
     tasks: List[TaskBrief]
     users: List[dict]
     period: PeriodFilter
+    filters: Optional[AnalyticsFilters] = None
     ai_summary: Optional[str] = None
