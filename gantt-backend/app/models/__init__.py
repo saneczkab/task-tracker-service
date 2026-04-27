@@ -1,4 +1,5 @@
 from .goal import Goal
+from .meta import UserTask
 from .project import Project
 from .stream import Stream
 from .task import Task
@@ -13,5 +14,6 @@ __all__ = [
     "Task",
     "Goal",
     "Stream",
+    "UserTask",
     "RequestLimit",
 ]

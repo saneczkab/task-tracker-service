@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 import { getContrastColor } from "../../utils/taskUtils.js";
-import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
+import { toLocaleDateWithTimeHM, formatDatetime } from "../../utils/datetime.js";
 
 const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
   const {

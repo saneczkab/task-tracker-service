@@ -14,8 +14,11 @@ from app.models.team import UserTeam
 router = fastapi.APIRouter()
 
 
-@router.get("/team/{team_id}/analytics", response_model=analytics_schemas.TeamAnalyticsResponse,
-            status_code=fastapi.status.HTTP_200_OK)
+@router.get(
+    "/api/team/{team_id}/analytics",
+    response_model=analytics_schemas.TeamAnalyticsResponse,
+    status_code=fastapi.status.HTTP_200_OK,
+)
 def get_team_analytics(
     team_id: int,
     period: Optional[str] = None,
@@ -23,8 +26,9 @@ def get_team_analytics(
     end_date: Optional[date] = None,
     project_id: Optional[int] = None,
     stream_id: Optional[int] = None,
+    is_ai_needed: bool = False,
     data_base: orm.Session = fastapi.Depends(db.get_db),
-    current_user: dict = fastapi.Depends(auth.get_current_user)
+    current_user: dict = fastapi.Depends(auth.get_current_user),
 ):
     from app.models.team import Team
     from app.models.user import User
@@ -34,13 +38,12 @@ def get_team_analytics(
         raise fastapi.HTTPException(status_code=404, detail="Team not found")
 
     period_filter = analytics_schemas.PeriodFilter(
-        start_date=start_date,
-        end_date=end_date,
-        period=period
+        start_date=start_date, end_date=end_date, period=period
     )
-    if period == 'week':
+
+    if period == "week":
         period_filter.start_date = date.today() - timedelta(days=7)
-    elif period == 'month':
+    elif period == "month":
         period_filter.start_date = date.today() - timedelta(days=30)
 
     analytics = AnalyticsService.get_task_analytics(
@@ -52,36 +55,40 @@ def get_team_analytics(
     tasks = AnalyticsService.get_tasks_list(
         data_base, team_id, period_filter, project_id, stream_id
     )
-    users = data_base.query(User).join(UserTeam, UserTeam.user_id == User.id).filter(
-        UserTeam.team_id == team_id
-    ).all()
+
+    users = (
+        data_base.query(User)
+        .join(UserTeam, UserTeam.user_id == User.id)
+        .filter(UserTeam.team_id == team_id)
+        .all()
+    )
 
     user_id = current_user.id
-    if not user_id:
-        raise fastapi.HTTPException(status_code=401, detail="User ID not found in token")
 
     ai_summary = None
     request_limit_info = None
-    
-    try:
 
-        request_limit_info = RequestLimitService.check_and_increment(data_base, user_id)
-        ai_summary = AIReportService.generate_summary(
-            analytics, users_stats, tasks, team.name, period
-        )
-    except fastapi.HTTPException as e:
-        if e.status_code == 429:
-            request_limit_info = RequestLimitService.get_usage(data_base, user_id)
-            e.detail = {
-                "message": f"Превышен лимит запросов. Лимит {request_limit_info['limit']} запросов в день.",
-                "request_limit": request_limit_info
-            }
-        raise e
-    except Exception as e:
-        print(f"AI generation failed: {e}")
-        ai_summary = AIReportService._fallback_summary(analytics, team.name, period)
-        if request_limit_info is None:
-            request_limit_info = RequestLimitService.get_usage(data_base, user_id)
+    if is_ai_needed:
+        try:
+            request_limit_info = RequestLimitService.check_and_increment(data_base, user_id)
+            ai_summary = AIReportService.generate_summary(
+                analytics, users_stats, tasks, team.name, period
+            )
+        except fastapi.HTTPException as e:
+            if e.status_code == 429:
+                request_limit_info = RequestLimitService.get_usage(data_base, user_id)
+                e.detail = {
+                    "message": f"Превышен лимит запросов. Лимит {request_limit_info['limit']} запросов в день.",
+                    "request_limit": request_limit_info
+                }
+            raise e
+        except Exception as e:
+            print(f"AI generation failed: {e}")
+            ai_summary = AIReportService._fallback_summary(analytics, team.name, period)
+            if request_limit_info is None:
+                request_limit_info = RequestLimitService.get_usage(data_base, user_id)
+    else:
+        request_limit_info = RequestLimitService.get_usage(data_base, user_id)
 
     if request_limit_info is None:
         request_limit_info = {
@@ -99,6 +106,6 @@ def get_team_analytics(
         tasks=tasks,
         users=[{"id": u.id, "email": u.email, "nickname": u.nickname} for u in users],
         period=period_filter,
-        ai_summary=ai_summary,
+        ai_summary=ai_summary or "",
         request_limit=request_limit_info
     )

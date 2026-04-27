@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Box, Paper, Typography, IconButton } from "@mui/material";
 import TaskCard from "./TaskCard.jsx";
 import { Add as AddIcon } from "@mui/icons-material";
+import { getStatusColors } from "../ui/StatusBadge.jsx";
 
 const KanbanElement = ({
   title,
@@ -20,10 +21,7 @@ const KanbanElement = ({
 
   // TODO: хранить цвета в бд
   const bgColor = useMemo(() => {
-    if (title === "To do") return "#ffebee";
-    if (title === "Doing") return "#fff9c4";
-    if (title === "Done") return "#e8f5e9";
-    return "#e3f2fd";
+    return getStatusColors(title).bg;
   }, [title]);
 
   return (
