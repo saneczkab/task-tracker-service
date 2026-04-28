@@ -26,6 +26,11 @@ def get_team_analytics(
     end_date: Optional[date] = None,
     project_id: Optional[int] = None,
     stream_id: Optional[int] = None,
+    project_ids: Optional[str] = None,
+    stream_ids: Optional[str] = None,
+    status_ids: Optional[str] = None,
+    priority_ids: Optional[str] = None,
+    assigned_user_ids: Optional[str] = None,
     is_ai_needed: bool = False,
     data_base: orm.Session = fastapi.Depends(db.get_db),
     current_user: dict = fastapi.Depends(auth.get_current_user),
@@ -46,14 +51,26 @@ def get_team_analytics(
     elif period == "month":
         period_filter.start_date = date.today() - timedelta(days=30)
 
+    parsed_filters = {
+        "project_ids": [int(x) for x in project_ids.split(',') if x.strip()] if project_ids else None,
+        "stream_ids": [int(x) for x in stream_ids.split(',') if x.strip()] if stream_ids else None,
+        "status_ids": [int(x) for x in status_ids.split(',') if x.strip()] if status_ids else None,
+        "priority_ids": [int(x) for x in priority_ids.split(',') if x.strip()] if priority_ids else None,
+        "assigned_user_ids": [int(x) for x in assigned_user_ids.split(',') if x.strip()] if assigned_user_ids else None,
+    }
+
+    filters = None
+    if any(parsed_filters.values()):
+        filters = analytics_schemas.AnalyticsFilters(**parsed_filters)
+
     analytics = AnalyticsService.get_task_analytics(
-        data_base, team_id, period_filter, project_id, stream_id
+        data_base, team_id, period_filter, filters, project_id, stream_id
     )
     users_stats = AnalyticsService.get_users_stats(
-        data_base, team_id, period_filter, project_id, stream_id
+        data_base, team_id, period_filter, filters, project_id, stream_id
     )
     tasks = AnalyticsService.get_tasks_list(
-        data_base, team_id, period_filter, project_id, stream_id
+        data_base, team_id, period_filter, filters, project_id, stream_id
     )
 
     users = (
@@ -106,6 +123,7 @@ def get_team_analytics(
         tasks=tasks,
         users=[{"id": u.id, "email": u.email, "nickname": u.nickname} for u in users],
         period=period_filter,
+        filters=filters,
         ai_summary=ai_summary or "",
         request_limit=request_limit_info
     )

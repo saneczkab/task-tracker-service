@@ -16,10 +16,55 @@ class AnalyticsService:
     STATUS_DOING = 3
     
     @staticmethod
+    def _apply_filters(
+        query,
+        filters: analytics_schemas.AnalyticsFilters,
+        include_stream_join: bool = True
+    ):
+        """Применить фильтры к запросу"""
+        from app.models.meta import UserTask
+
+        has_stream = 'Stream' in str(query) or 'stream' in str(query)
+        has_project = 'Project' in str(query) or 'project' in str(query)
+
+        if include_stream_join and not has_stream:
+            if filters.stream_ids or filters.project_ids:
+                query = query.join(Stream, Task.stream_id == Stream.id)
+                has_stream = True
+
+        if not has_project and filters.project_ids:
+            if has_stream:
+                query = query.join(Project, Stream.project_id == Project.id)
+            else:
+                query = query.join(Stream, Task.stream_id == Stream.id).join(Project, Stream.project_id == Project.id)
+            has_project = True
+
+        if filters.project_ids:
+            query = query.filter(Project.id.in_(filters.project_ids))
+
+        if filters.stream_ids:
+            query = query.filter(Task.stream_id.in_(filters.stream_ids))
+
+        if filters.status_ids:
+            query = query.filter(Task.status_id.in_(filters.status_ids))
+
+        if filters.priority_ids:
+            query = query.filter(Task.priority_id.in_(filters.priority_ids))
+
+        if filters.assigned_user_ids:
+            if 'UserTask' not in str(query):
+                query = query.join(UserTask, Task.id == UserTask.task_id)
+            query = query.filter(UserTask.user_id.in_(filters.assigned_user_ids))
+            query = query.distinct()
+
+        return query
+
+    @staticmethod
     def get_task_analytics(
         data_base: orm.Session,
         team_id: int,
         period_filter: analytics_schemas.PeriodFilter,
+        filters: Optional[analytics_schemas.AnalyticsFilters] = None,
         project_id: Optional[int] = None,
         stream_id: Optional[int] = None
     ) -> analytics_schemas.TaskAnalytics:
@@ -44,6 +89,9 @@ class AnalyticsService:
         if stream_id:
             query = query.filter(Task.stream_id == stream_id)
         
+        if filters:
+            query = AnalyticsService._apply_filters(query, filters, include_stream_join=False)
+
         total_tasks = query.count()
         completed_tasks = query.filter(Task.status_id == AnalyticsService.STATUS_DONE).count()
         in_progress = query.filter(Task.status_id.in_([AnalyticsService.STATUS_TODO, AnalyticsService.STATUS_DOING])).count()
@@ -67,47 +115,69 @@ class AnalyticsService:
         data_base: orm.Session,
         team_id: int,
         period_filter: analytics_schemas.PeriodFilter,
+        filters: Optional[analytics_schemas.AnalyticsFilters] = None,
         project_id: Optional[int] = None,
         stream_id: Optional[int] = None
     ) -> List[analytics_schemas.UserTaskStats]:
         """Получить статистику по каждому пользователю"""
+        from app.models.meta import UserTask
 
         users = data_base.query(User).join(UserTeam).filter(UserTeam.team_id == team_id).all()
         
-        base_query = data_base.query(Task).join(
-            Stream, Task.stream_id == Stream.id
-        ).join(
-            Project, Stream.project_id == Project.id
-        ).filter(Project.team_id == team_id)
-        
-        if period_filter.start_date:
-            start = datetime.combine(period_filter.start_date, datetime.min.time())
-            base_query = base_query.filter(Task.deadline >= start)
-        
-        if period_filter.end_date:
-            end = datetime.combine(period_filter.end_date, datetime.max.time())
-            base_query = base_query.filter(Task.deadline <= end)
-        
-        if project_id:
-            base_query = base_query.filter(Stream.project_id == project_id)
-        
-        if stream_id:
-            base_query = base_query.filter(Task.stream_id == stream_id)
-        
         users_stats = []
         for user in users:
-            user_tasks = base_query.join(Task.assigned_users).filter(
-                Task.assigned_users.any(user_id=user.id)
+            user_query = data_base.query(Task).join(
+                Stream, Task.stream_id == Stream.id
+            ).join(
+                Project, Stream.project_id == Project.id
+            ).join(
+                UserTask, Task.id == UserTask.task_id
+            ).filter(
+                Project.team_id == team_id,
+                UserTask.user_id == user.id
             )
-            
-            total = user_tasks.count()
-            completed = user_tasks.filter(Task.status_id == AnalyticsService.STATUS_DONE).count()
-            overdue = user_tasks.filter(
-                Task.deadline < datetime.now(),
-                Task.status_id != AnalyticsService.STATUS_DONE
-            ).count()
-            in_progress = user_tasks.filter(Task.status_id.in_([AnalyticsService.STATUS_TODO, AnalyticsService.STATUS_DOING])).count()
-            
+
+            if period_filter.start_date:
+                start = datetime.combine(period_filter.start_date, datetime.min.time())
+                user_query = user_query.filter(Task.deadline >= start)
+
+            if period_filter.end_date:
+                end = datetime.combine(period_filter.end_date, datetime.max.time())
+                user_query = user_query.filter(Task.deadline <= end)
+
+            if project_id:
+                user_query = user_query.filter(Stream.project_id == project_id)
+
+            if stream_id:
+                user_query = user_query.filter(Task.stream_id == stream_id)
+
+            if filters:
+                if filters.project_ids:
+                    user_query = user_query.filter(Project.id.in_(filters.project_ids))
+
+                if filters.stream_ids:
+                    user_query = user_query.filter(Task.stream_id.in_(filters.stream_ids))
+
+                if filters.status_ids:
+                    user_query = user_query.filter(Task.status_id.in_(filters.status_ids))
+
+                if filters.priority_ids:
+                    user_query = user_query.filter(Task.priority_id.in_(filters.priority_ids))
+
+                if filters.assigned_user_ids and user.id not in filters.assigned_user_ids:
+                    continue
+
+            total = user_query.count()
+            if total > 0:
+                completed = user_query.filter(Task.status_id == AnalyticsService.STATUS_DONE).count()
+                overdue = user_query.filter(
+                    Task.deadline < datetime.now(),
+                    Task.status_id != AnalyticsService.STATUS_DONE
+                ).count()
+                in_progress = user_query.filter(Task.status_id.in_([AnalyticsService.STATUS_TODO, AnalyticsService.STATUS_DOING])).count()
+            else:
+                completed = overdue = in_progress = 0
+
             users_stats.append(analytics_schemas.UserTaskStats(
                 user_id=user.id,
                 email=user.email,
@@ -125,6 +195,7 @@ class AnalyticsService:
         data_base: orm.Session,
         team_id: int,
         period_filter: analytics_schemas.PeriodFilter,
+        filters: Optional[analytics_schemas.AnalyticsFilters] = None,
         project_id: Optional[int] = None,
         stream_id: Optional[int] = None
     ) -> List[analytics_schemas.TaskBrief]:
@@ -150,6 +221,9 @@ class AnalyticsService:
         if stream_id:
             query = query.filter(Task.stream_id == stream_id)
         
+        if filters:
+            query = AnalyticsService._apply_filters(query, filters, include_stream_join=False)
+
         tasks = []
         for task in query.all():
             assigned_users = [ut.user.email for ut in task.assigned_users] if task.assigned_users else []
