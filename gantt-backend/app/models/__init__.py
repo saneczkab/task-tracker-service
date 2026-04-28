@@ -5,6 +5,7 @@ from .stream import Stream
 from .task import Task
 from .team import Team
 from .user import User
+from .request_limit import RequestLimit
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "Goal",
     "Stream",
     "UserTask",
+    "RequestLimit",
 ]

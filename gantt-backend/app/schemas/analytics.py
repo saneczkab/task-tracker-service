@@ -43,6 +43,13 @@ class AnalyticsFilters(BaseModel):
     assigned_user_ids: Optional[List[int]] = None
 
 
+class RequestLimitInfo(BaseModel):
+    limit: int
+    used: int
+    remaining: int
+    reset_time: str
+
+
 class TeamAnalyticsResponse(BaseModel):
     team_id: int
     team_name: str
@@ -53,3 +60,4 @@ class TeamAnalyticsResponse(BaseModel):
     period: PeriodFilter
     filters: Optional[AnalyticsFilters] = None
     ai_summary: Optional[str] = None
+    request_limit: RequestLimitInfo

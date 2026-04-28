@@ -7,6 +7,7 @@ from app.api import auth
 from app.core import db
 from app.services.analytics_service import AnalyticsService
 from app.services.ai_report_service import AIReportService
+from app.services.request_limit_service import RequestLimitService
 from app.schemas import analytics as analytics_schemas
 from app.models.team import UserTeam
 
@@ -36,7 +37,6 @@ def get_team_analytics(
 ):
     from app.models.team import Team
     from app.models.user import User
-    from app.models.team import UserTeam
 
     team = data_base.query(Team).filter(Team.id == team_id).first()
     if not team:
@@ -66,11 +66,9 @@ def get_team_analytics(
     analytics = AnalyticsService.get_task_analytics(
         data_base, team_id, period_filter, filters, project_id, stream_id
     )
-
     users_stats = AnalyticsService.get_users_stats(
         data_base, team_id, period_filter, filters, project_id, stream_id
     )
-
     tasks = AnalyticsService.get_tasks_list(
         data_base, team_id, period_filter, filters, project_id, stream_id
     )
@@ -82,11 +80,40 @@ def get_team_analytics(
         .all()
     )
 
-    ai_summary = ""
+    user_id = current_user.id
+
+    ai_summary = None
+    request_limit_info = None
+
     if is_ai_needed:
-        ai_summary = AIReportService.generate_summary(
-            analytics, users_stats, tasks, team.name, period
-        )
+        try:
+            request_limit_info = RequestLimitService.check_and_increment(data_base, user_id)
+            ai_summary = AIReportService.generate_summary(
+                analytics, users_stats, tasks, team.name, period
+            )
+        except fastapi.HTTPException as e:
+            if e.status_code == 429:
+                request_limit_info = RequestLimitService.get_usage(data_base, user_id)
+                e.detail = {
+                    "message": f"Превышен лимит запросов. Лимит {request_limit_info['limit']} запросов в день.",
+                    "request_limit": request_limit_info
+                }
+            raise e
+        except Exception as e:
+            print(f"AI generation failed: {e}")
+            ai_summary = AIReportService._fallback_summary(analytics, team.name, period)
+            if request_limit_info is None:
+                request_limit_info = RequestLimitService.get_usage(data_base, user_id)
+    else:
+        request_limit_info = RequestLimitService.get_usage(data_base, user_id)
+
+    if request_limit_info is None:
+        request_limit_info = {
+            "limit": RequestLimitService.DAILY_LIMIT,
+            "used": -1,
+            "remaining": -1,
+            "reset_time": (date.today() + timedelta(days=1)).isoformat()
+        }
 
     return analytics_schemas.TeamAnalyticsResponse(
         team_id=team_id,
@@ -97,5 +124,6 @@ def get_team_analytics(
         users=[{"id": u.id, "email": u.email, "nickname": u.nickname} for u in users],
         period=period_filter,
         filters=filters,
-        ai_summary=ai_summary,
+        ai_summary=ai_summary or "",
+        request_limit=request_limit_info
     )
