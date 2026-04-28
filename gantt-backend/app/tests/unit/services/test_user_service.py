@@ -14,14 +14,13 @@ from app.services.user_service import (
 
 
 @patch("app.services.user_service.user_crud.get_user_by_id")
-def test_get_current_user_service_success(mock_get_user_by_id, mock_db, ids):
-    user_obj = Mock(id=ids.user_id)
-    mock_get_user_by_id.return_value = user_obj
+def test_get_current_user_service_success(mock_get_user_by_id, mock_db, ids, mock_user):
+    mock_get_user_by_id.return_value = mock_user
 
     result = get_current_user_service(mock_db, ids.user_id)
 
     mock_get_user_by_id.assert_called_once_with(mock_db, ids.user_id)
-    assert result is user_obj
+    assert result is mock_user
 
 
 @pytest.mark.parametrize("crud_result, expected", [(object(), True), (None, False)])
@@ -184,18 +183,17 @@ def test_register_user_service_create_user_conflict(mock_db, **mocks):
 @patch("app.services.user_service.team_crud.get_teams_by_user")
 @patch("app.services.user_service.user_crud.get_user_by_id")
 def test_get_user_by_token_service_success(
-    mock_get_user_by_id, mock_get_teams_by_user, mock_db, ids
+    mock_get_user_by_id, mock_get_teams_by_user, mock_db, ids, mock_user
 ):
-    user_obj = Mock(id=ids.user_id)
     expected_teams = [Mock(), Mock()]
-    mock_get_user_by_id.return_value = user_obj
+    mock_get_user_by_id.return_value = mock_user
     mock_get_teams_by_user.return_value = expected_teams
 
     result_user, result_teams = get_user_by_token_service(mock_db, ids.user_id)
 
     mock_get_user_by_id.assert_called_once_with(mock_db, ids.user_id)
-    mock_get_teams_by_user.assert_called_once_with(mock_db, user_obj.id)
-    assert result_user is user_obj
+    mock_get_teams_by_user.assert_called_once_with(mock_db, mock_user.id)
+    assert result_user is mock_user
     assert result_teams is expected_teams
 
 
@@ -215,18 +213,17 @@ def test_get_user_by_token_service_not_found(
 @patch("app.services.user_service.team_crud.get_teams_by_user")
 @patch("app.services.user_service.user_crud.get_user_by_id")
 def test_get_user_service_success(
-    mock_get_user_by_id, mock_get_teams_by_user, mock_db, ids
+    mock_get_user_by_id, mock_get_teams_by_user, mock_db, ids, mock_user
 ):
-    expected_user = Mock(id=ids.user_id)
     expected_teams = [Mock()]
-    mock_get_user_by_id.return_value = expected_user
+    mock_get_user_by_id.return_value = mock_user
     mock_get_teams_by_user.return_value = expected_teams
 
     result_user, result_teams = get_user_service(mock_db, ids.user_id, ids.user_id)
 
     mock_get_user_by_id.assert_called_once_with(mock_db, ids.user_id)
     mock_get_teams_by_user.assert_called_once_with(mock_db, ids.user_id)
-    assert result_user is expected_user
+    assert result_user is mock_user
     assert result_teams is expected_teams
 
 

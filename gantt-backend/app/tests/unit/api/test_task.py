@@ -1,5 +1,4 @@
 from datetime import datetime
-from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from app.core import exception
@@ -218,7 +217,7 @@ def test_get_task_history_success(
     mock_service, mock_user, current_user, task, auth_headers, client
 ):
     mock_user.return_value = current_user
-    history_entry = SimpleNamespace(
+    history_entry = Mock(
         id=1,
         task_id=task.id,
         changed_by_id=current_user.id,
@@ -228,7 +227,7 @@ def test_get_task_history_success(
         old_value="Old task",
         new_value="New task",
     )
-    history_entry.changed_by = SimpleNamespace(email=current_user.email)
+    history_entry.changed_by = Mock(email=current_user.email)
     mock_service.return_value = [history_entry]
 
     response = client.get(f"/api/task/{task.id}/history", headers=auth_headers)

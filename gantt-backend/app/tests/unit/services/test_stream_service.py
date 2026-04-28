@@ -3,6 +3,7 @@ from unittest.mock import DEFAULT, Mock, patch
 import pytest
 
 from app.core import exception
+from app.models import stream as stream_model
 from app.services.stream_service import (
     create_stream_service,
     delete_stream_service,
@@ -30,16 +31,17 @@ def test_get_project_streams_service_success(
 
 
 @patch("app.services.stream_service.permissions.check_stream_access")
-def test_get_stream_service_success(mock_check_stream_access, mock_db, ids):
-    stream_obj = Mock(id=ids.stream_id)
-    mock_check_stream_access.return_value = (stream_obj, Mock(), Mock())
+def test_get_stream_service_success(
+    mock_check_stream_access, mock_db, ids, mock_stream
+):
+    mock_check_stream_access.return_value = (mock_stream, Mock(), Mock())
 
     result = get_stream_service(mock_db, ids.stream_id, ids.user_id)
 
     mock_check_stream_access.assert_called_once_with(
         mock_db, ids.stream_id, ids.user_id
     )
-    assert result is stream_obj
+    assert result is mock_stream
 
 
 @patch.multiple(
@@ -56,17 +58,22 @@ def test_create_stream_service_success_with_auto_position(
     mock_check_project_access,
     mock_db,
     ids,
+    make_query_router,
+    make_query,
+    mock_project,
+    mock_stream,
     **mocks,
 ):
     stream_data = Mock(name="Sprint", position=None)
     user_team = Mock()
     last_stream = Mock(position=7)
-    created_stream = Mock(id=ids.stream_id)
 
-    mock_check_project_access.return_value = (Mock(id=ids.project_id), user_team)
+    mock_check_project_access.return_value = (mock_project, user_team)
     mocks["get_stream_by_name_and_proj_id"].return_value = None
-    mock_db.query.return_value.filter.return_value.order_by.return_value.first.return_value = last_stream
-    mocks["create_new_stream"].return_value = created_stream
+
+    q_stream = make_query(order_by_first=last_stream)
+    mock_db.query.side_effect = make_query_router({stream_model.Stream: q_stream})
+    mocks["create_new_stream"].return_value = mock_stream
 
     result = create_stream_service(mock_db, ids.project_id, stream_data, ids.user_id)
 
@@ -83,7 +90,7 @@ def test_create_stream_service_success_with_auto_position(
     mocks["create_new_stream"].assert_called_once_with(
         mock_db, ids.project_id, stream_data
     )
-    assert result is created_stream
+    assert result is mock_stream
 
 
 @patch.multiple(
@@ -123,13 +130,13 @@ def test_update_stream_service_success(
     mock_update_stream,
     mock_db,
     ids,
+    mock_stream,
     **mocks,
 ):
-    stream_obj = Mock(id=ids.stream_id)
     update_data = Mock(name="Updated")
     user_team = Mock()
-    mock_check_stream_access.return_value = (stream_obj, Mock(), user_team)
-    mock_update_stream.return_value = stream_obj
+    mock_check_stream_access.return_value = (mock_stream, Mock(), user_team)
+    mock_update_stream.return_value = mock_stream
 
     result = update_stream_service(mock_db, ids.stream_id, update_data, ids.user_id)
 
@@ -137,8 +144,8 @@ def test_update_stream_service_success(
         mock_db, ids.stream_id, ids.user_id
     )
     mocks["check_editor_permission"].assert_called_once_with(user_team)
-    mock_update_stream.assert_called_once_with(mock_db, stream_obj, update_data)
-    assert result is stream_obj
+    mock_update_stream.assert_called_once_with(mock_db, mock_stream, update_data)
+    assert result is mock_stream
 
 
 @patch("app.services.stream_service.stream_crud.delete_stream")

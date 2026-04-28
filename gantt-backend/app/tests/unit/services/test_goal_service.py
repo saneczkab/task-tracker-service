@@ -3,6 +3,7 @@ from unittest.mock import DEFAULT, Mock, patch
 import pytest
 
 from app.core import exception
+from app.models import goal as goal_model
 from app.services.goal_service import (
     create_goal_service,
     delete_goal_service,
@@ -38,14 +39,19 @@ def test_create_goal_service_sets_position_from_previous_goal(
     mock_check_stream_access,
     mock_db,
     ids,
+    make_query_router,
+    make_query,
+    mock_goal,
     **mocks,
 ):
-    goal_data = Mock(name="North Star", position=None)
+    goal_data = Mock(name="test goal", position=None)
     previous_goal = Mock(position=3)
-    created_goal = Mock(id=ids.goal_id)
+    created_goal = mock_goal
 
     mocks["get_goal_by_name_in_stream"].return_value = None
-    mock_db.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = previous_goal
+    goal_query = make_query(order_by_first=previous_goal)
+
+    mock_db.query.side_effect = make_query_router({goal_model.Goal: goal_query})
     mocks["create_goal"].return_value = created_goal
 
     result = create_goal_service(mock_db, ids.stream_id, ids.user_id, goal_data)
@@ -96,9 +102,12 @@ def test_update_goal_service_success(
     mock_check_stream_access,
     mock_db,
     ids,
+    mock_goal,
     **mocks,
 ):
-    goal_obj = Mock(id=ids.goal_id, stream_id=ids.stream_id, name="Old")
+    goal_obj = mock_goal
+    goal_obj.stream_id = ids.stream_id
+    goal_obj.name = "Old"
     goal_update_data = Mock(name="New")
     updated_goal = Mock(id=goal_obj.id)
 
@@ -126,9 +135,10 @@ def test_update_goal_service_success(
 @patch("app.services.goal_service.permissions.check_stream_access")
 @patch("app.services.goal_service.goal_crud.get_goal_by_id")
 def test_delete_goal_service_success(
-    mock_get_goal_by_id, mock_check_stream_access, mock_db, ids, **mocks
+    mock_get_goal_by_id, mock_check_stream_access, mock_db, ids, mock_goal, **mocks
 ):
-    goal_obj = Mock(id=ids.goal_id, stream_id=ids.stream_id)
+    goal_obj = mock_goal
+    goal_obj.stream_id = ids.stream_id
     mock_get_goal_by_id.return_value = goal_obj
 
     delete_goal_service(mock_db, ids.goal_id, ids.user_id)

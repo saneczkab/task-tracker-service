@@ -4,6 +4,7 @@ import pytest
 
 from app.core import exception
 from app.models.custom_field import CustomFieldType
+from app.models import custom_field as custom_field_model
 from app.schemas.custom_field import CustomFieldBase
 from app.services.custom_field_service import (
     create_custom_field_service,
@@ -129,10 +130,14 @@ def test_update_custom_field_service_success(
     mock_db,
     team_obj,
     custom_field_obj,
+    make_query_router,
+    make_query,
 ):
     field_update = CustomFieldBase(name="Severity", type=CustomFieldType.TEXT)
     db_field = Mock(id=custom_field_obj.id, team_id=team_obj.id)
-    mock_db.query.return_value.filter.return_value.first.return_value = db_field
+
+    q = make_query(first=db_field)
+    mock_db.query.side_effect = make_query_router({custom_field_model.CustomField: q})
     mock_update_custom_field.return_value = custom_field_obj
 
     result = update_custom_field_service(
@@ -153,10 +158,16 @@ def test_update_custom_field_service_success(
 @patch("app.services.custom_field_service.custom_field_crud.update_custom_field")
 @patch("app.services.custom_field_service.permissions.check_team_access")
 def test_update_custom_field_service_not_found(
-    mock_check_team_access, mock_update_custom_field, mock_db
+    mock_check_team_access,
+    mock_update_custom_field,
+    mock_db,
+    make_query_router,
+    make_query,
 ):
     field_update = CustomFieldBase(name="Severity", type=CustomFieldType.TEXT)
-    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    q = make_query(first=None)
+    mock_db.query.side_effect = make_query_router({custom_field_model.CustomField: q})
 
     with pytest.raises(exception.NotFoundError):
         update_custom_field_service(mock_db, 999, 999, field_update)
@@ -173,10 +184,14 @@ def test_update_custom_field_service_forbidden(
     mock_db,
     team_obj,
     custom_field_obj,
+    make_query_router,
+    make_query,
 ):
     field_update = CustomFieldBase(name="Severity", type=CustomFieldType.TEXT)
     db_field = Mock(id=custom_field_obj.id, team_id=team_obj.id)
-    mock_db.query.return_value.filter.return_value.first.return_value = db_field
+
+    q = make_query(first=db_field)
+    mock_db.query.side_effect = make_query_router({custom_field_model.CustomField: q})
     mock_check_team_access.side_effect = exception.ForbiddenError()
 
     with pytest.raises(exception.ForbiddenError):
@@ -193,9 +208,13 @@ def test_delete_custom_field_service_success(
     mock_db,
     team_obj,
     custom_field_obj,
+    make_query_router,
+    make_query,
 ):
     db_field = Mock(id=custom_field_obj.id, team_id=team_obj.id)
-    mock_db.query.return_value.filter.return_value.first.return_value = db_field
+
+    q = make_query(first=db_field)
+    mock_db.query.side_effect = make_query_router({custom_field_model.CustomField: q})
     mock_delete_custom_field.return_value = custom_field_obj
 
     result = delete_custom_field_service(mock_db, custom_field_obj.id, 999)
@@ -212,9 +231,14 @@ def test_delete_custom_field_service_success(
 @patch("app.services.custom_field_service.custom_field_crud.delete_custom_field")
 @patch("app.services.custom_field_service.permissions.check_team_access")
 def test_delete_custom_field_service_not_found(
-    mock_check_team_access, mock_delete_custom_field, mock_db
+    mock_check_team_access,
+    mock_delete_custom_field,
+    mock_db,
+    make_query_router,
+    make_query,
 ):
-    mock_db.query.return_value.filter.return_value.first.return_value = None
+    q = make_query(first=None)
+    mock_db.query.side_effect = make_query_router({custom_field_model.CustomField: q})
 
     with pytest.raises(exception.NotFoundError):
         delete_custom_field_service(mock_db, 999, 999)
@@ -231,9 +255,13 @@ def test_delete_custom_field_service_forbidden(
     mock_db,
     team_obj,
     custom_field_obj,
+    make_query_router,
+    make_query,
 ):
     db_field = Mock(id=custom_field_obj.id, team_id=team_obj.id)
-    mock_db.query.return_value.filter.return_value.first.return_value = db_field
+
+    q = make_query(first=db_field)
+    mock_db.query.side_effect = make_query_router({custom_field_model.CustomField: q})
     mock_check_team_access.side_effect = exception.ForbiddenError()
 
     with pytest.raises(exception.ForbiddenError):

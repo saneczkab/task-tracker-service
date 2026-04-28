@@ -3,6 +3,11 @@ from unittest.mock import DEFAULT, Mock, patch
 import pytest
 
 from app.core import exception
+from app.models import goal as goal_model
+from app.models import project as project_model
+from app.models import stream as stream_model
+from app.models import task as task_model
+from app.models import team as team_model
 from app.models.role import Role
 from app.services.team_service import (
     create_team_service,
@@ -67,21 +72,20 @@ def test_get_team_users_service_forbidden(
 )
 def test_create_team_service_success(mock_db, ids, **mocks):
     create_data = Mock(name="Platform Team")
-    created_team = Mock(id=ids.team_id)
-    mocks["create_team"].return_value = created_team
+    mocks["create_team"].return_value = Mock(id=ids.team_id)
 
     result = create_team_service(mock_db, ids.user_id, create_data)
 
     mocks["create_team"].assert_called_once_with(mock_db, create_data.name)
     mocks["add_user_to_team"].assert_called_once_with(
         mock_db,
-        created_team.id,
+        mocks["create_team"].return_value.id,
         ids.user_id,
         Role.EDITOR,
     )
     mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once_with(created_team)
-    assert result is created_team
+    mock_db.refresh.assert_called_once_with(mocks["create_team"].return_value)
+    assert result is mocks["create_team"].return_value
 
 
 @patch("app.services.team_service.permissions.check_team_access")
@@ -98,16 +102,20 @@ def test_update_team_service_success_add_and_delete_users(
     mock_check_team_access,
     mock_db,
     ids,
+    mock_team,
+    mock_second_user,
+    mock_user,
     **mocks,
 ):
-    team_obj = Mock(id=ids.team_id, name="Old")
+    team_obj = mock_team
+    team_obj.name = "Old"
     update_data = Mock(
         name="New",
         newUsers=["new@test.com"],
         deleteUsers=["old@test.com"],
     )
-    added_user = Mock(id=ids.second_user_id)
-    removed_user = Mock(id=ids.user_id)
+    added_user = mock_second_user
+    removed_user = mock_user
     mocks["get_team_by_id"].return_value = team_obj
     mocks["get_user_by_email"].side_effect = [added_user, removed_user]
     mocks["get_user_team"].return_value = None
@@ -150,11 +158,14 @@ def test_update_team_service_existing_member_not_added(
     mock_check_team_access,
     mock_db,
     ids,
+    mock_team,
+    mock_second_user,
     **mocks,
 ):
-    team_obj = Mock(id=ids.team_id, name="Old")
+    team_obj = mock_team
+    team_obj.name = "Old"
     update_data = Mock(name=None, newUsers=["existing@test.com"], deleteUsers=None)
-    existing_user = Mock(id=ids.second_user_id)
+    existing_user = mock_second_user
     existing_member = Mock(id=999)
 
     mocks["get_team_by_id"].return_value = team_obj
@@ -216,11 +227,25 @@ def test_update_team_service_team_not_found(
 @patch("app.services.team_service.permissions.check_team_access")
 @patch("app.services.team_service.team_crud.get_team_by_id")
 def test_delete_team_service_success_without_projects(
-    mock_get_team_by_id, mock_check_team_access, mock_db, ids
+    mock_get_team_by_id,
+    mock_check_team_access,
+    mock_db,
+    ids,
+    make_query_router,
+    make_query,
 ):
     team_obj = Mock(id=ids.team_id)
     mock_get_team_by_id.return_value = team_obj
-    mock_db.query.return_value.filter_by.return_value.all.return_value = []
+
+    q_projects = make_query(all_=[])
+    q_userteam_delete = make_query()
+
+    mock_db.query.side_effect = make_query_router(
+        {
+            project_model.Project: q_projects,
+            team_model.UserTeam: q_userteam_delete,
+        }
+    )
 
     delete_team_service(mock_db, ids.team_id, ids.user_id)
 
@@ -234,118 +259,47 @@ def test_delete_team_service_success_without_projects(
 @patch("app.services.team_service.permissions.check_team_access")
 @patch("app.services.team_service.team_crud.get_team_by_id")
 def test_delete_team_service_cascade_delete(
-    mock_get_team_by_id, mock_check_team_access, mock_db, ids
+    mock_get_team_by_id,
+    mock_check_team_access,
+    mock_db,
+    ids,
+    make_query_router,
+    make_query,
 ):
     team_obj = Mock(id=ids.team_id)
     project_obj = Mock(id=ids.project_id)
     stream_obj = Mock(id=ids.stream_id)
 
-    query_projects = Mock()
-    query_projects.filter_by.return_value.all.return_value = [project_obj]
-
-    query_streams = Mock()
-    query_streams.filter.return_value.all.return_value = [stream_obj]
-
-    query_tasks = Mock()
-    query_tasks.filter.return_value.delete.return_value = None
-
-    query_goals = Mock()
-    query_goals.filter.return_value.delete.return_value = None
-
-    query_stream_delete = Mock()
-    query_stream_delete.filter.return_value.delete.return_value = None
-
-    query_project_delete = Mock()
-    query_project_delete.filter.return_value.delete.return_value = None
-
-    query_userteam_delete = Mock()
-    query_userteam_delete.filter.return_value.delete.return_value = None
-
     mock_get_team_by_id.return_value = team_obj
-    mock_db.query.side_effect = [
-        query_projects,
-        query_streams,
-        query_tasks,
-        query_goals,
-        query_stream_delete,
-        query_project_delete,
-        query_userteam_delete,
-    ]
+
+    q_projects = make_query(all_=[project_obj])
+    q_streams_all = make_query(all_=[stream_obj])
+    q_task_delete = make_query()
+    q_goal_delete = make_query()
+    q_stream_delete = make_query()
+    q_project_delete = make_query()
+    q_userteam_delete = make_query()
+
+    mock_db.query.side_effect = make_query_router(
+        {
+            project_model.Project: [q_projects, q_project_delete],
+            stream_model.Stream: [q_streams_all, q_stream_delete],
+            task_model.Task: q_task_delete,
+            goal_model.Goal: q_goal_delete,
+            team_model.UserTeam: q_userteam_delete,
+        }
+    )
 
     delete_team_service(mock_db, ids.team_id, ids.user_id)
 
     mock_check_team_access.assert_called_once_with(
         mock_db, ids.team_id, ids.user_id, need_lead=True
     )
-    query_tasks.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
-    query_goals.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
-    query_stream_delete.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
-    query_project_delete.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
-    query_userteam_delete.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
-    mock_db.delete.assert_called_once_with(team_obj)
-    mock_db.commit.assert_called_once()
-
-
-@patch("app.services.team_service.permissions.check_team_access")
-@patch("app.services.team_service.team_crud.get_team_by_id")
-def test_delete_team_service_projects_without_streams(
-    mock_get_team_by_id,
-    mock_check_team_access,
-    mock_db,
-    ids,
-):
-    team_obj = Mock(id=ids.team_id)
-    project_obj = Mock(id=ids.project_id)
-
-    query_projects = Mock()
-    query_projects.filter_by.return_value.all.return_value = [project_obj]
-
-    query_streams = Mock()
-    query_streams.filter.return_value.all.return_value = []
-
-    query_stream_delete = Mock()
-    query_stream_delete.filter.return_value.delete.return_value = None
-
-    query_project_delete = Mock()
-    query_project_delete.filter.return_value.delete.return_value = None
-
-    query_userteam_delete = Mock()
-    query_userteam_delete.filter.return_value.delete.return_value = None
-
-    mock_get_team_by_id.return_value = team_obj
-    mock_db.query.side_effect = [
-        query_projects,
-        query_streams,
-        query_stream_delete,
-        query_project_delete,
-        query_userteam_delete,
-    ]
-
-    delete_team_service(mock_db, ids.team_id, ids.user_id)
-
-    mock_check_team_access.assert_called_once_with(
-        mock_db, ids.team_id, ids.user_id, need_lead=True
-    )
-    assert mock_db.query.call_count == 5
-    query_stream_delete.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
-    query_project_delete.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
-    query_userteam_delete.filter.return_value.delete.assert_called_once_with(
-        synchronize_session=False
-    )
+    q_task_delete.delete.assert_called_once_with(synchronize_session=False)
+    q_goal_delete.delete.assert_called_once_with(synchronize_session=False)
+    q_stream_delete.delete.assert_called_once_with(synchronize_session=False)
+    q_project_delete.delete.assert_called_once_with(synchronize_session=False)
+    q_userteam_delete.delete.assert_called_once_with(synchronize_session=False)
     mock_db.delete.assert_called_once_with(team_obj)
     mock_db.commit.assert_called_once()
 

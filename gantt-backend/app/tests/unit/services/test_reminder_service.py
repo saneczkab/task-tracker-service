@@ -27,11 +27,10 @@ def test_get_user_reminders_service_success(mock_get_reminders_by_user, mock_db,
 @patch("app.services.reminder_service.reminder_crud.get_reminders_by_task_and_user")
 @patch("app.services.reminder_service.permissions.check_task_access")
 def test_get_task_reminders_service_success(
-    mock_check_task_access, mock_get_reminders, mock_db, ids
+    mock_check_task_access, mock_get_reminders, mock_db, ids, mock_task
 ):
-    task_obj = Mock(id=ids.task_id)
     expected = [Mock()]
-    mock_check_task_access.return_value = (task_obj, Mock(), Mock(), Mock())
+    mock_check_task_access.return_value = (mock_task, Mock(), Mock(), Mock())
     mock_get_reminders.return_value = expected
 
     result = get_task_reminders_service(mock_db, ids.task_id, ids.user_id)
@@ -44,12 +43,12 @@ def test_get_task_reminders_service_success(
 @patch("app.services.reminder_service.reminder_crud.create_reminder")
 @patch("app.services.reminder_service.permissions.check_task_access")
 def test_create_reminder_service_success(
-    mock_check_task_access, mock_create_reminder, mock_db, ids
+    mock_check_task_access, mock_create_reminder, mock_db, ids, mock_task
 ):
     remind_at = datetime.now() + timedelta(hours=2)
     reminder_data = Mock(remind_at=remind_at)
     created_reminder = Mock(id=ids.goal_id, remind_at=remind_at)
-    mock_check_task_access.return_value = (Mock(id=ids.task_id), Mock(), Mock(), Mock())
+    mock_check_task_access.return_value = (mock_task, Mock(), Mock(), Mock())
     mock_create_reminder.return_value = created_reminder
 
     result = create_reminder_service(mock_db, ids.task_id, ids.user_id, reminder_data)
@@ -69,10 +68,10 @@ def test_create_reminder_service_success(
 @patch("app.services.reminder_service.reminder_crud.create_reminder")
 @patch("app.services.reminder_service.permissions.check_task_access")
 def test_create_reminder_service_conflict_when_remind_at_in_past(
-    mock_check_task_access, mock_create_reminder, mock_db, ids
+    mock_check_task_access, mock_create_reminder, mock_db, ids, mock_task
 ):
     reminder_data = Mock(remind_at=datetime(2000, 1, 1, 10, 0, 0))
-    mock_check_task_access.return_value = (Mock(id=ids.task_id), Mock(), Mock(), Mock())
+    mock_check_task_access.return_value = (mock_task, Mock(), Mock(), Mock())
 
     with pytest.raises(exception.ConflictError):
         create_reminder_service(mock_db, ids.task_id, ids.user_id, reminder_data)
