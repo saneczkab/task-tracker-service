@@ -3,10 +3,6 @@ from unittest.mock import DEFAULT, patch
 from app.core import exception
 
 
-class ValidationError(Exception):
-    pass
-
-
 @patch.multiple(
     "app.services.user_service",
     get_current_user_service=DEFAULT,

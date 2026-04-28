@@ -138,8 +138,10 @@ def goal():
 
 
 @pytest.fixture
-def relation():
-    return build_task_relation()
+def relation(connection):
+    relation_obj = build_task_relation()
+    relation_obj.connection = connection
+    return relation_obj
 
 
 @pytest.fixture
@@ -335,6 +337,19 @@ def second_reminder_obj(db_session, second_task_obj, user_obj):
 
 
 @pytest.fixture
+def foreign_reminder_obj(db_session, task_obj, second_user_obj):
+    return _persist(
+        db_session,
+        build_reminder(
+            reminder_id=99,
+            task_id=task_obj.id,
+            user_id=second_user_obj.id,
+            sent=False,
+        ),
+    )
+
+
+@pytest.fixture
 def custom_field_obj(db_session, team_obj):
     return _persist(
         db_session,
@@ -374,6 +389,102 @@ def priority_obj(db_session):
 @pytest.fixture
 def connection_type_obj(db_session):
     return _persist(db_session, build_connection_type())
+
+
+@pytest.fixture
+def other_team_obj(db_session):
+    return _persist(db_session, build_team(team_id=99, name="Other team"))
+
+
+@pytest.fixture
+def other_project_obj(db_session, other_team_obj):
+    return _persist(
+        db_session,
+        build_project(project_id=99, name="Other project", team_id=other_team_obj.id),
+    )
+
+
+@pytest.fixture
+def other_stream_obj(db_session, other_project_obj):
+    return _persist(
+        db_session,
+        build_stream(
+            stream_id=99, name="Other stream", project_id=other_project_obj.id
+        ),
+    )
+
+
+@pytest.fixture
+def other_goal_obj(db_session, other_stream_obj):
+    return _persist(
+        db_session,
+        build_goal(
+            goal_id=99, name="Other goal", stream_id=other_stream_obj.id, position=1
+        ),
+    )
+
+
+@pytest.fixture
+def other_tag_obj(db_session, other_team_obj):
+    return _persist(
+        db_session,
+        build_tag(tag_id=99, team_id=other_team_obj.id, name="Other", color="#FFFFFF"),
+    )
+
+
+@pytest.fixture
+def other_task_1_obj(db_session, other_stream_obj):
+    return _persist(
+        db_session,
+        build_task(
+            task_id=99, name="Other task 1", stream_id=other_stream_obj.id, position=1
+        ),
+    )
+
+
+@pytest.fixture
+def other_task_2_obj(db_session, other_stream_obj):
+    return _persist(
+        db_session,
+        build_task(
+            task_id=100, name="Other task 2", stream_id=other_stream_obj.id, position=2
+        ),
+    )
+
+
+@pytest.fixture
+def other_relation_obj(
+    db_session, other_task_1_obj, other_task_2_obj, connection_type_obj
+):
+    relation = build_task_relation(
+        relation_id=99,
+        task_id_1=other_task_1_obj.id,
+        task_id_2=other_task_2_obj.id,
+        connection_id=connection_type_obj.id,
+    )
+    return _persist(db_session, relation)
+
+
+@pytest.fixture
+def other_custom_field_obj(db_session, other_team_obj):
+    return _persist(
+        db_session,
+        build_custom_field(field_id=99, team_id=other_team_obj.id),
+    )
+
+
+@pytest.fixture
+def other_task_custom_field_value_obj(
+    db_session, other_task_1_obj, other_custom_field_obj
+):
+    return _persist(
+        db_session,
+        build_task_custom_field_value(
+            value_id=99,
+            task_id=other_task_1_obj.id,
+            custom_field_id=other_custom_field_obj.id,
+        ),
+    )
 
 
 @pytest.fixture

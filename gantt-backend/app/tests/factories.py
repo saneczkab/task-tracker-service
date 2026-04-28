@@ -210,7 +210,6 @@ def build_task_relation(
         task_id_2=task_id_2,
         connection_id=connection_id,
     )
-    relation.connection = build_connection_type(connection_id=connection_id)
     return relation
 
 
