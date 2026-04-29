@@ -88,6 +88,7 @@ class TaskResponseFull(BaseModel):
     relations: list[TaskRelationResponse] = []
     team_id: int | None = None
     team_name: str | None = None
+    project_id: int | None = None
     project_name: str | None = None
     stream_name: str | None = None
     tags: list[TagResponse] = Field(default_factory=list, alias="tag_list")
@@ -112,4 +113,3 @@ class TaskHistoryEntry(BaseModel):
     new_value: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
-

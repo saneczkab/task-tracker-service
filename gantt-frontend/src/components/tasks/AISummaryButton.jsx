@@ -26,7 +26,11 @@ const AISummaryButton = ({ tasks, teamId, analyticsFilters, token }) => {
         setSummary(response.summary || "Нет данных для резюме");
         setOpenDialog(true);
       } else {
-        setError("Не удалось получить резюме. Попробуйте позже.");
+        if (response.status === 429) {
+          setError("Вы достигли ежедневного лимита запросов!");
+        } else {
+          setError("Не удалось получить резюме. Попробуйте позже.");
+        }
       }
     } catch (err) {
       setError("Ошибка при загрузке резюме: " + err.message);
@@ -37,37 +41,45 @@ const AISummaryButton = ({ tasks, teamId, analyticsFilters, token }) => {
 
   return (
     <>
-      <Button
-        variant="contained"
-        onClick={handleGetSummary}
-        disabled={loading || tasks.length === 0}
-        sx={{
-          textTransform: "none",
-          fontSize: "14px",
-          padding: "8px 16px",
-          fontFamily: "Montserrat, sans-serif",
-          color: "#2563EB",
-          backgroundColor: "#E5E7EB",
-          boxShadow: "none",
-          "&:hover": {
-            backgroundColor: "#D1D5DB",
-            boxShadow: "none",
-          },
-          "&.Mui-disabled": {
-            color: "#93C5FD",
+      <div className="flex flex-col items-end">
+        <Button
+          variant="contained"
+          onClick={handleGetSummary}
+          disabled={loading || tasks.length === 0}
+          sx={{
+            textTransform: "none",
+            fontSize: "14px",
+            padding: "8px 16px",
+            fontFamily: "Montserrat, sans-serif",
+            color: "#2563EB",
             backgroundColor: "#E5E7EB",
-          },
-        }}
-      >
-        {loading ? (
-          <span className="flex items-center gap-2">
-            <CircularProgress size={16} sx={{ color: "white" }} />
-            Загрузка...
-          </span>
-        ) : (
-          "ИИ резюме"
+            boxShadow: "none",
+            "&:hover": {
+              backgroundColor: "#D1D5DB",
+              boxShadow: "none",
+            },
+            "&.Mui-disabled": {
+              color: "#93C5FD",
+              backgroundColor: "#E5E7EB",
+            },
+          }}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <CircularProgress size={16} sx={{ color: "white" }} />
+              Загрузка...
+            </span>
+          ) : (
+            "ИИ резюме"
+          )}
+        </Button>
+
+        {error && (
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 w-full">
+            {error}
+          </div>
         )}
-      </Button>
+      </div>
 
       <Dialog
         open={openDialog}
@@ -86,12 +98,6 @@ const AISummaryButton = ({ tasks, teamId, analyticsFilters, token }) => {
           )}
         </DialogContent>
       </Dialog>
-
-      {error && (
-        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-          {error}
-        </div>
-      )}
     </>
   );
 };

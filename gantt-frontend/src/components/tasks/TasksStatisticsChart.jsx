@@ -18,7 +18,7 @@ const TasksStatisticsChart = ({ statistics, loading = false, error = "" }) => {
     const data = [
       { name: "Просрочено", value: statistics.overdue || 0, fill: "#EF4444" },
       {
-        name: "Вовремя",
+        name: "Выполнено",
         value: statistics.completed_on_time || 0,
         fill: "#22C55E",
       },
@@ -61,9 +61,55 @@ const TasksStatisticsChart = ({ statistics, loading = false, error = "" }) => {
     );
   }
 
-  const renderCustomLabel = ({ name, value }) => {
-    const percent = ((value / total) * 100).toFixed(1);
-    return `${name}: ${value} (${percent}%)`;
+  const renderLegend = (props) => {
+    const payload = props?.payload || [];
+    return (
+      <div style={{ fontFamily: "Montserrat, sans-serif" }}>
+        {payload.map((entry) => (
+          <div
+            key={entry.value}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 10,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: "9999px",
+                backgroundColor: entry.color,
+                display: "inline-block",
+              }}
+            />
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "baseline",
+                gap: 10,
+                fontSize: 18,
+                color: "#111827",
+                lineHeight: 1.2,
+              }}
+            >
+              <span
+                style={{
+                  width: 42,
+                  textAlign: "right",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {entry.payload?.value ?? 0}
+              </span>
+              <span>{entry.value}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -72,13 +118,12 @@ const TasksStatisticsChart = ({ statistics, loading = false, error = "" }) => {
         <PieChart>
           <Pie
             data={data}
-            cx="32%"
+            cx="28%"
             cy="50%"
             innerRadius={70}
             outerRadius={95}
             paddingAngle={2}
             dataKey="value"
-            label={renderCustomLabel}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -97,25 +142,25 @@ const TasksStatisticsChart = ({ statistics, loading = false, error = "" }) => {
             layout="vertical"
             align="right"
             verticalAlign="middle"
-            wrapperStyle={{ fontFamily: "Montserrat, sans-serif" }}
+            content={renderLegend}
           />
           <text
-            x="50%"
+            x="46%"
             y="44%"
-            textAnchor="start"
+            textAnchor="middle"
             fill="#000000"
-            fontSize="14"
+            fontSize="16"
             fontWeight="600"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >
             Всего задач
           </text>
           <text
-            x="50%"
+            x="46%"
             y="53%"
-            textAnchor="start"
+            textAnchor="middle"
             fill="#000000"
-            fontSize="24"
+            fontSize="32"
             fontWeight="700"
             style={{ fontFamily: "Montserrat, sans-serif" }}
           >

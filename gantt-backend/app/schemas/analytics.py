@@ -36,11 +36,21 @@ class PeriodFilter(BaseModel):
 
 
 class AnalyticsFilters(BaseModel):
+    team_ids: Optional[List[int]] = None
     project_ids: Optional[List[int]] = None
     stream_ids: Optional[List[int]] = None
     status_ids: Optional[List[int]] = None
     priority_ids: Optional[List[int]] = None
     assigned_user_ids: Optional[List[int]] = None
+    tag_ids: Optional[List[int]] = None
+    assignee_emails: Optional[List[str]] = None
+
+
+class AnalyticsDateRanges(BaseModel):
+    start_date_from: Optional[date] = None
+    start_date_to: Optional[date] = None
+    deadline_from: Optional[date] = None
+    deadline_to: Optional[date] = None
 
 
 class RequestLimitInfo(BaseModel):
@@ -59,5 +69,6 @@ class TeamAnalyticsResponse(BaseModel):
     users: List[dict]
     period: PeriodFilter
     filters: Optional[AnalyticsFilters] = None
+    date_ranges: Optional[AnalyticsDateRanges] = None
     ai_summary: Optional[str] = None
     request_limit: RequestLimitInfo

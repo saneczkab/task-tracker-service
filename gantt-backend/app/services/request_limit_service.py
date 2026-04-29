@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 class RequestLimitService:
     """Ограничитель запросов к ИИ"""
-    DAILY_LIMIT = 5
+    DAILY_LIMIT = 1
 
     @staticmethod
     def get_usage(db: Session, user_id: int) -> dict:

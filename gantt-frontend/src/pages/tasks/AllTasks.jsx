@@ -41,6 +41,47 @@ const AllTasks = () => {
     deadlineEnd: "",
   });
 
+  const initialAdvancedFilters = useMemo(() => {
+    const base = {
+      searchText: "",
+      assignee: [],
+      team: [],
+      project: [],
+      stream: [],
+      priority: [],
+      status: [],
+      tags: [],
+      startDate: "",
+      startDateEnd: "",
+      deadline: "",
+      deadlineEnd: "",
+    };
+
+    const numericTeamId = Number(teamId);
+    if (!Number.isFinite(numericTeamId)) return base;
+
+    const teamName = tasks.find((t) => t.team_id === numericTeamId)?.team_name;
+    if (!teamName) return base;
+
+    return { ...base, team: [teamName] };
+  }, [teamId, tasks]);
+
+  const effectiveTeamId = useMemo(() => {
+    const numericTeamId = Number(teamId);
+    if (!Number.isFinite(numericTeamId)) return null;
+
+    const selectedTeamNames = advancedFilters.team || [];
+    if (selectedTeamNames.length === 1) {
+      const selectedTeamName = selectedTeamNames[0];
+      const mappedTeamId = tasks.find(
+        (t) => t.team_name === selectedTeamName,
+      )?.team_id;
+      if (Number.isFinite(mappedTeamId)) return mappedTeamId;
+    }
+
+    return numericTeamId;
+  }, [advancedFilters.team, teamId, tasks]);
+
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
     [],
@@ -113,43 +154,93 @@ const AllTasks = () => {
   const analyticsFilters = useMemo(() => {
     const params = {};
 
-    if (advancedFilters.deadline) {
-      params.start_date = advancedFilters.deadline;
-    } else if (advancedFilters.startDate) {
-      params.start_date = advancedFilters.startDate;
-    }
+    if (advancedFilters.startDate)
+      params.start_date_from = advancedFilters.startDate;
+    if (advancedFilters.startDateEnd)
+      params.start_date_to = advancedFilters.startDateEnd;
+    if (advancedFilters.deadline)
+      params.deadline_from = advancedFilters.deadline;
+    if (advancedFilters.deadlineEnd)
+      params.deadline_to = advancedFilters.deadlineEnd;
 
-    if (advancedFilters.deadlineEnd) {
-      params.end_date = advancedFilters.deadlineEnd;
-    } else if (advancedFilters.startDateEnd) {
-      params.end_date = advancedFilters.startDateEnd;
-    }
+    const toCsv = (arr) =>
+      Array.isArray(arr) && arr.length ? arr.join(",") : undefined;
 
-    if (advancedFilters.project.length === 1) {
-      const selectedProjectName = advancedFilters.project[0];
-      const matchedTask = tasks.find(
-        (t) => t.project_name === selectedProjectName,
-      );
-      if (matchedTask?.project_id) {
-        params.project_id = matchedTask.project_id;
-      }
-    }
+    const statusIds = advancedFilters.status || [];
+    const priorityIds = advancedFilters.priority || [];
+    const tagIds = advancedFilters.tags || [];
 
-    if (advancedFilters.stream.length === 1) {
-      const selectedStreamName = advancedFilters.stream[0];
-      const matchedTask = tasks.find(
-        (t) => t.stream_name === selectedStreamName,
-      );
-      if (matchedTask?.stream_id) {
-        params.stream_id = matchedTask.stream_id;
-      }
+    if (statusIds.length) params.status_ids = toCsv(statusIds);
+    if (priorityIds.length) params.priority_ids = toCsv(priorityIds);
+    if (tagIds.length) params.tag_ids = toCsv(tagIds);
+
+    const assigneeEmailsRaw = advancedFilters.assignee || [];
+    const assigneeEmailsResolved = Array.from(
+      new Set(
+        assigneeEmailsRaw
+          .map((x) => (x === "__my__" ? userEmail : x))
+          .filter((x) => typeof x === "string" && x.trim() !== ""),
+      ),
+    );
+    if (assigneeEmailsResolved.length)
+      params.assignee_emails = toCsv(assigneeEmailsResolved);
+
+    const selectedTeamNames = advancedFilters.team || [];
+    const selectedTeamName =
+      selectedTeamNames.length === 1 ? selectedTeamNames[0] : null;
+
+    const numericTeamId = Number(teamId);
+    const teamIds = Array.from(
+      new Set(
+        (advancedFilters.team || [])
+          .map(
+            (teamName) => tasks.find((t) => t.team_name === teamName)?.team_id,
+          )
+          .filter(Boolean),
+      ),
+    );
+    if (!teamIds.length && Number.isFinite(numericTeamId)) {
+      teamIds.push(numericTeamId);
     }
+    if (teamIds.length) params.team_ids = toCsv(teamIds);
+
+    const projectIds = Array.from(
+      new Set(
+        (advancedFilters.project || [])
+          .map(
+            (projectName) =>
+              tasks.find(
+                (t) =>
+                  t.project_name === projectName &&
+                  (!selectedTeamName || t.team_name === selectedTeamName),
+              )?.project_id,
+          )
+          .filter(Boolean),
+      ),
+    );
+    const streamIds = Array.from(
+      new Set(
+        (advancedFilters.stream || [])
+          .map(
+            (streamName) =>
+              tasks.find(
+                (t) =>
+                  t.stream_name === streamName &&
+                  (!selectedTeamName || t.team_name === selectedTeamName),
+              )?.stream_id,
+          )
+          .filter(Boolean),
+      ),
+    );
+
+    if (projectIds.length) params.project_ids = toCsv(projectIds);
+    if (streamIds.length) params.stream_ids = toCsv(streamIds);
 
     return params;
-  }, [advancedFilters, tasks]);
+  }, [advancedFilters, tasks, userEmail]);
 
   useEffect(() => {
-    if (!teamId || !token) {
+    if (!effectiveTeamId || !token) {
       setStatistics(null);
       return;
     }
@@ -161,7 +252,7 @@ const AllTasks = () => {
       setAnalyticsError("");
 
       const response = await getTeamAnalyticsApi(
-        teamId,
+        effectiveTeamId,
         analyticsFilters,
         token,
       );
@@ -185,7 +276,7 @@ const AllTasks = () => {
     return () => {
       isCancelled = true;
     };
-  }, [teamId, token, analyticsFilters]);
+  }, [effectiveTeamId, token, analyticsFilters]);
 
   if (loading) {
     return (
@@ -225,7 +316,7 @@ const AllTasks = () => {
               <div className="mt-3 flex justify-end">
                 <AISummaryButton
                   tasks={sortedTasks}
-                  teamId={teamId}
+                  teamId={effectiveTeamId || teamId}
                   analyticsFilters={analyticsFilters}
                   token={token}
                 />
@@ -233,12 +324,14 @@ const AllTasks = () => {
             </div>
 
             <AdvancedFiltersPanel
+              key={String(teamId || "")}
               tasks={tasks}
               onFiltersChange={setAdvancedFilters}
               statuses={statuses}
               priorities={priorities}
               currentUserEmail={userEmail}
               showTeamProjectStreamFilters={true}
+              initialFilters={initialAdvancedFilters}
             />
 
             {sortedTasks.length > 0 ? (
