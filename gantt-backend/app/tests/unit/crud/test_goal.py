@@ -1,5 +1,4 @@
 from datetime import datetime
-from unittest.mock import Mock
 
 from app.crud.goal import (
     create_goal,
@@ -12,9 +11,8 @@ from app.crud.goal import (
 from app.schemas.goal import GoalCreate, GoalUpdate
 
 
-def test_create_goal():
-    mock_db = Mock()
-    stream_id = 42
+def test_create_goal(db_session, stream_obj):
+    stream_id = stream_obj.id
     start_date = datetime(2025, 1, 1)
     deadline = datetime(2026, 2, 3)
     position = 24
@@ -27,7 +25,7 @@ def test_create_goal():
         position=position,
     )
 
-    result = create_goal(mock_db, stream_id, goal_data)
+    result = create_goal(db_session, stream_id, goal_data)
 
     assert result.name == goal_data.name
     assert result.description == goal_data.description
@@ -36,17 +34,11 @@ def test_create_goal():
     assert result.stream_id == stream_id
     assert result.position == goal_data.position
 
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
-    added_obj = mock_db.add.call_args[0][0]
-    mock_db.refresh.assert_called_once_with(added_obj)
-
-    assert result is added_obj
+    assert result.id is not None
 
 
-def test_create_goal_minimum_data():
-    mock_db = Mock()
-    stream_id = 24
+def test_create_goal_minimum_data(db_session, stream_obj):
+    stream_id = stream_obj.id
     deadline = datetime(2026, 2, 3)
     position = 42
 
@@ -56,7 +48,7 @@ def test_create_goal_minimum_data():
         position=position,
     )
 
-    result = create_goal(mock_db, stream_id, goal_data)
+    result = create_goal(db_session, stream_id, goal_data)
 
     assert result.name == goal_data.name
     assert result.description == goal_data.description
@@ -65,114 +57,73 @@ def test_create_goal_minimum_data():
     assert result.stream_id == stream_id
     assert result.position == goal_data.position
 
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
-    added_obj = mock_db.add.call_args[0][0]
-    mock_db.refresh.assert_called_once_with(added_obj)
-
-    assert result is added_obj
+    assert result.id is not None
 
 
-def test_get_goal_by_id_returns_goal():
-    mock_db = Mock()
-    goal_id = 42
-    expected_goal = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected_goal
-
-    result = get_goal_by_id(mock_db, goal_id)
-
-    assert result is expected_goal
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_goal_by_id_returns_goal(db_session, goal_obj):
+    result = get_goal_by_id(db_session, goal_obj.id)
+    assert result.id == goal_obj.id
 
 
-def test_get_goal_by_id_returns_none_when_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_goal_by_id(mock_db, 999)
+def test_get_goal_by_id_returns_none_when_not_found(db_session):
+    result = get_goal_by_id(db_session, 999)
 
     assert result is None
 
 
-def test_get_goals_by_stream_returns_list():
-    mock_db = Mock()
-    stream_id = 42
-    expected_goals = [Mock(), Mock()]
-    mock_db.query.return_value.filter.return_value.all.return_value = expected_goals
-
-    result = get_goals_by_stream(mock_db, stream_id)
-
-    assert result == expected_goals
-    mock_db.query.return_value.filter.return_value.all.assert_called_once()
+def test_get_goals_by_stream_returns_list(db_session, goal_obj):
+    result = get_goals_by_stream(db_session, goal_obj.stream_id)
+    assert len(result) == 1
+    assert result[0].id == goal_obj.id
 
 
-def test_get_goals_by_stream_returns_empty_list():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.all.return_value = []
-
-    result = get_goals_by_stream(mock_db, 99)
+def test_get_goals_by_stream_returns_empty_list(db_session):
+    result = get_goals_by_stream(db_session, 99)
 
     assert result == []
 
 
-def test_get_goal_by_name_in_stream_found():
-    mock_db = Mock()
-    stream_id = 42
-    name = "Test goal"
-    expected_goal = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected_goal
-
-    result = get_goal_by_name_in_stream(mock_db, stream_id, name)
-
-    assert result is expected_goal
+def test_get_goal_by_name_in_stream_found(db_session, goal_obj):
+    result = get_goal_by_name_in_stream(db_session, goal_obj.stream_id, goal_obj.name)
+    assert result.id == goal_obj.id
 
 
-def test_get_goal_by_name_in_stream_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_goal_by_name_in_stream(mock_db, 42, "Not exists")
+def test_get_goal_by_name_in_stream_not_found(db_session, stream_obj):
+    result = get_goal_by_name_in_stream(db_session, stream_obj.id, "Not exists")
 
     assert result is None
 
 
-def test_get_goal_by_name_in_stream_with_exclude_id():
-    mock_db = Mock()
-    stream_id = 42
+def test_get_goal_by_name_in_stream_with_exclude_id(db_session, stream_obj, goal_obj):
+    stream_id = stream_obj.id
     name = "Test goal"
-    exclude_id = 43
-    expected_goal = Mock()
-    mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = expected_goal
+    other_goal = create_goal(
+        db_session,
+        stream_id,
+        GoalCreate(name=name, deadline=datetime(2026, 3, 3), position=2),
+    )
 
-    result = get_goal_by_name_in_stream(mock_db, stream_id, name, exclude_id=exclude_id)
+    result = get_goal_by_name_in_stream(
+        db_session, stream_id, name, exclude_id=goal_obj.id
+    )
+    assert result.id == other_goal.id
 
-    assert result is expected_goal
-    mock_db.query.return_value.filter.return_value.filter.return_value.first.assert_called_once()
 
-
-def test_update_goal_updates_fields():
-    mock_db = Mock()
+def test_update_goal_updates_fields(db_session, goal_obj):
     new_deadline = datetime(2026, 1, 2)
-
-    goal_obj = Mock()
     goal_data = GoalUpdate(name="Updated", deadline=new_deadline)
 
-    result = update_goal(mock_db, goal_obj, goal_data)
+    result = update_goal(db_session, goal_obj, goal_data)
 
     assert goal_obj.name == "Updated"
     assert goal_obj.deadline == new_deadline
-    mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once_with(goal_obj)
     assert result is goal_obj
 
 
-def test_update_goal_only_provided_fields():
-    mock_db = Mock()
-
-    goal_obj = Mock()
+def test_update_goal_only_provided_fields(db_session, goal_obj):
     goal_data = GoalUpdate(name="Test goal")
 
-    update_goal(mock_db, goal_obj, goal_data)
+    update_goal(db_session, goal_obj, goal_data)
 
     assert goal_obj.name == "Test goal"
     updated_fields = goal_data.model_dump(exclude_unset=True)
@@ -180,30 +131,19 @@ def test_update_goal_only_provided_fields():
     assert "deadline" not in updated_fields
 
 
-def test_update_goal_empty_data():
-    mock_db = Mock()
-    goal_obj = Mock()
+def test_update_goal_empty_data(db_session, goal_obj):
     goal_data = GoalUpdate()
 
-    result = update_goal(mock_db, goal_obj, goal_data)
+    result = update_goal(db_session, goal_obj, goal_data)
 
-    mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once_with(goal_obj)
     assert result is goal_obj
 
 
-def test_delete_goal_calls_delete_and_commit():
-    mock_db = Mock()
-    goal_obj = Mock()
-    delete_goal(mock_db, goal_obj)
-
-    mock_db.delete.assert_called_once_with(goal_obj)
-    mock_db.commit.assert_called_once()
+def test_delete_goal_calls_delete_and_commit(db_session, goal_obj):
+    delete_goal(db_session, goal_obj)
+    assert get_goal_by_id(db_session, goal_obj.id) is None
 
 
-def test_delete_goal_does_not_refresh():
-    mock_db = Mock()
-    goal_obj = Mock()
-    delete_goal(mock_db, goal_obj)
-
-    mock_db.refresh.assert_not_called()
+def test_delete_goal_does_not_refresh(db_session, goal_obj):
+    delete_goal(db_session, goal_obj)
+    assert get_goals_by_stream(db_session, goal_obj.stream_id) == []

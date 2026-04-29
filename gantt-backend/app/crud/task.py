@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import orm
 
-from app.models import task, team, project as project_model, stream as stream_model, user as user_model
+from app.models import task, team, project as project_model, stream as stream_model, meta as meta_model
 
 
 def get_task_by_id(db: orm.Session, task_id: int):
@@ -109,7 +109,7 @@ def get_tasks_by_user_id(db: orm.Session, user_id: int, only_assigned_to_user: b
     stream_ids = [s.id for s in streams]
     query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
     if only_assigned_to_user:
-        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+        query = query.filter(task.Task.assigned_users.any(meta_model.UserTask.user_id == user_id))
     return query.all()
 
 
@@ -120,7 +120,7 @@ def get_tasks_by_team_id(db: orm.Session, team_id: int, user_id: int | None = No
     stream_ids = [s.id for s in streams]
     query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
     if user_id:
-        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+        query = query.filter(task.Task.assigned_users.any(meta_model.UserTask.user_id == user_id))
     return query.all()
 
 
@@ -131,7 +131,7 @@ def get_tasks_by_team_ids(db: orm.Session, team_ids: list[int], user_id: int | N
     stream_ids = [s.id for s in streams]
     query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
     if user_id:
-        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+        query = query.filter(task.Task.assigned_users.any(meta_model.UserTask.user_id == user_id))
     return query.all()
 
 
@@ -140,20 +140,20 @@ def get_tasks_by_project_ids(db: orm.Session, project_ids: list[int], user_id: i
     stream_ids = [s.id for s in streams]
     query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
     if user_id:
-        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+        query = query.filter(task.Task.assigned_users.any(meta_model.UserTask.user_id == user_id))
     return query.all()
 
 
 def get_tasks_by_stream_id(db: orm.Session, stream_id: int, user_id: int | None = None):
     query = db.query(task.Task).filter(task.Task.stream_id == stream_id)
     if user_id:
-        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+        query = query.filter(task.Task.assigned_users.any(meta_model.UserTask.user_id == user_id))
     return query.all()
 
 
 def get_tasks_by_stream_ids(db: orm.Session, stream_ids: list[int], user_id: int | None = None):
     query = db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids))
     if user_id:
-        query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
+        query = query.filter(task.Task.assigned_users.any(meta_model.UserTask.user_id == user_id))
     return query.all()
 
