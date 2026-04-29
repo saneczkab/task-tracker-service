@@ -485,26 +485,3 @@ def other_task_custom_field_value_obj(
             custom_field_id=other_custom_field_obj.id,
         ),
     )
-
-
-@pytest.fixture
-def seed_db(db_session):
-    _persist(db_session, build_role())
-    test_user = _persist(
-        db_session,
-        build_user(),
-    )
-    test_team = _persist(db_session, build_team())
-    _persist(
-        db_session,
-        build_user_team(user_id=test_user.id, team_id=test_team.id),
-    )
-    test_project = _persist(
-        db_session,
-        build_project(team_id=test_team.id),
-    )
-    _persist(
-        db_session,
-        build_stream(project_id=test_project.id),
-    )
-    return db_session

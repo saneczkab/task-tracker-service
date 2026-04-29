@@ -304,8 +304,6 @@ def build_task_history(
     new_value: str = "",
     changed_at: Optional[datetime] = None,
 ) -> TaskHistory:
-    if changed_at is None:
-        changed_at = datetime.now()
     return TaskHistory(
         id=history_id,
         task_id=task_id,
