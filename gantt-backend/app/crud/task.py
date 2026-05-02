@@ -40,7 +40,7 @@ def create_task(db: orm.Session, stream_id: int, task_data):
         priority_id=task_data.priority_id or 1,
         start_date=task_data.start_date,
         deadline=task_data.deadline,
-        position=task_data.position
+        position=task_data.position,
     )
     db.add(new_task)
     db.flush()
@@ -61,11 +61,7 @@ def delete_task(db: orm.Session, task_obj):
 
 
 def create_task_relation(db: orm.Session, task_id_1: int, task_id_2: int, connection_id: int):
-    relation = task.TaskRelation(
-        task_id_1=task_id_1,
-        task_id_2=task_id_2,
-        connection_id=connection_id
-    )
+    relation = task.TaskRelation(task_id_1=task_id_1, task_id_2=task_id_2, connection_id=connection_id)
     db.add(relation)
     db.commit()
     db.refresh(relation)
@@ -92,12 +88,7 @@ def create_task_history_entries(db: orm.Session, task_id: int, changed_by_id: in
 
 def get_task_history(db: orm.Session, task_id: int):
     """Получить историю изменений задачи."""
-    return (
-        db.query(task.TaskHistory)
-        .filter(task.TaskHistory.task_id == task_id)
-        .order_by(task.TaskHistory.changed_at.desc())
-        .all()
-    )
+    return db.query(task.TaskHistory).filter(task.TaskHistory.task_id == task_id).order_by(task.TaskHistory.changed_at.desc()).all()
 
 
 def get_tasks_by_user_id(db: orm.Session, user_id: int, only_assigned_to_user: bool = False):
@@ -156,4 +147,3 @@ def get_tasks_by_stream_ids(db: orm.Session, stream_ids: list[int], user_id: int
     if user_id:
         query = query.filter(task.Task.assigned_users.any(user_model.User.id == user_id))
     return query.all()
-

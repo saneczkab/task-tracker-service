@@ -10,9 +10,14 @@ class ProjectResponse(BaseModel):
     id: int
     name: str
     team_id: int
+    position: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectUpdate(BaseModel):
     name: str | None = Field(None, min_length=1)
+
+
+class ProjectReorder(BaseModel):
+    project_ids: list[int]

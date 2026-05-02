@@ -3,6 +3,7 @@ from app.models.request_limit import RequestLimit
 from datetime import date, timedelta
 from fastapi import HTTPException
 
+
 class RequestLimitService:
     """Ограничитель запросов к ИИ"""
     DAILY_LIMIT = 1
@@ -51,7 +52,7 @@ class RequestLimitService:
 
         entry.request_count += 1
         db.commit()
-        
+
         return {
             "limit": RequestLimitService.DAILY_LIMIT,
             "used": entry.request_count,

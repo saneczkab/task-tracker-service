@@ -1,30 +1,26 @@
 import httpx
 import os
-import json
 from datetime import datetime
 from app.schemas.analytics import TaskAnalytics, UserTaskStats, TaskBrief
 
 
 class AIReportService:
-    
+
     YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID", "")
     YANDEX_API_KEY = os.getenv("YANDEX_API_KEY", "")
-    
+
     @staticmethod
     def generate_summary(
         analytics: TaskAnalytics,
         users_stats: list[UserTaskStats],
         tasks: list[TaskBrief],
         team_name: str,
-        period: str = None
+        period: str = None,
     ) -> str:
         """Генерация аналитического резюме с персональными данными"""
-        
-        period_text = {
-            'week': 'за последнюю неделю',
-            'month': 'за последний месяц'
-        }.get(period, 'за весь период')
-        
+
+        period_text = {"week": "за последнюю неделю", "month": "за последний месяц"}.get(period, "за весь период")
+
         users_text = ""
         for user in users_stats:
             if user.total_tasks > 0:
@@ -37,51 +33,38 @@ class AIReportService:
             for task in overdue_tasks[:50]:
                 users = ", ".join(task.assigned_users) if task.assigned_users else "не назначены"
                 tasks_text += f"- {task.name} (исполнители: {users})\n"
-        
+
         prompt = f"""
         Ты — аналитик проектов. Проанализируй данные по команде "{team_name}" {period_text}.
-        
+
         Общая статистика:
         - Всего задач: {analytics.total_tasks}
         - Выполнено вовремя: {analytics.completed_on_time} ({analytics.completion_rate}%)
         - В работе: {analytics.in_progress}
         - Просрочено: {analytics.overdue}
-        
+
         Статистика по участникам:{users_text}
         {tasks_text}
-        
+
         Напиши короткое аналитическое резюме (3-4 предложения). Выдели:
         1. Общую картину по команде
         2. Кто из участников нуждается в поддержке (много просрочек или невыполненных задач)
         3. Конкретную рекомендацию по улучшению ситуации
-        
+
         Используй профессиональный, но простой язык. Без лишнего текста.
         """
 
         body = {
             "modelUri": f"gpt://{AIReportService.YANDEX_FOLDER_ID}/yandexgpt-lite",
-            "completionOptions": {
-                "stream": False,
-                "temperature": 0.5,
-                "maxTokens": 250
-            },
+            "completionOptions": {"stream": False, "temperature": 0.5, "maxTokens": 250},
             "messages": [
-                {
-                    "role": "system",
-                    "text": "Ты — помощник, эксперт по управлению проектами. Отвечай кратко и по делу."
-                },
-                {
-                    "role": "user",
-                    "text": prompt
-                }
-            ]
+                {"role": "system", "text": "Ты — помощник, эксперт по управлению проектами. Отвечай кратко и по делу."},
+                {"role": "user", "text": prompt},
+            ],
         }
 
         url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
-        headers = {
-            "Authorization": f"Api-Key {AIReportService.YANDEX_API_KEY}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Api-Key {AIReportService.YANDEX_API_KEY}", "Content-Type": "application/json"}
 
         try:
             with httpx.Client(timeout=30.0) as client:
@@ -89,8 +72,8 @@ class AIReportService:
                 response.raise_for_status()
 
                 result = response.json()
-                if 'result' in result and 'alternatives' in result['result']:
-                    return result['result']['alternatives'][0]['message']['text'].strip()
+                if "result" in result and "alternatives" in result["result"]:
+                    return result["result"]["alternatives"][0]["message"]["text"].strip()
 
                 print(f"Неожиданный формат ответа от YandexGPT: {result}")
                 return AIReportService._fallback_summary(analytics, team_name, period)
