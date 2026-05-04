@@ -954,11 +954,11 @@ const Sidebar = ({
                     }
                   >
                     <ListItemButton
-                      component="a"
-                      href={
+                      component={Link}
+                      to={
                         editingStreamId === stream.id
-                          ? undefined
-                          : `/team/${teamId}/stream/${stream.id}`
+                          ? ""
+                          : `/team/${teamId}/project/${proj.id}/stream/${stream.id}`
                       }
                       selected={Number(streamId) === stream.id}
                       onClick={(e) => {
