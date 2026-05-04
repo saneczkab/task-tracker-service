@@ -29,6 +29,7 @@ import {
   updateTeamNameApi,
   deleteUserFromTeamApi,
 } from "../../api/team.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 
 const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +50,7 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
     () => window.localStorage.getItem("auth_token") || "",
     [],
   );
+  const { confirm } = useConfirmDelete();
 
   useEffect(() => {
     if (open && teamId) {
@@ -159,10 +161,13 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
     setAnchorEl(null);
   };
 
-  const handleDeleteUser = () => {
-    if (selectedUser) {
-      removeUserFromTeam(selectedUser.email);
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    if (!(await confirm(`участника "${selectedUser.email}"`))) {
+      handleMenuClose();
+      return;
     }
+    await removeUserFromTeam(selectedUser.email);
   };
 
   return (

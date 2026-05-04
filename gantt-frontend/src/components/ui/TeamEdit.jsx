@@ -35,6 +35,7 @@ import {
   deleteUserFromTeamApi,
 } from "../../api/team.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 
 const TeamEdit = ({ open, onClose }) => {
   const location = useLocation();
@@ -61,6 +62,7 @@ const TeamEdit = ({ open, onClose }) => {
   const processError = useProcessError((status) =>
     setError(`Ошибка ${status}`),
   );
+  const { confirm } = useConfirmDelete();
 
   const fetchTeams = async () => {
     setIsLoading(true);
@@ -344,7 +346,11 @@ const TeamEdit = ({ open, onClose }) => {
 
                             <IconButton
                               edge="end"
-                              onClick={() => deleteTeam(team.id)}
+                              onClick={async () => {
+                                if (!(await confirm(`команду "${team.name}"`)))
+                                  return;
+                                deleteTeam(team.id);
+                              }}
                               disabled={deletingId === team.id}
                             >
                               {deletingId === team.id ? (
@@ -403,12 +409,18 @@ const TeamEdit = ({ open, onClose }) => {
                                       <IconButton
                                         edge="end"
                                         size="small"
-                                        onClick={() =>
+                                        onClick={async () => {
+                                          if (
+                                            !(await confirm(
+                                              `участника "${user.email}"`,
+                                            ))
+                                          )
+                                            return;
                                           removeUserFromTeam(
                                             team.id,
                                             user.email,
-                                          )
-                                        }
+                                          );
+                                        }}
                                       >
                                         {removingUserByTeam[team.id] ===
                                         user.id ? (

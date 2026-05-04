@@ -31,6 +31,7 @@ import {
 } from "../../utils/taskUtils.js";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
 import { fetchTeamTagsApi } from "../../api/tag.js";
@@ -84,6 +85,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
     [],
   );
   const processError = useProcessError();
+  const { confirm } = useConfirmDelete();
 
   const openMenu = (event, id) => {
     setMenuAnchorEl(event.currentTarget);
@@ -110,13 +112,22 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   };
 
   const handleDelete = async () => {
-    const response = await deleteTaskApi(menuTaskId, token);
+    const id = menuTaskId;
+    const t = (tasks || []).find((x) => x.id === id);
+    if (!(await confirm(`задачу "${t?.name || ""}"`))) {
+      closeMenu();
+      return;
+    }
+
+    const response = await deleteTaskApi(id, token);
     if (!response.ok) {
       processError(response.status);
+      closeMenu();
       return;
     }
 
     await loadAll();
+    closeMenu();
   };
 
   const statusMap = useMemo(() => {
@@ -163,7 +174,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
     } else {
       processError(emailResponse.status);
     }
-    
+
     if (teamId) {
       const tagsResponse = await fetchTeamTagsApi(teamId, token);
       if (tagsResponse.ok) {
@@ -360,54 +371,54 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
                 {(sortedTasks || []).map((task) => (
                   <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
                     <TableCell sx={CELL_STYLES}>
-                    <Box>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        {task.name}
-                        {task.deadline &&
-                          (() => {
-                            const normalized = task.deadline + "Z";
-                            const diff = new Date(normalized) - Date.now();
-                            return diff > 0 && diff < 24 * 60 * 60 * 1000;
-                          })() && (
-                            <AlarmIcon
-                              sx={{
-                                fontSize: 16,
-                              }}
-                            />
-                          )}
-                      </span>
-                      {task.tag_list.length > 0 && (
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 0.5,
-                            mt: 0.5,
+                      <Box>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
                           }}
                         >
-                          {task.tag_list.map((tag) => (
-                            <Chip
-                              key={tag.id}
-                              size="small"
-                              label={tag.name}
-                              sx={{
-                                backgroundColor: tag.color,
-                                color: getContrastColor(tag.color),
-                                fontWeight: 600,
-                                fontFamily: "Montserrat, sans-serif",
-                              }}
-                            />
-                          ))}
-                        </Box>
-                      )}
-                    </Box>
-                  </TableCell>
+                          {task.name}
+                          {task.deadline &&
+                            (() => {
+                              const normalized = task.deadline + "Z";
+                              const diff = new Date(normalized) - Date.now();
+                              return diff > 0 && diff < 24 * 60 * 60 * 1000;
+                            })() && (
+                              <AlarmIcon
+                                sx={{
+                                  fontSize: 16,
+                                }}
+                              />
+                            )}
+                        </span>
+                        {task.tag_list.length > 0 && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 0.5,
+                              mt: 0.5,
+                            }}
+                          >
+                            {task.tag_list.map((tag) => (
+                              <Chip
+                                key={tag.id}
+                                size="small"
+                                label={tag.name}
+                                sx={{
+                                  backgroundColor: tag.color,
+                                  color: getContrastColor(tag.color),
+                                  fontWeight: 600,
+                                  fontFamily: "Montserrat, sans-serif",
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    </TableCell>
 
                     <TableCell sx={CELL_STYLES}>
                       {task.assignee_email || "-"}

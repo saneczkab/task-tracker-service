@@ -22,6 +22,7 @@ import {
 import GoalForm from "./GoalForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import { fetchGoalsApi, deleteGoalApi } from "../../api/goal.js";
 import {
   CELL_STYLES,
@@ -53,6 +54,7 @@ const GoalList = ({ streamId }) => {
     [],
   );
   const processError = useProcessError();
+  const { confirm } = useConfirmDelete();
 
   const fetchGoals = async () => {
     setLoading(true);
@@ -95,6 +97,20 @@ const GoalList = ({ streamId }) => {
   const closeMenu = () => {
     setMenuAnchorEl(null);
     setMenuGoalId(null);
+  };
+
+  const handleDeleteMenu = async () => {
+    const goalId = menuGoalId;
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) {
+      closeMenu();
+      return;
+    }
+    if (!(await confirm(`цель "${goal.name}"`))) {
+      closeMenu();
+      return;
+    }
+    await deleteGoal(goalId);
   };
 
   const deleteGoal = async (goalId) => {
@@ -280,7 +296,7 @@ const GoalList = ({ streamId }) => {
           >
             <MenuItem onClick={handleEdit}>Редактировать</MenuItem>
 
-            <MenuItem onClick={() => deleteGoal(menuGoalId)}>
+            <MenuItem onClick={handleDeleteMenu}>
               {deletingGoalId === menuGoalId ? (
                 <CircularProgress size={16} />
               ) : (
