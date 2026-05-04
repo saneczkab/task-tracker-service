@@ -22,12 +22,22 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/team/:teamId" element={<TeamPage />} />
+
           <Route
             path="/team/:teamId/stream/:streamId"
             element={<StreamPage />}
           />
           <Route
             path="/team/:teamId/stream/:streamId/kanban"
+            element={<KanbanBoard />}
+          />
+
+          <Route
+            path="/team/:teamId/project/:projId/stream/:streamId"
+            element={<StreamPage />}
+          />
+          <Route
+            path="/team/:teamId/project/:projId/stream/:streamId/kanban"
             element={<KanbanBoard />}
           />
           <Route

@@ -15,6 +15,7 @@ import GoalForm from "../tasks/GoalForm.jsx";
 import TaskForm from "../tasks/TaskForm.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import { deleteGoalApi, updateGoalApi } from "../../api/goal.js";
 import { deleteTaskApi, updateTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
@@ -34,6 +35,7 @@ const GanttSidebar = forwardRef(
     ref,
   ) => {
     const processError = useProcessError();
+    const { confirm } = useConfirmDelete();
     const token = useMemo(
       () => window.localStorage.getItem("auth_token") || "",
       [],
@@ -145,14 +147,23 @@ const GanttSidebar = forwardRef(
     };
 
     const handleDelete = async () => {
-      if (menuRow.type === "goal") {
-        const reponse = await deleteGoalApi(menuRow.item.id, token);
+      const row = menuRow;
+      setMenuAnchorEl(null);
+      if (!row) return;
+      const label =
+        row.type === "goal"
+          ? `цель "${row.item.name}"`
+          : `задачу "${row.item.name}"`;
+      if (!(await confirm(label))) return;
+
+      if (row.type === "goal") {
+        const reponse = await deleteGoalApi(row.item.id, token);
         if (!reponse.ok) {
           processError(reponse.status);
           return;
         }
-      } else if (menuRow.type === "task") {
-        const response = await deleteTaskApi(menuRow.item.id, token);
+      } else if (row.type === "task") {
+        const response = await deleteTaskApi(row.item.id, token);
         if (!response.ok) {
           processError(response.status);
           return;
@@ -160,18 +171,15 @@ const GanttSidebar = forwardRef(
       }
 
       onDataChanged?.({
-        type: menuRow.type,
+        type: row.type,
         action: "delete",
-        streamId: menuRow.streamId,
-        item: menuRow.item,
+        streamId: row.streamId,
+        item: row.item,
       });
 
       setHoveredRow((prev) =>
-        menuRow.item?.id === prev?.id && menuRow.type === prev?.type
-          ? null
-          : prev,
+        row.item?.id === prev?.id && row.type === prev?.type ? null : prev,
       );
-      setMenuAnchorEl(null);
     };
 
     const handleGoalSaved = (saved) => {
@@ -808,4 +816,3 @@ const GanttSidebar = forwardRef(
 );
 
 export default GanttSidebar;
-

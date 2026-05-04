@@ -44,6 +44,7 @@ import {
 } from "../../api/stream.js";
 import { fetchTeamNameApi } from "../../api/team.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 
 const Sidebar = ({
   teamId,
@@ -101,6 +102,7 @@ const Sidebar = ({
     [],
   );
   const processError = useProcessError();
+  const { confirm } = useConfirmDelete();
 
   useEffect(() => {
     let mounted = true;
@@ -952,11 +954,11 @@ const Sidebar = ({
                     }
                   >
                     <ListItemButton
-                      component="a"
-                      href={
+                      component={Link}
+                      to={
                         editingStreamId === stream.id
-                          ? undefined
-                          : `/team/${teamId}/stream/${stream.id}`
+                          ? ""
+                          : `/team/${teamId}/project/${proj.id}/stream/${stream.id}`
                       }
                       selected={Number(streamId) === stream.id}
                       onClick={(e) => {
@@ -1125,11 +1127,12 @@ const Sidebar = ({
           Редактировать
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            if (selectedProject) {
-              deleteProject(selectedProject.id);
-            }
+          onClick={async () => {
+            const proj = selectedProject;
             setProjectMenuAnchorEl(null);
+            if (!proj) return;
+            if (!(await confirm(`проект "${proj.name}"`))) return;
+            await deleteProject(proj.id);
           }}
         >
           Удалить
@@ -1152,11 +1155,13 @@ const Sidebar = ({
           Редактировать
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            if (selectedStream && selectedStreamProjectId) {
-              deleteStream(selectedStreamProjectId, selectedStream.id);
-            }
+          onClick={async () => {
+            const stream = selectedStream;
+            const pid = selectedStreamProjectId;
             setStreamMenuAnchorEl(null);
+            if (!stream || !pid) return;
+            if (!(await confirm(`стрим "${stream.name}"`))) return;
+            await deleteStream(pid, stream.id);
           }}
         >
           Удалить

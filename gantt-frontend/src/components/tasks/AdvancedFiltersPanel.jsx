@@ -23,6 +23,7 @@ const AdvancedFiltersPanel = ({
   priorities,
   currentUserEmail = "",
   showTeamProjectStreamFilters = false,
+  initialFilters = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState(EMPTY_FILTERS);
@@ -38,6 +39,7 @@ const AdvancedFiltersPanel = ({
   });
 
   const dropdownRefs = useRef({});
+  const didInitRef = useRef(false);
 
   const uniqueAssignees = useMemo(() => {
     const assignees = new Set();
@@ -158,6 +160,14 @@ const AdvancedFiltersPanel = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (didInitRef.current) return;
+    if (!initialFilters) return;
+    didInitRef.current = true;
+    setSelectedFilters(initialFilters);
+    onFiltersChange(initialFilters);
+  }, [initialFilters, onFiltersChange]);
 
   const pushFilters = (next) => {
     setSelectedFilters(next);

@@ -24,6 +24,7 @@ def get_all_tasks_service(data_base: orm.Session, user_id: int):
                 for task_obj in stream_tasks:
                     task_obj.team_id = project_obj.team_id
                     task_obj.team_name = project_obj.team.name if project_obj.team else None
+                    task_obj.project_id = project_obj.id
                     task_obj.project_name = project_obj.name
                     task_obj.stream_name = stream_obj.name
                     tasks.append(task_obj)

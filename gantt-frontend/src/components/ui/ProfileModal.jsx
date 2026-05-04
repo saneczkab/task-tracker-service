@@ -22,6 +22,7 @@ import {
 import { fetchUserApi } from "../../api/user.js";
 import { deleteTeamApi, createTeamApi } from "../../api/team.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import SelectedTeamEdit from "./SelectedTeamEdit.jsx";
 
 const ProfileModal = ({ open, onClose, anchorEl }) => {
@@ -41,6 +42,7 @@ const ProfileModal = ({ open, onClose, anchorEl }) => {
     [],
   );
   const processError = useProcessError();
+  const { confirm } = useConfirmDelete();
 
   const loadUserData = useCallback(async () => {
     setIsLoading(true);
@@ -78,15 +80,16 @@ const ProfileModal = ({ open, onClose, anchorEl }) => {
   };
 
   const handleDeleteTeam = async () => {
-    if (selectedTeam) {
-      const response = await deleteTeamApi(selectedTeam.id, token);
-      if (response.ok) {
-        await loadUserData();
-      } else {
-        processError(response.status);
-      }
-    }
+    const team = selectedTeam;
     handleMenuClose();
+    if (!team) return;
+    if (!(await confirm(`команду "${team.name}"`))) return;
+    const response = await deleteTeamApi(team.id, token);
+    if (response.ok) {
+      await loadUserData();
+    } else {
+      processError(response.status);
+    }
   };
 
   const handleLogout = () => {

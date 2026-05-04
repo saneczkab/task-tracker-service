@@ -16,7 +16,6 @@ import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 import { getContrastColor } from "../../utils/taskUtils.js";
 import StatusBadge from "../ui/StatusBadge.jsx";
 
-
 const FIELD_LABELS = {
   name: "Название",
   description: "Описание",
@@ -123,15 +122,32 @@ const TaskHistory = ({
       const filtered = response.history.filter((entry) => {
         if (!entry.old_value && !entry.new_value) return false;
 
-        if (entry.field_name === "start_date" || entry.field_name === "deadline") {
-          const oldTime = entry.old_value ? new Date(entry.old_value).getTime() : null;
-          const newTime = entry.new_value ? new Date(entry.new_value).getTime() : null;
+        if (
+          entry.field_name === "start_date" ||
+          entry.field_name === "deadline"
+        ) {
+          const oldTime = entry.old_value
+            ? new Date(entry.old_value).getTime()
+            : null;
+          const newTime = entry.new_value
+            ? new Date(entry.new_value).getTime()
+            : null;
           if (oldTime === newTime) return false;
         }
 
-        const oldVal = formatValue(entry.old_value, entry.field_name, statuses, priorities);
-        const newVal = formatValue(entry.new_value, entry.field_name, statuses, priorities);
-        
+        const oldVal = formatValue(
+          entry.old_value,
+          entry.field_name,
+          statuses,
+          priorities,
+        );
+        const newVal = formatValue(
+          entry.new_value,
+          entry.field_name,
+          statuses,
+          priorities,
+        );
+
         return oldVal !== newVal && entry.old_value !== entry.new_value;
       });
 
@@ -284,11 +300,19 @@ const TaskHistory = ({
                       );
                       return (
                         <Box
-                          sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                          }}
                         >
                           {removed && removed.length > 0 && (
                             <Box
-                              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
                             >
                               <Typography
                                 variant="body2"
@@ -300,7 +324,11 @@ const TaskHistory = ({
                                 Удалено:
                               </Typography>
                               <Box
-                                sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                                sx={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 0.5,
+                                }}
                               >
                                 {removed.map((tag) => (
                                   <Chip
@@ -322,7 +350,11 @@ const TaskHistory = ({
                           )}
                           {added && added.length > 0 && (
                             <Box
-                              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
                             >
                               <Typography
                                 variant="body2"
@@ -334,7 +366,11 @@ const TaskHistory = ({
                                 Добавлено:
                               </Typography>
                               <Box
-                                sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                                sx={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 0.5,
+                                }}
                               >
                                 {added.map((tag) => (
                                   <Chip
@@ -367,7 +403,14 @@ const TaskHistory = ({
                       {entry.old_value ? (
                         entry.field_name === "status_id" ? (
                           <Box sx={{ opacity: 0.6 }}>
-                            <StatusBadge statusName={formatValue(entry.old_value, entry.field_name, statuses, priorities)} />
+                            <StatusBadge
+                              statusName={formatValue(
+                                entry.old_value,
+                                entry.field_name,
+                                statuses,
+                                priorities,
+                              )}
+                            />
                           </Box>
                         ) : (
                           <Typography
@@ -413,7 +456,14 @@ const TaskHistory = ({
                       </Typography>
 
                       {entry.field_name === "status_id" ? (
-                        <StatusBadge statusName={formatValue(entry.new_value, entry.field_name, statuses, priorities)} />
+                        <StatusBadge
+                          statusName={formatValue(
+                            entry.new_value,
+                            entry.field_name,
+                            statuses,
+                            priorities,
+                          )}
+                        />
                       ) : (
                         <Typography
                           variant="body2"

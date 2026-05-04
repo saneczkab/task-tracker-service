@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    allowedHosts: ['gantt-tracker.ru', 'localhost', '127.0.0.1'],
+    allowedHosts: ["gantt-tracker.ru", "localhost", "127.0.0.1"],
     proxy: {
       "/api": {
         target: "http://backend:8000",

@@ -13,9 +13,15 @@ def get_projects_by_team(data_base: orm.Session, team_id: int):
 
 
 def create_project(data_base: orm.Session, team_id: int, project_data):
+
+    max_position = data_base.query(project.Project).filter(
+        project.Project.team_id == team_id
+    ).count()
+
     new_project = project.Project(
         name=project_data.name,
-        team_id=team_id
+        team_id=team_id,
+        position=max_position
     )
     data_base.add(new_project)
     data_base.commit()
@@ -33,4 +39,13 @@ def update_project(data_base: orm.Session, project_obj, update_data):
 
 def delete_project(data_base: orm.Session, project_obj):
     data_base.delete(project_obj)
+    data_base.commit()
+
+
+def reorder_projects(data_base: orm.Session, project_ids: list[int]):
+    """Обновить позиции проектов согласно порядку в списке"""
+    for idx, project_id in enumerate(project_ids):
+        data_base.query(project.Project).filter(
+            project.Project.id == project_id
+        ).update({"position": idx})
     data_base.commit()

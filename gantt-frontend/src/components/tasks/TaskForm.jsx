@@ -30,6 +30,7 @@ import {
 } from "../../utils/datetime.js";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import {
   createTaskApi,
   updateTaskApi,
@@ -107,6 +108,7 @@ const TaskForm = ({
     [],
   );
   const processError = useProcessError();
+  const { confirm } = useConfirmDelete();
 
   useEffect(() => {
     if (!open) {
@@ -274,6 +276,8 @@ const TaskForm = ({
   };
 
   const handleDeleteCustomFieldDefinition = async (fieldId) => {
+    const field = customFields.find((f) => f.id === fieldId);
+    if (!(await confirm(`поле "${field?.name || ""}"`))) return;
     const response = await deleteTeamCustomFieldApi(fieldId, token);
 
     if (!response.ok) {
@@ -397,6 +401,12 @@ const TaskForm = ({
       return;
     }
 
+    const relation = relations.find((r) => r.id === relationId);
+    const label = relation
+      ? `связь "${formatRelationText(relation)}"`
+      : "эту связь";
+    if (!(await confirm(label))) return;
+
     const response = await deleteTaskRelationApi(teamId, relationId, token);
 
     if (!response.ok) {
@@ -428,6 +438,8 @@ const TaskForm = ({
 
   const handleDeleteTag = async (tagId) => {
     if (!teamId) return;
+    const tag = teamTags.find((t) => t.id === tagId);
+    if (!(await confirm(`тег "${tag?.name || ""}"`))) return;
     const response = await deleteTeamTagApi(teamId, tagId, token);
     if (response.ok) {
       setTeamTags((prev) => prev.filter((tag) => tag.id !== tagId));
