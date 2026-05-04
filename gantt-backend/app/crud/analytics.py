@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import exists, or_, select
+from sqlalchemy.orm import Session, aliased
 from datetime import datetime
 from typing import Optional
 
@@ -12,7 +13,9 @@ from app.models import tag as tag_models
 from app.schemas import analytics as analytics_schemas
 
 
-def _apply_filters(query, filters: analytics_schemas.AnalyticsFilters, include_stream_join: bool = True):
+def _apply_filters(
+    query, filters: analytics_schemas.AnalyticsFilters, include_stream_join: bool = True
+):
     """Применить фильтры к запросу"""
     has_stream = "Stream" in str(query) or "stream" in str(query)
     has_project = "Project" in str(query) or "project" in str(query)
@@ -26,7 +29,9 @@ def _apply_filters(query, filters: analytics_schemas.AnalyticsFilters, include_s
         if has_stream:
             query = query.join(Project, Stream.project_id == Project.id)
         else:
-            query = query.join(Stream, Task.stream_id == Stream.id).join(Project, Stream.project_id == Project.id)
+            query = query.join(Stream, Task.stream_id == Stream.id).join(
+                Project, Stream.project_id == Project.id
+            )
 
     if filters.project_ids:
         query = query.filter(Project.id.in_(filters.project_ids))
@@ -41,24 +46,46 @@ def _apply_filters(query, filters: analytics_schemas.AnalyticsFilters, include_s
         query = query.filter(Task.priority_id.in_(filters.priority_ids))
 
     if filters.assigned_user_ids:
-        query = query.join(UserTask, Task.id == UserTask.task_id).filter(
-            UserTask.user_id.in_(filters.assigned_user_ids)
-        ).distinct()
+        ut_ids = aliased(UserTask)
+        query = query.filter(
+            exists(
+                select(1)
+                .select_from(ut_ids)
+                .where(
+                    ut_ids.task_id == Task.id,
+                    ut_ids.user_id.in_(filters.assigned_user_ids),
+                )
+            )
+        )
 
     if filters.assignee_emails:
-        query = query.join(UserTask, Task.id == UserTask.task_id).join(
-            User, UserTask.user_id == User.id
-        ).filter(User.email.in_(filters.assignee_emails)).distinct()
+        ut_mail = aliased(UserTask)
+        u_mail = aliased(User)
+        query = query.filter(
+            exists(
+                select(1)
+                .select_from(ut_mail)
+                .join(u_mail, ut_mail.user_id == u_mail.id)
+                .where(
+                    ut_mail.task_id == Task.id,
+                    u_mail.email.in_(filters.assignee_emails),
+                )
+            )
+        )
 
     if filters.tag_ids:
-        query = query.join(tag_models.TaskTag, Task.id == tag_models.TaskTag.task_id).filter(
-            tag_models.TaskTag.tag_id.in_(filters.tag_ids)
-        ).distinct()
+        query = (
+            query.join(tag_models.TaskTag, Task.id == tag_models.TaskTag.task_id)
+            .filter(tag_models.TaskTag.tag_id.in_(filters.tag_ids))
+            .distinct()
+        )
 
     return query
 
 
-def _apply_date_ranges(query, date_ranges: Optional[analytics_schemas.AnalyticsDateRanges]):
+def _apply_date_ranges(
+    query, date_ranges: Optional[analytics_schemas.AnalyticsDateRanges]
+):
     """Применить фильтры по датам"""
     if not date_ranges:
         return query
@@ -94,7 +121,11 @@ def get_base_tasks_query(
     """Базовый запрос задач с фильтрами"""
     team_ids = filters.team_ids if filters and filters.team_ids else None
 
-    query = db.query(Task).join(Stream, Task.stream_id == Stream.id).join(Project, Stream.project_id == Project.id)
+    query = (
+        db.query(Task)
+        .join(Stream, Task.stream_id == Stream.id)
+        .join(Project, Stream.project_id == Project.id)
+    )
 
     if team_ids:
         query = query.filter(Project.team_id.in_(team_ids))
@@ -126,18 +157,18 @@ def get_base_tasks_query(
 def get_task_counts(query) -> tuple[int, int, int, int]:
     """Подсчёт задач: total, completed, in_progress, overdue"""
     STATUS_DONE = 4
-    STATUS_NO_STATUS = 1
-    STATUS_TODO = 2
-    STATUS_DOING = 3
 
+    now = datetime.now()
     total_tasks = query.count()
     completed_tasks = query.filter(Task.status_id == STATUS_DONE).count()
-    in_progress = query.filter(
-        Task.status_id.in_([STATUS_NO_STATUS, STATUS_TODO, STATUS_DOING])
-    ).count()
     overdue = query.filter(
-        Task.deadline < datetime.now(),
+        Task.deadline.isnot(None),
+        Task.deadline < now,
         Task.status_id != STATUS_DONE,
+    ).count()
+    in_progress = query.filter(
+        Task.status_id != STATUS_DONE,
+        or_(Task.deadline.is_(None), Task.deadline >= now),
     ).count()
     return total_tasks, completed_tasks, in_progress, overdue
 
@@ -213,5 +244,7 @@ def get_tasks_list_query(
     stream_id: Optional[int] = None,
 ):
     """Получить список задач"""
-    query = get_base_tasks_query(db, team_id, period_filter, date_ranges, filters, project_id, stream_id)
+    query = get_base_tasks_query(
+        db, team_id, period_filter, date_ranges, filters, project_id, stream_id
+    )
     return query.all()

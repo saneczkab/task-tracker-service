@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional, List
@@ -8,7 +9,6 @@ from app.models.task import Task
 
 
 class AnalyticsService:
-
     @staticmethod
     def get_task_analytics(
         data_base: Session,
@@ -20,7 +20,13 @@ class AnalyticsService:
         stream_id: Optional[int] = None,
     ) -> analytics_schemas.TaskAnalytics:
         query = analytics_crud.get_base_tasks_query(
-            data_base, team_id, period_filter, date_ranges, filters, project_id, stream_id
+            data_base,
+            team_id,
+            period_filter,
+            date_ranges,
+            filters,
+            project_id,
+            stream_id,
         )
         total, completed, in_progress, overdue = analytics_crud.get_task_counts(query)
 
@@ -45,24 +51,31 @@ class AnalyticsService:
         stream_id: Optional[int] = None,
     ) -> List[analytics_schemas.UserTaskStats]:
         STATUS_DONE = 4
-        STATUS_TODO = 2
-        STATUS_DOING = 3
 
         users_with_tasks = analytics_crud.get_users_with_tasks(
-            data_base, team_id, period_filter, date_ranges, filters, project_id, stream_id
+            data_base,
+            team_id,
+            period_filter,
+            date_ranges,
+            filters,
+            project_id,
+            stream_id,
         )
 
         users_stats = []
+        now = datetime.now()
         for user, user_query in users_with_tasks:
             total = user_query.count()
             if total > 0:
                 completed = user_query.filter(Task.status_id == STATUS_DONE).count()
                 overdue = user_query.filter(
-                    Task.deadline < datetime.now(),
+                    Task.deadline.isnot(None),
+                    Task.deadline < now,
                     Task.status_id != STATUS_DONE,
                 ).count()
                 in_progress = user_query.filter(
-                    Task.status_id.in_([STATUS_TODO, STATUS_DOING])
+                    Task.status_id != STATUS_DONE,
+                    or_(Task.deadline.is_(None), Task.deadline >= now),
                 ).count()
             else:
                 completed = overdue = in_progress = 0
@@ -91,12 +104,22 @@ class AnalyticsService:
         stream_id: Optional[int] = None,
     ) -> List[analytics_schemas.TaskBrief]:
         tasks = analytics_crud.get_tasks_list_query(
-            data_base, team_id, period_filter, date_ranges, filters, project_id, stream_id
+            data_base,
+            team_id,
+            period_filter,
+            date_ranges,
+            filters,
+            project_id,
+            stream_id,
         )
 
         result = []
         for task in tasks:
-            assigned_users = [ut.user.email for ut in task.assigned_users] if task.assigned_users else []
+            assigned_users = (
+                [ut.user.email for ut in task.assigned_users]
+                if task.assigned_users
+                else []
+            )
             result.append(
                 analytics_schemas.TaskBrief(
                     id=task.id,
