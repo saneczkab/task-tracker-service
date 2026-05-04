@@ -14,3 +14,5 @@ email-validator
 yandex-gpt-api
 pytest
 python-dotenv
+ruff
+httpx
