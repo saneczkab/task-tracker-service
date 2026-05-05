@@ -14,6 +14,7 @@ class Task(base.Base):
     start_date = Column(DateTime, nullable=True)
     deadline = Column(DateTime, nullable=True)
     position = Column(Integer, nullable=False, default=0)
+    kanban_position = Column(Integer, nullable=False, default=0)
 
     assigned_users = orm.relationship("UserTask", back_populates="task")
     tags = orm.relationship("TaskTag", back_populates="task")

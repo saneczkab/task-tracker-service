@@ -41,6 +41,7 @@ def create_task(db: orm.Session, stream_id: int, task_data):
         start_date=task_data.start_date,
         deadline=task_data.deadline,
         position=task_data.position,
+        kanban_position=task_data.kanban_position,
     )
     db.add(new_task)
     db.flush()
