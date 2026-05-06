@@ -61,6 +61,11 @@ def create_task_service(data_base: orm.Session, stream_id: int, user_id: int, ta
             task.Task.position.desc()).first()
         task_data.position = (last_pos.position + 1) if last_pos else 1
 
+    if task_data.kanban_position is None:
+        last_kanban_pos = data_base.query(task.Task).filter(task.Task.stream_id == stream_id).order_by(
+            task.Task.kanban_position.desc()).first()
+        task_data.kanban_position = (last_kanban_pos.kanban_position + 1) if last_kanban_pos else 1
+
     new_task = task_crud.create_task(data_base, stream_id, task_data)
 
     if task_data.assignee_email:
@@ -103,7 +108,7 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
     task_obj, stream_obj, project_obj, team_obj = permissions.check_task_access(data_base, task_id, user_id,
                                                                                 need_lead=True)
 
-    tracked_fields = ["name", "description", "status_id", "priority_id", "start_date", "deadline", "position"]
+    tracked_fields = ["name", "description", "status_id", "priority_id", "start_date", "deadline", "position", "kanban_position"]
     changes = {}
     for field in tracked_fields:
         if field in task_update_data.model_fields_set:
@@ -149,10 +154,28 @@ def update_task_service(data_base: orm.Session, task_id: int, user_id: int, task
             data_base.add(tag.TaskTag(task_id=task_id, tag_id=tag_id))
 
     if task_update_data.custom_fields is not None:
-        old_custom_fields = {cf.custom_field_id: cf.value for cf in task_obj.custom_field_values}
-        new_custom_fields = {cf.custom_field_id: cf.value for cf in task_update_data.custom_fields}
+        old_custom_fields = {}
+        for cf in task_obj.custom_field_values:
+            old_custom_fields[cf.custom_field_id] = {
+                "value_string": cf.value_string,
+                "value_text": cf.value_text,
+                "value_date": cf.value_date,
+                "value_datetime": cf.value_datetime,
+                "value_bool": cf.value_bool,
+            }
+
+        new_custom_fields = {}
+        for cf in task_update_data.custom_fields:
+            new_custom_fields[cf.custom_field_id] = {
+                "value_string": cf.value_string,
+                "value_text": cf.value_text,
+                "value_date": cf.value_date,
+                "value_datetime": cf.value_datetime,
+                "value_bool": cf.value_bool,
+            }
+
         if old_custom_fields != new_custom_fields:
-            changes["custom_fields"] = (old_custom_fields, new_custom_fields)
+            changes["custom_fields"] = (str(old_custom_fields), str(new_custom_fields))
 
         for field_value in task_update_data.custom_fields:
             custom_field_crud.set_task_custom_field_value(data_base, task_id, field_value)

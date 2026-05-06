@@ -15,6 +15,7 @@ class TaskCreate(BaseModel):
     start_date: datetime | None = None
     deadline: datetime | None = None
     position: int | None = Field(None, ge=0)
+    kanban_position: int | None = Field(None, ge=0)
     tag_ids: list[int] | None = None
     custom_fields: list[TaskCustomFieldValueBase] | None = None
 
@@ -35,6 +36,7 @@ class TaskUpdate(BaseModel):
     start_date: datetime | None = None
     deadline: datetime | None = None
     position: int | None = Field(None, ge=0)
+    kanban_position: int | None = Field(None, ge=0)
     tag_ids: list[int] | None = None
     custom_fields: list[TaskCustomFieldValueBase] | None = None
 
@@ -67,6 +69,7 @@ class TaskResponse(BaseModel):
     deadline: datetime | None = None
     assignee_email: str | None = None
     position: int
+    kanban_position: int
     relations: list[TaskRelationResponse] = []
     tags: list[TagResponse] = Field(default_factory=list, alias="tag_list")
     custom_field_values: list[TaskCustomFieldValue] = []
@@ -85,6 +88,7 @@ class TaskResponseFull(BaseModel):
     deadline: datetime | None = None
     assignee_email: str | None = None
     position: int
+    kanban_position: int
     relations: list[TaskRelationResponse] = []
     team_id: int | None = None
     team_name: str | None = None
