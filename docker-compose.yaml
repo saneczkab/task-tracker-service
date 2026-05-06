@@ -1,6 +1,7 @@
 services:
   backend:
     build: ./gantt-backend
+    image: ${IMAGE_REPO:-localhost}/backend:${IMAGE_TAG:-latest}
     ports:
       - "8000:8000"
     environment:
@@ -10,6 +11,9 @@ services:
       - AUTH_ALGORITHM=${AUTH_ALGORITHM}
       - AUTH_ACCESS_TOKEN_EXPIRE_DAYS=${AUTH_ACCESS_TOKEN_EXPIRE_DAYS}
       - AUTH_DATABASE_URL=${AUTH_DATABASE_URL}
+      - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
+      - YANDEX_API_KEY=${YANDEX_API_KEY}
+      
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,6 +41,7 @@ services:
 
   frontend:
     build: ./gantt-frontend
+    image: ${IMAGE_REPO:-localhost}/frontend:${IMAGE_TAG:-latest}
     ports:
       - "5173:5173"
     environment:

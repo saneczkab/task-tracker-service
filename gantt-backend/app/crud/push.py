@@ -32,4 +32,3 @@ def delete_subscription(db: orm.Session, subscription_obj):
     """Удалить подписку на push уведомления"""
     db.delete(subscription_obj)
     db.commit()
-
