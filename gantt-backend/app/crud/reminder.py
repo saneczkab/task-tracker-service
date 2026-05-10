@@ -30,7 +30,7 @@ def get_reminders_by_user(db: orm.Session, user_id: int):
 
 def get_pending_reminders(db: orm.Session):
     """Получить все напоминания, которые нужно отправить"""
-    return db.query(task.TaskReminder).filter(task.TaskReminder.sent == False).all() # noqa
+    return db.query(task.TaskReminder).filter(task.TaskReminder.sent == False).all()  # noqa
 
 
 def create_reminder(db: orm.Session, task_id: int, user_id: int, remind_at):

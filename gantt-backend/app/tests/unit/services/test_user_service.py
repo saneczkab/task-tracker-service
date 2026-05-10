@@ -78,7 +78,11 @@ def test_register_user_service_success(
     )
     mocks["create_access_token"].assert_called_once_with({"sub": str(new_user.id)})
     mocks["create_refresh_token"].assert_called_once_with({"sub": str(new_user.id)})
-    assert result == {"access_token": expected_token, "refresh_token": expected_refresh_token, "token_type": "Bearer"}
+    assert result == {
+        "access_token": expected_token,
+        "refresh_token": expected_refresh_token,
+        "token_type": "Bearer",
+    }
 
 
 @patch("app.services.user_service.user_crud.get_user_by_email")
@@ -117,7 +121,11 @@ def test_login_user_service_success(
     mocks["verify_password"].assert_called_once_with("pass", user_obj.password_hash)
     mocks["create_access_token"].assert_called_once_with({"sub": str(user_obj.id)})
     mocks["create_refresh_token"].assert_called_once_with({"sub": str(user_obj.id)})
-    assert result == {"access_token": expected_token, "refresh_token": expected_refresh_token, "token_type": "Bearer"}
+    assert result == {
+        "access_token": expected_token,
+        "refresh_token": expected_refresh_token,
+        "token_type": "Bearer",
+    }
 
 
 @patch("app.services.user_service.user_crud.get_user_by_email")
