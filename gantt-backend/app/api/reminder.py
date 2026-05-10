@@ -10,7 +10,9 @@ from app.services import reminder_service, push_service
 router = fastapi.APIRouter(prefix="/api/tasks", tags=["Reminders"])
 
 
-@router.get("/{task_id}/reminders", response_model=list[reminder_schemas.ReminderResponse])
+@router.get(
+    "/{task_id}/reminders", response_model=list[reminder_schemas.ReminderResponse]
+)
 def get_task_reminders(
     task_id: int,
     current_user=fastapi.Depends(auth.get_current_user),
@@ -18,7 +20,9 @@ def get_task_reminders(
 ):
     """Получить напоминания для задачи"""
     try:
-        return reminder_service.get_task_reminders_service(data_base, task_id, current_user.id)
+        return reminder_service.get_task_reminders_service(
+            data_base, task_id, current_user.id
+        )
     except exception.NotFoundError as e:
         raise fastapi.HTTPException(404, str(e))
     except exception.ForbiddenError as e:
@@ -43,7 +47,7 @@ def create_reminder(
             "date",
             run_date=reminder.remind_at,
             args=[reminder.id],
-            id=str(reminder.id)
+            id=str(reminder.id),
         )
 
         return reminder
@@ -55,7 +59,9 @@ def create_reminder(
         raise fastapi.HTTPException(400, str(e))
 
 
-@router.patch("/reminders/{reminder_id}", response_model=reminder_schemas.ReminderResponse)
+@router.patch(
+    "/reminders/{reminder_id}", response_model=reminder_schemas.ReminderResponse
+)
 def update_reminder(
     reminder_id: int,
     reminder_data: reminder_schemas.ReminderUpdate,
@@ -77,7 +83,7 @@ def update_reminder(
                 "date",
                 run_date=reminder.remind_at,
                 args=[reminder.id],
-                id=str(reminder.id)
+                id=str(reminder.id),
             )
 
         return reminder
@@ -97,7 +103,9 @@ def delete_reminder(
 ):
     """Удалить напоминание"""
     try:
-        reminder_service.delete_reminder_service(data_base, reminder_id, current_user.id)
+        reminder_service.delete_reminder_service(
+            data_base, reminder_id, current_user.id
+        )
 
         if scheduler.get_job(str(reminder_id)):
             scheduler.remove_job(str(reminder_id))

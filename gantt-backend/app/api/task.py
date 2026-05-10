@@ -9,19 +9,30 @@ from app.services import task_service
 router = fastapi.APIRouter()
 
 
-@router.get("/api/tasks/all", response_model=list[task_schemas.TaskResponseFull],
-            status_code=fastapi.status.HTTP_200_OK)
-def get_all_tasks(current_user=fastapi.Depends(auth.get_current_user),
-                  data_base: orm.Session = fastapi.Depends(db.get_db)):
+@router.get(
+    "/api/tasks/all",
+    response_model=list[task_schemas.TaskResponseFull],
+    status_code=fastapi.status.HTTP_200_OK,
+)
+def get_all_tasks(
+    current_user=fastapi.Depends(auth.get_current_user),
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
     """Получить все задачи пользователя"""
     return task_service.get_all_tasks_service(data_base, current_user.id)
 
 
 @router.patch("/api/task/{task_id}", response_model=task_schemas.TaskResponse)
-def update_task(task_id: int, task_data: task_schemas.TaskUpdate, current_user=fastapi.Depends(auth.get_current_user),
-                data_base: orm.Session = fastapi.Depends(db.get_db)):
+def update_task(
+    task_id: int,
+    task_data: task_schemas.TaskUpdate,
+    current_user=fastapi.Depends(auth.get_current_user),
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
     try:
-        return task_service.update_task_service(data_base, task_id, current_user.id, task_data)
+        return task_service.update_task_service(
+            data_base, task_id, current_user.id, task_data
+        )
     except exception.NotFoundError as e:
         raise fastapi.HTTPException(404, str(e))
     except exception.ForbiddenError as e:
@@ -29,8 +40,11 @@ def update_task(task_id: int, task_data: task_schemas.TaskUpdate, current_user=f
 
 
 @router.delete("/api/task/{task_id}", status_code=204)
-def delete_task(task_id: int, current_user=fastapi.Depends(auth.get_current_user),
-                data_base: orm.Session = fastapi.Depends(db.get_db)):
+def delete_task(
+    task_id: int,
+    current_user=fastapi.Depends(auth.get_current_user),
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
     try:
         task_service.delete_task_service(data_base, task_id, current_user.id)
     except exception.NotFoundError as e:
@@ -39,24 +53,39 @@ def delete_task(task_id: int, current_user=fastapi.Depends(auth.get_current_user
         raise fastapi.HTTPException(403, str(e))
 
 
-@router.post("/api/task/{task_id}/relation", response_model=task_schemas.TaskRelationResponse)
-def create_task_relation(task_id: int, data: task_schemas.TaskRelationCreate,
-                         data_base: orm.Session = fastapi.Depends(db.get_db)):
+@router.post(
+    "/api/task/{task_id}/relation", response_model=task_schemas.TaskRelationResponse
+)
+def create_task_relation(
+    task_id: int,
+    data: task_schemas.TaskRelationCreate,
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
     try:
-        return task_service.create_task_relation_service(data_base, task_id, data.task_id, data.connection_id)
+        return task_service.create_task_relation_service(
+            data_base, task_id, data.task_id, data.connection_id
+        )
     except exception.NotFoundError as e:
         raise fastapi.HTTPException(404, str(e))
     except exception.ConflictError as e:
         raise fastapi.HTTPException(400, str(e))
 
 
-@router.get("/api/task/{task_id}/history", response_model=list[task_schemas.TaskHistoryEntry],
-            status_code=fastapi.status.HTTP_200_OK)
-def get_task_history(task_id: int, current_user=fastapi.Depends(auth.get_current_user),
-                     data_base: orm.Session = fastapi.Depends(db.get_db)):
+@router.get(
+    "/api/task/{task_id}/history",
+    response_model=list[task_schemas.TaskHistoryEntry],
+    status_code=fastapi.status.HTTP_200_OK,
+)
+def get_task_history(
+    task_id: int,
+    current_user=fastapi.Depends(auth.get_current_user),
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
     """Получить историю изменений задачи"""
     try:
-        return task_service.get_task_history_service(data_base, task_id, current_user.id)
+        return task_service.get_task_history_service(
+            data_base, task_id, current_user.id
+        )
     except exception.NotFoundError as e:
         raise fastapi.HTTPException(404, str(e))
     except exception.ForbiddenError as e:
@@ -64,12 +93,17 @@ def get_task_history(task_id: int, current_user=fastapi.Depends(auth.get_current
 
 
 @router.delete("/api/task/{task_id}/custom_fields/{custom_field_id}", status_code=204)
-def delete_task_custom_field(task_id: int, custom_field_id: int, 
-                             current_user=fastapi.Depends(auth.get_current_user),
-                             data_base: orm.Session = fastapi.Depends(db.get_db)):
+def delete_task_custom_field(
+    task_id: int,
+    custom_field_id: int,
+    current_user=fastapi.Depends(auth.get_current_user),
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
     """Удалить значение кастомного поля для задачи."""
     try:
-        task_service.delete_task_custom_field_service(data_base, task_id, custom_field_id, current_user.id)
+        task_service.delete_task_custom_field_service(
+            data_base, task_id, custom_field_id, current_user.id
+        )
     except exception.NotFoundError as e:
         raise fastapi.HTTPException(404, str(e))
     except exception.ForbiddenError as e:

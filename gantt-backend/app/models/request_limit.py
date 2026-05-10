@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from app.models import base
 import datetime
 
+
 class RequestLimit(base.Base):
     __tablename__ = "RequestLimit"
 

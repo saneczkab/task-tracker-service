@@ -21,7 +21,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict) -> str:
     """Создание JWT токена доступа (short-lived)"""
     to_encode = data.copy()
-    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
     to_encode.update({"exp": expire, "type": "access"})
     encode_jwt = jwt.encode(to_encode, settings.SECRET_KEY, settings.ALGORITHM)
     return encode_jwt
@@ -30,7 +32,9 @@ def create_access_token(data: dict) -> str:
 def create_refresh_token(data: dict) -> str:
     """Создание JWT токена для обновления (long-lived)"""
     to_encode = data.copy()
-    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
     to_encode.update({"exp": expire, "type": "refresh"})
     encode_jwt = jwt.encode(to_encode, settings.SECRET_KEY, settings.ALGORITHM)
     return encode_jwt
@@ -47,11 +51,15 @@ def decode_access_token(token: str) -> dict:
 def refresh_access_token(refresh_token: str) -> str:
     """Обновление access токена с использованием refresh токена"""
     try:
-        payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         if payload.get("type") != "refresh":
             raise ValueError("Invalid token type")
 
-        user_data = {k: v for k, v in payload.items() if k not in ["exp", "type", "iat"]}
+        user_data = {
+            k: v for k, v in payload.items() if k not in ["exp", "type", "iat"]
+        }
         return create_access_token(user_data)
     except exceptions.ExpiredSignatureError:
         raise ValueError("Refresh token expired")

@@ -43,9 +43,11 @@ app.include_router(push_router)
 app.include_router(custom_field_router)
 app.include_router(analytics_router)
 
+
 @app.get("/")
 def read_root():
     return {"message": "Task Tracker API"}
+
 
 @app.on_event("startup")
 async def startup_event():

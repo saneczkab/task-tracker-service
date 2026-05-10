@@ -11,8 +11,12 @@ def get_goals_by_stream(data_base: orm.Session, stream_id: int):
     return data_base.query(goal.Goal).filter(goal.Goal.stream_id == stream_id).all()
 
 
-def get_goal_by_name_in_stream(data_base: orm.Session, stream_id: int, name: str, exclude_id: int = None):
-    q = data_base.query(goal.Goal).filter(goal.Goal.stream_id == stream_id, goal.Goal.name == name)
+def get_goal_by_name_in_stream(
+    data_base: orm.Session, stream_id: int, name: str, exclude_id: int = None
+):
+    q = data_base.query(goal.Goal).filter(
+        goal.Goal.stream_id == stream_id, goal.Goal.name == name
+    )
 
     if exclude_id:
         q = q.filter(goal.Goal.id != exclude_id)
@@ -27,7 +31,7 @@ def create_goal(data_base: orm.Session, stream_id: int, goal_data):
         start_date=goal_data.start_date,
         deadline=goal_data.deadline,
         stream_id=stream_id,
-        position=goal_data.position
+        position=goal_data.position,
     )
 
     data_base.add(new_goal)

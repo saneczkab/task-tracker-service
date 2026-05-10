@@ -23,7 +23,7 @@ def start_scheduler():
                 "date",
                 run_date=r.remind_at,
                 args=[r.id],
-                id=str(r.id)
+                id=str(r.id),
             )
 
     db.close()

@@ -27,7 +27,6 @@ class TaskCustomFieldValueBase(BaseModel):
     value_bool: Optional[bool] = None
 
 
-
 class TaskCustomFieldValueUpdate(BaseModel):
     value_string: Optional[str] = None
     value_text: Optional[str] = None

@@ -13,12 +13,14 @@ def get_team_users_service(data_base: orm.Session, team_id: int, user_id: int):
 
     response = []
     for member in users:
-        response.append({
-            "id": member.user.id,
-            "email": member.user.email,
-            "nickname": member.user.nickname,
-            "role": "Editor" if member.role_id == role.Role.EDITOR else "Reader"
-        })
+        response.append(
+            {
+                "id": member.user.id,
+                "email": member.user.email,
+                "nickname": member.user.nickname,
+                "role": "Editor" if member.role_id == role.Role.EDITOR else "Reader",
+            }
+        )
 
     return response
 
@@ -33,7 +35,9 @@ def create_team_service(data_base: orm.Session, owner_id: int, create_data):
     return team_obj
 
 
-def update_team_service(data_base: orm.Session, team_id: int, user_id: int, update_data):
+def update_team_service(
+    data_base: orm.Session, team_id: int, user_id: int, update_data
+):
     team_obj = team_crud.get_team_by_id(data_base, team_id)
     if not team_obj:
         raise exception.NotFoundError("Команда не найдена")
@@ -50,7 +54,9 @@ def update_team_service(data_base: orm.Session, team_id: int, user_id: int, upda
                 raise exception.NotFoundError(f"Пользователь {email} не найден")
 
             if not team_crud.get_user_team(data_base, team_id, user.id):
-                team_crud.add_user_to_team(data_base, team_id, user.id, role.Role.READER)
+                team_crud.add_user_to_team(
+                    data_base, team_id, user.id, role.Role.READER
+                )
 
     if update_data.deleteUsers:
         for email in update_data.deleteUsers:
@@ -76,17 +82,31 @@ def delete_team_service(db: orm.Session, team_id: int, user_id: int):
     project_ids = [p.id for p in projects]
 
     if project_ids:
-        streams = db.query(stream.Stream).filter(stream.Stream.project_id.in_(project_ids)).all()
+        streams = (
+            db.query(stream.Stream)
+            .filter(stream.Stream.project_id.in_(project_ids))
+            .all()
+        )
         stream_ids = [s.id for s in streams]
 
         if stream_ids:
-            db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids)).delete(synchronize_session=False)
-            db.query(goal.Goal).filter(goal.Goal.stream_id.in_(stream_ids)).delete(synchronize_session=False)
+            db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids)).delete(
+                synchronize_session=False
+            )
+            db.query(goal.Goal).filter(goal.Goal.stream_id.in_(stream_ids)).delete(
+                synchronize_session=False
+            )
 
-        db.query(stream.Stream).filter(stream.Stream.project_id.in_(project_ids)).delete(synchronize_session=False)
-        db.query(project.Project).filter(project.Project.id.in_(project_ids)).delete(synchronize_session=False)
+        db.query(stream.Stream).filter(
+            stream.Stream.project_id.in_(project_ids)
+        ).delete(synchronize_session=False)
+        db.query(project.Project).filter(project.Project.id.in_(project_ids)).delete(
+            synchronize_session=False
+        )
 
-    db.query(team.UserTeam).filter(team.UserTeam.team_id == team_id).delete(synchronize_session=False)
+    db.query(team.UserTeam).filter(team.UserTeam.team_id == team_id).delete(
+        synchronize_session=False
+    )
 
     db.delete(team_obj)
     db.commit()

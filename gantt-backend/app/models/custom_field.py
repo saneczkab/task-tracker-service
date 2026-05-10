@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, Text, Date, DateTime, Boolean
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    Enum,
+    Text,
+    Date,
+    DateTime,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 
 from app.models import base
@@ -22,7 +32,11 @@ class CustomField(base.Base):
     type = Column(Enum(CustomFieldType), nullable=False)
 
     team = relationship("Team", back_populates="custom_fields")
-    values = relationship("TaskCustomFieldValue", back_populates="custom_field", cascade="all, delete-orphan")
+    values = relationship(
+        "TaskCustomFieldValue",
+        back_populates="custom_field",
+        cascade="all, delete-orphan",
+    )
 
 
 class TaskCustomFieldValue(base.Base):
@@ -40,4 +54,3 @@ class TaskCustomFieldValue(base.Base):
 
     task = relationship("Task", back_populates="custom_field_values")
     custom_field = relationship("CustomField", back_populates="values")
-

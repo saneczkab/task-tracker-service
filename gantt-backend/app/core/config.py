@@ -10,11 +10,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     DATABASE_URL: str
 
-    model_config = {
-        "env_file": "../.env",
-        "env_prefix": "AUTH_",
-        "extra": "allow"
-    }
+    model_config = {"env_file": "../.env", "env_prefix": "AUTH_", "extra": "allow"}
 
 
 settings = Settings()

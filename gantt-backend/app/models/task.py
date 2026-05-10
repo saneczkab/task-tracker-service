@@ -18,7 +18,9 @@ class Task(base.Base):
 
     assigned_users = orm.relationship("UserTask", back_populates="task")
     tags = orm.relationship("TaskTag", back_populates="task")
-    custom_field_values = orm.relationship("TaskCustomFieldValue", back_populates="task", cascade="all, delete-orphan")
+    custom_field_values = orm.relationship(
+        "TaskCustomFieldValue", back_populates="task", cascade="all, delete-orphan"
+    )
 
     @property
     def tag_list(self):
@@ -37,8 +39,12 @@ class TaskRelation(base.Base):
     task_id_2 = Column(Integer, ForeignKey("Tasks.id"), nullable=False)
     connection_id = Column(Integer, ForeignKey("Connections.id"), nullable=False)
 
-    task1 = orm.relationship("Task", foreign_keys=[task_id_1], backref="relations_outgoing")
-    task2 = orm.relationship("Task", foreign_keys=[task_id_2], backref="relations_incoming")
+    task1 = orm.relationship(
+        "Task", foreign_keys=[task_id_1], backref="relations_outgoing"
+    )
+    task2 = orm.relationship(
+        "Task", foreign_keys=[task_id_2], backref="relations_incoming"
+    )
     connection = orm.relationship("ConnectionType")
 
     @property
@@ -62,12 +68,16 @@ class TaskHistory(base.Base):
     __tablename__ = "TaskHistory"
 
     id = Column(Integer, primary_key=True)
-    task_id = Column(Integer, ForeignKey("Tasks.id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(
+        Integer, ForeignKey("Tasks.id", ondelete="CASCADE"), nullable=False
+    )
     changed_by_id = Column(Integer, ForeignKey("Users.id"), nullable=False)
     changed_at = Column(DateTime, nullable=False)
     field_name = Column(String, nullable=False)
     old_value = Column(Text, nullable=True)
     new_value = Column(Text, nullable=True)
 
-    task = orm.relationship("Task", backref=orm.backref("history", cascade="all, delete-orphan"))
+    task = orm.relationship(
+        "Task", backref=orm.backref("history", cascade="all, delete-orphan")
+    )
     changed_by = orm.relationship("User")
