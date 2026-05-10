@@ -41,6 +41,7 @@ def test_check_email_exists_service(
     "app.services.user_service.security",
     get_password_hash=DEFAULT,
     create_access_token=DEFAULT,
+    create_refresh_token=DEFAULT,
 )
 @patch.multiple(
     "app.services.user_service.user_crud",
@@ -57,12 +58,14 @@ def test_register_user_service_success(
     password = "pass"
     new_user = Mock(id=1001)
     expected_token = "test_token"
+    expected_refresh_token = "test_refresh_token"
 
     mocks["get_user_by_email"].return_value = None
     mocks["get_user_by_nickname"].return_value = None
     mocks["create_user"].return_value = new_user
     mocks["get_password_hash"].return_value = "hash"
     mocks["create_access_token"].return_value = expected_token
+    mocks["create_refresh_token"].return_value = expected_refresh_token
 
     result = register_user_service(mock_db, email, nickname, password)
 
@@ -74,7 +77,8 @@ def test_register_user_service_success(
         password_hash="hash",
     )
     mocks["create_access_token"].assert_called_once_with({"sub": str(new_user.id)})
-    assert result == {"access_token": expected_token, "token_type": "Bearer"}
+    mocks["create_refresh_token"].assert_called_once_with({"sub": str(new_user.id)})
+    assert result == {"access_token": expected_token, "refresh_token": expected_refresh_token, "token_type": "Bearer"}
 
 
 @patch("app.services.user_service.user_crud.get_user_by_email")
@@ -90,6 +94,7 @@ def test_register_user_service_email_conflict(mock_get_user_by_email, mock_db):
     "app.services.user_service.security",
     create_access_token=DEFAULT,
     verify_password=DEFAULT,
+    create_refresh_token=DEFAULT,
 )
 @patch("app.services.user_service.user_crud.get_user_by_email")
 def test_login_user_service_success(
@@ -100,16 +105,19 @@ def test_login_user_service_success(
     email = "test@test.com"
     user_obj = Mock(id=1003, password_hash="hash")
     expected_token = "token"
+    expected_refresh_token = "refresh_token"
     mock_get_user_by_email.return_value = user_obj
     mocks["verify_password"].return_value = True
     mocks["create_access_token"].return_value = expected_token
+    mocks["create_refresh_token"].return_value = expected_refresh_token
 
     result = login_user_service(mock_db, email, "pass")
 
     mock_get_user_by_email.assert_called_once_with(mock_db, email)
     mocks["verify_password"].assert_called_once_with("pass", user_obj.password_hash)
     mocks["create_access_token"].assert_called_once_with({"sub": str(user_obj.id)})
-    assert result == {"access_token": expected_token, "token_type": "Bearer"}
+    mocks["create_refresh_token"].assert_called_once_with({"sub": str(user_obj.id)})
+    assert result == {"access_token": expected_token, "refresh_token": expected_refresh_token, "token_type": "Bearer"}
 
 
 @patch("app.services.user_service.user_crud.get_user_by_email")
