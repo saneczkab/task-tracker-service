@@ -47,6 +47,9 @@ async def auth_middleware(request: fastapi.Request, call_next):
     except jose.JWTError:
         return fastapi.responses.JSONResponse(status_code=401,
                                               content={"detail": "Недействительный или просроченный токен"})
+    except ValueError:
+        return fastapi.responses.JSONResponse(status_code=401,
+                                              content={"detail": "Недействительный токен доступа"})
 
     user_id = payload.get("sub")
 
