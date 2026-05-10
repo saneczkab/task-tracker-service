@@ -48,3 +48,16 @@ export async function deleteProjectApi(projectId, token) {
     return { ok: false, status: e.response.status };
   }
 }
+
+export async function reorderProjectsApi(projectIds, token) {
+  try {
+    const response = await axios.put(
+      `/api/projects/reorder`,
+      { project_ids: projectIds },
+      { headers: { Authorization: token } },
+    );
+    return { ok: true, data: response.data };
+  } catch (e) {
+    return { ok: false, status: e.response.status };
+  }
+}

@@ -9,7 +9,8 @@ def get_project_by_id(data_base: orm.Session, project_id: int):
 
 
 def get_projects_by_team(data_base: orm.Session, team_id: int):
-    return data_base.query(project.Project).filter(project.Project.team_id == team_id).all()
+    return data_base.query(project.Project).filter(project.Project.team_id == team_id).order_by(
+        project.Project.position).all()
 
 
 def create_project(data_base: orm.Session, team_id: int, project_data):

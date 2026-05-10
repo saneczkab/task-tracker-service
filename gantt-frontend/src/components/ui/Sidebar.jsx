@@ -34,6 +34,7 @@ import {
   fetchProjectsApi,
   updateProjectNameApi,
   deleteProjectApi,
+  reorderProjectsApi,
 } from "../../api/project.js";
 import {
   createStreamApi,
@@ -82,6 +83,8 @@ const Sidebar = ({
   const [uiProjects, setUiProjects] = useState([]);
   const [draggedStream, setDraggedStream] = useState(null);
   const [dropTargetStream, setDropTargetStream] = useState(null);
+  const [draggedProject, setDraggedProject] = useState(null);
+  const [dropTargetProject, setDropTargetProject] = useState(null);
 
   const getProjectColor = (id) => {
     const colors = [
@@ -448,6 +451,70 @@ const Sidebar = ({
     setDropTargetStream(null);
   };
 
+  const handleProjectDragStart = (project) => {
+    setDraggedProject(project);
+  };
+
+  const handleProjectDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleProjectDragEnter = (project) => {
+    if (draggedProject) {
+      setDropTargetProject(project);
+    }
+  };
+
+  const handleProjectDrop = async (targetProject) => {
+    if (!draggedProject) {
+      setDraggedProject(null);
+      setDropTargetProject(null);
+      return;
+    }
+
+    const sourceProject = draggedProject;
+    if (sourceProject.id === targetProject.id) {
+      setDraggedProject(null);
+      setDropTargetProject(null);
+      return;
+    }
+
+    const sourceIdx = uiProjects.findIndex((p) => p.id === sourceProject.id);
+    const targetIdx = uiProjects.findIndex((p) => p.id === targetProject.id);
+
+    if (sourceIdx === -1 || targetIdx === -1) {
+      setDraggedProject(null);
+      setDropTargetProject(null);
+      return;
+    }
+
+    const reordered = [...uiProjects];
+    const [removed] = reordered.splice(sourceIdx, 1);
+    reordered.splice(targetIdx, 0, removed);
+
+    const response = await reorderProjectsApi(
+      reordered.map((p) => p.id),
+      token,
+    );
+
+    if (!response.ok) {
+      processError(response.status);
+      setDraggedProject(null);
+      setDropTargetProject(null);
+      return;
+    }
+
+    setUiProjects(reordered);
+    setDraggedProject(null);
+    setDropTargetProject(null);
+  };
+
+  const handleProjectDragEnd = () => {
+    setDraggedProject(null);
+    setDropTargetProject(null);
+  };
+
   // TODO: перенести в профиль юзера
   useEffect(() => {
     const fetchTeamName = async () => {
@@ -688,6 +755,20 @@ const Sidebar = ({
           <div key={proj.id}>
             <ListItem
               disablePadding
+              draggable
+              onDragStart={() => handleProjectDragStart(proj)}
+              onDragOver={handleProjectDragOver}
+              onDragEnter={() => handleProjectDragEnter(proj)}
+              onDrop={() => handleProjectDrop(proj)}
+              onDragEnd={handleProjectDragEnd}
+              sx={{
+                opacity: draggedProject?.id === proj.id ? 0.5 : 1,
+                backgroundColor:
+                  dropTargetProject?.id === proj.id
+                    ? "rgba(66, 165, 245, 0.1)"
+                    : "transparent",
+                transition: "all 0.2s ease",
+              }}
               secondaryAction={
                 <Box
                   sx={{
