@@ -11,10 +11,10 @@ test:
 	python -m pytest
 
 check_lint:
-	docker compose run --rm backend ruff check .
-	docker compose run --rm frontend npx prettier --check .
+	python -m ruff check .
+	cd gantt-frontend && npx prettier --check .
 
 format:
-	docker compose run --rm backend ruff format .
-	docker compose run --rm backend ruff check --fix .
-	docker compose run --rm frontend npx prettier --write .
+	python -m ruff format .
+	python -m ruff check --fix .
+	cd gantt-frontend && npx prettier --write .
