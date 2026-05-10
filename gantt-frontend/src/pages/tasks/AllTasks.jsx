@@ -10,12 +10,15 @@ import AISummaryButton from "../../components/tasks/AISummaryButton.jsx";
 import { getTeamAnalyticsApi } from "../../api/analytics.js";
 import { fetchAllUserTasksApi } from "../../api/task.js";
 import { fetchUserEmailApi } from "../../api/user.js";
+import { fetchTeamNameApi, fetchTeamsApi } from "../../api/team.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
 import { sortTasks, applyAdvancedFilters } from "../../utils/taskUtils.js";
 
 const AllTasks = () => {
   const { teamId } = useParams();
   const [tasks, setTasks] = useState([]);
+  const [currentTeamName, setCurrentTeamName] = useState("");
+  const [userTeamIds, setUserTeamIds] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,11 +63,11 @@ const AllTasks = () => {
     const numericTeamId = Number(teamId);
     if (!Number.isFinite(numericTeamId)) return base;
 
-    const teamName = tasks.find((t) => t.team_id === numericTeamId)?.team_name;
-    if (!teamName) return base;
+    const name = (currentTeamName || "").trim();
+    if (!name) return base;
 
-    return { ...base, team: [teamName] };
-  }, [teamId, tasks]);
+    return { ...base, team: [name] };
+  }, [teamId, currentTeamName]);
 
   const effectiveTeamId = useMemo(() => {
     const numericTeamId = Number(teamId);
@@ -92,11 +95,15 @@ const AllTasks = () => {
     try {
       const tasksResponse = await fetchAllUserTasksApi(token);
       const emailResponse = await fetchUserEmailApi(token);
+      const teamsResponse = await fetchTeamsApi(token);
       const statusesResponse = await fetchStatusesApi();
       const prioritiesResponse = await fetchPrioritiesApi();
 
       setTasks(tasksResponse.ok ? tasksResponse.tasks : []);
       setUserEmail(emailResponse.ok ? emailResponse.email : "");
+      setUserTeamIds(
+        teamsResponse.ok ? (teamsResponse.teams || []).map((t) => t.id) : [],
+      );
       setStatuses(statusesResponse.ok ? statusesResponse.statuses : []);
       setPriorities(prioritiesResponse.ok ? prioritiesResponse.priorities : []);
     } catch (error) {
@@ -109,6 +116,26 @@ const AllTasks = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const numericTeamId = Number(teamId);
+    if (!token || !Number.isFinite(numericTeamId)) {
+      setCurrentTeamName("");
+      return;
+    }
+
+    let isCancelled = false;
+    const loadTeamName = async () => {
+      const resp = await fetchTeamNameApi(numericTeamId, token);
+      if (isCancelled) return;
+      setCurrentTeamName(resp.ok ? resp.name : "");
+    };
+
+    loadTeamName();
+    return () => {
+      isCancelled = true;
+    };
+  }, [teamId, token]);
 
   const statusMap = useMemo(() => {
     const map = {};
@@ -190,19 +217,35 @@ const AllTasks = () => {
       selectedTeamNames.length === 1 ? selectedTeamNames[0] : null;
 
     const numericTeamId = Number(teamId);
-    const teamIds = Array.from(
-      new Set(
-        (advancedFilters.team || [])
-          .map(
-            (teamName) => tasks.find((t) => t.team_name === teamName)?.team_id,
-          )
-          .filter(Boolean),
-      ),
+
+    const allTeamsFallback = Array.from(
+      new Set((tasks || []).map((t) => t.team_id).filter(Boolean)),
     );
-    if (!teamIds.length && Number.isFinite(numericTeamId)) {
-      teamIds.push(numericTeamId);
+    const allTeamIds =
+      Array.isArray(userTeamIds) && userTeamIds.length
+        ? userTeamIds
+        : allTeamsFallback;
+
+    if (!selectedTeamNames.length) {
+      if (allTeamIds.length) params.team_ids = toCsv(allTeamIds);
+    } else {
+      const teamIds = Array.from(
+        new Set(
+          selectedTeamNames
+            .map(
+              (teamName) =>
+                tasks.find((t) => t.team_name === teamName)?.team_id,
+            )
+            .filter(Boolean),
+        ),
+      );
+
+      if (!teamIds.length && Number.isFinite(numericTeamId)) {
+        teamIds.push(numericTeamId);
+      }
+
+      if (teamIds.length) params.team_ids = toCsv(teamIds);
     }
-    if (teamIds.length) params.team_ids = toCsv(teamIds);
 
     const projectIds = Array.from(
       new Set(
@@ -237,7 +280,7 @@ const AllTasks = () => {
     if (streamIds.length) params.stream_ids = toCsv(streamIds);
 
     return params;
-  }, [advancedFilters, tasks, userEmail]);
+  }, [advancedFilters, tasks, userEmail, teamId, userTeamIds]);
 
   useEffect(() => {
     if (!effectiveTeamId || !token) {
@@ -331,6 +374,7 @@ const AllTasks = () => {
               priorities={priorities}
               currentUserEmail={userEmail}
               showTeamProjectStreamFilters={true}
+              extraTeams={currentTeamName ? [currentTeamName] : []}
               initialFilters={initialAdvancedFilters}
             />
 

@@ -23,6 +23,7 @@ const AdvancedFiltersPanel = ({
   priorities,
   currentUserEmail = "",
   showTeamProjectStreamFilters = false,
+  extraTeams = [],
   initialFilters = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,8 +59,13 @@ const AdvancedFiltersPanel = ({
         teams.add(task.team_name);
       }
     });
+    (extraTeams || []).forEach((teamName) => {
+      if (typeof teamName === "string" && teamName.trim() !== "") {
+        teams.add(teamName);
+      }
+    });
     return Array.from(teams).sort();
-  }, [tasks]);
+  }, [tasks, extraTeams]);
 
   const uniqueProjects = useMemo(() => {
     const projects = new Set();

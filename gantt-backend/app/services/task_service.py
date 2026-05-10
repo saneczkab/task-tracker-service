@@ -1,4 +1,3 @@
-
 from sqlalchemy import orm
 
 from app.core import exception
