@@ -4,13 +4,15 @@
 ## Запуск
 Приложение проверено на базе Python 3.11.
 1) Заполните .env файл по примеру .env.example.
-2) Запустите docker-контейнер: `docker-compose up --build`. Контейнер запустит PostgreSQL и само приложение.
+2) Соберите и запустите образ: `make build up`.
 
 ## Технологии
-- Python 3.11 + FastApi + sqlalchemy
-- React
-- PostgreSQL
-- Docker для контейнеризации
+- Бэкенд: Python 3.11 + FastApi + SQLAlchemy
+- Автоматизированное тестирование: pytest, polyfactory
+- Фронтенд: React
+- Базы данных: PostgreSQL
+- Контейнеризация: Docker
+- CI/CD: GitHub Actions
 
 ## Функции
 1) Регистрация, авторизация.
