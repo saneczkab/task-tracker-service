@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Popover,
   Box,
@@ -26,6 +27,8 @@ import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import SelectedTeamEdit from "./SelectedTeamEdit.jsx";
 
 const ProfileModal = ({ open, onClose, anchorEl }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [nickname, setNickname] = useState("");
@@ -87,6 +90,10 @@ const ProfileModal = ({ open, onClose, anchorEl }) => {
     const response = await deleteTeamApi(team.id, token);
     if (response.ok) {
       await loadUserData();
+      if (location.pathname.startsWith(`/team/${team.id}`)) {
+        onClose?.();
+        navigate("/", { replace: true });
+      }
     } else {
       processError(response.status);
     }

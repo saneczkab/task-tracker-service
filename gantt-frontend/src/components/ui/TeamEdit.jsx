@@ -39,6 +39,7 @@ import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 
 const TeamEdit = ({ open, onClose }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const prevPathRef = useRef(location.pathname);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -100,16 +101,23 @@ const TeamEdit = ({ open, onClose }) => {
 
   const deleteTeam = async (teamId) => {
     setDeletingId(teamId);
+    try {
+      const response = await deleteTeamApi(teamId, token);
 
-    const response = await deleteTeamApi(teamId, token);
+      if (!response.ok) {
+        processError(response.status);
+        return;
+      }
 
-    if (!response.ok) {
-      processError(response.status);
-      return;
+      await fetchTeams();
+
+      if (location.pathname.startsWith(`/team/${teamId}`)) {
+        onClose?.();
+        navigate("/", { replace: true });
+      }
+    } finally {
+      setDeletingId(null);
     }
-
-    await fetchTeams();
-    setDeletingId(null);
   };
 
   useEffect(() => {
