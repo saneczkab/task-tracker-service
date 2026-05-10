@@ -16,4 +16,5 @@ check_lint:
 
 format:
 	docker compose run --rm backend ruff format .
+	docker compose run --rm backend ruff check --fix .
 	docker compose run --rm frontend npx prettier --write .
