@@ -44,6 +44,7 @@ import {
 } from "@mui/icons-material";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import { fetchGoalsApi, updateGoalApi, deleteGoalApi } from "../../api/goal.js";
 import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
 import { fetchTeamTagsApi } from "../../api/tag.js";
@@ -88,6 +89,7 @@ const GanttChart = ({
   const [contextMenu, setContextMenu] = useState(null);
 
   const processError = useProcessError();
+  const { confirm } = useConfirmDelete();
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
     [],
@@ -534,13 +536,18 @@ const GanttChart = ({
   };
 
   const handleDeleteFromMenu = async () => {
-    const { type, item } = contextMenu;
-    if (type === "goal") {
-      await handleGoalDelete(item);
-    } else if (type === "task") {
-      await handleTaskDelete(item);
-    }
+    if (!contextMenu) return;
+    const { type, item, streamId } = contextMenu;
+    const label =
+      type === "goal" ? `цель "${item.name}"` : `задачу "${item.name}"`;
+    const ok = await confirm(label);
     closeContextMenu();
+    if (!ok) return;
+    if (type === "goal") {
+      await handleGoalDelete(item, streamId);
+    } else if (type === "task") {
+      await handleTaskDelete(item, streamId);
+    }
   };
 
   const handleHistoryFromMenu = () => {
@@ -551,7 +558,7 @@ const GanttChart = ({
     closeContextMenu();
   };
 
-  const handleTaskDelete = async (task) => {
+  const handleTaskDelete = async (task, streamId) => {
     const response = await deleteTaskApi(task.id, token);
     if (!response.ok) {
       processError(response.status);
@@ -560,14 +567,14 @@ const GanttChart = ({
 
     setStreamsData((prev) =>
       prev.map((stream) =>
-        stream.id === contextMenu.streamId
+        stream.id === streamId
           ? { ...stream, tasks: stream.tasks.filter((t) => t.id !== task.id) }
           : stream,
       ),
     );
   };
 
-  const handleGoalDelete = async (goal) => {
+  const handleGoalDelete = async (goal, streamId) => {
     const response = await deleteGoalApi(goal.id, token);
     if (!response.ok) {
       processError(response.status);
@@ -576,7 +583,7 @@ const GanttChart = ({
 
     setStreamsData((prev) =>
       prev.map((stream) =>
-        stream.id === contextMenu.streamId
+        stream.id === streamId
           ? { ...stream, goals: stream.goals.filter((g) => g.id !== goal.id) }
           : stream,
       ),

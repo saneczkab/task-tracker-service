@@ -8,6 +8,7 @@ import ExportTasksButton from "../ui/ExportTasksButton.jsx";
 import StreamLayout from "../layout/StreamLayout.jsx";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
 import { fetchTeamTagsApi } from "../../api/tag.js";
@@ -33,6 +34,7 @@ const KanbanBoard = () => {
     [],
   );
   const processError = useProcessError();
+  const { confirm } = useConfirmDelete();
 
   const priorityMap = useMemo(() => {
     const map = {};
@@ -68,6 +70,8 @@ const KanbanBoard = () => {
   };
 
   const handleTaskDelete = async (task) => {
+    if (!(await confirm(`задачу "${task.name}"`))) return;
+
     const response = await deleteTaskApi(task.id, token);
 
     if (!response.ok) {

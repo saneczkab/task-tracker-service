@@ -23,6 +23,7 @@ import {
   deleteReminderApi,
 } from "../../api/reminder.js";
 import { usePushNotifications } from "../../hooks/usePushNotifications.js";
+import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import { toInputDate, toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
 function localToUtcIso(dateStr, timeStr) {
@@ -51,6 +52,7 @@ const RemindersSection = ({ taskId, token, deadline }) => {
     error: pushError,
     requestPermissionAndSubscribe,
   } = usePushNotifications();
+  const { confirm } = useConfirmDelete();
 
   useEffect(() => {
     if (!taskId) return;
@@ -118,6 +120,13 @@ const RemindersSection = ({ taskId, token, deadline }) => {
   };
 
   const handleDelete = async (id) => {
+    const r = reminders.find((x) => x.id === id);
+    if (
+      !(await confirm(
+        `напоминание на ${r ? toLocaleDateWithTimeHM(r.remind_at) : ""}`,
+      ))
+    )
+      return;
     const res = await deleteReminderApi(id, token);
     if (res.ok) {
       setReminders((prev) => prev.filter((r) => r.id !== id));
