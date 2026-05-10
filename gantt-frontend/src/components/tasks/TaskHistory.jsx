@@ -28,6 +28,90 @@ const FIELD_LABELS = {
   tag_ids: "Теги",
 };
 
+function safeJsonParse(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "object") return value;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function pickCustomFieldRawValue(valueObj) {
+  if (!valueObj || typeof valueObj !== "object") return null;
+  const candidates = [
+    valueObj.value_string,
+    valueObj.value_text,
+    valueObj.value_date,
+    valueObj.value_datetime,
+    valueObj.value_bool,
+  ];
+  const found = candidates.find(
+    (v) => v !== null && v !== undefined && v !== "",
+  );
+  return found === undefined ? null : found;
+}
+
+function formatCustomFieldValue(valueObj) {
+  const raw = pickCustomFieldRawValue(valueObj);
+  if (raw === null || raw === undefined || raw === "") return "-";
+
+  if (typeof raw === "boolean") return raw ? "Да" : "Нет";
+
+  if (typeof raw === "string") {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}([\sT]\d{2}:\d{2})?/;
+    if (dateRegex.test(raw)) {
+      return toLocaleDateWithTimeHM(raw) || raw;
+    }
+  }
+
+  return String(raw);
+}
+
+function expandCustomFieldsHistoryEntry(entry, customFields = []) {
+  const oldObj = safeJsonParse(entry.old_value) || {};
+  const newObj = safeJsonParse(entry.new_value) || {};
+
+  const ids = new Set([
+    ...Object.keys(oldObj || {}),
+    ...Object.keys(newObj || {}),
+  ]);
+
+  const expanded = [];
+  for (const idStr of ids) {
+    const oldValObj = oldObj?.[idStr] ?? null;
+    const newValObj = newObj?.[idStr] ?? null;
+
+    const oldFmt = formatCustomFieldValue(oldValObj);
+    const newFmt = formatCustomFieldValue(newValObj);
+    if (oldFmt === newFmt) continue;
+
+    const idNum = Number(idStr);
+    const def = (customFields || []).find(
+      (f) =>
+        String(f.id) === String(idStr) ||
+        (Number.isFinite(idNum) && f.id === idNum),
+    );
+    const label = def?.name || `Поле #${idStr}`;
+
+    expanded.push({
+      ...entry,
+      id: `${entry.id}-cf-${idStr}`,
+      field_name: `custom_field:${idStr}`,
+      custom_field_id: idNum,
+      custom_field_name: label,
+      old_value: oldValObj,
+      new_value: newValObj,
+    });
+  }
+
+  return expanded;
+}
+
 function formatValue(value, fieldName, statuses, priorities, tags) {
   if (value === null || value === undefined || value === "") return "-";
 
@@ -97,6 +181,7 @@ const TaskHistory = ({
   statuses = [],
   priorities = [],
   tags = [],
+  customFields = [],
 }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -119,7 +204,20 @@ const TaskHistory = ({
         return;
       }
 
-      const filtered = response.history.filter((entry) => {
+      const expandedHistory = (response.history || []).flatMap((entry) => {
+        if (entry.field_name === "custom_fields") {
+          return expandCustomFieldsHistoryEntry(entry, customFields);
+        }
+        return [entry];
+      });
+
+      const filtered = expandedHistory.filter((entry) => {
+        if (entry.field_name?.startsWith("custom_field:")) {
+          const oldFmt = formatCustomFieldValue(entry.old_value);
+          const newFmt = formatCustomFieldValue(entry.new_value);
+          return oldFmt !== newFmt;
+        }
+
         if (!entry.old_value && !entry.new_value) return false;
 
         if (
@@ -159,7 +257,7 @@ const TaskHistory = ({
     };
 
     load();
-  }, [open, task?.id, token, statuses, priorities]);
+  }, [open, task?.id, token, statuses, priorities, tags, customFields]);
 
   const groupedHistory = useMemo(() => {
     const groups = [];
@@ -288,7 +386,10 @@ const TaskHistory = ({
                       color: "text.primary",
                     }}
                   >
-                    {FIELD_LABELS[entry.field_name] || entry.field_name}
+                    {entry.field_name?.startsWith("custom_field:")
+                      ? entry.custom_field_name ||
+                        `Поле #${String(entry.field_name).split(":")[1]}`
+                      : FIELD_LABELS[entry.field_name] || entry.field_name}
                   </Typography>
 
                   {entry.field_name === "tag_ids" ? (
@@ -391,6 +492,51 @@ const TaskHistory = ({
                         </Box>
                       );
                     })()
+                  ) : entry.field_name?.startsWith("custom_field:") ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          textDecoration: "line-through",
+                          color: "text.secondary",
+                          fontFamily: "Montserrat, sans-serif",
+                          maxWidth: 180,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {formatCustomFieldValue(entry.old_value)}
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          fontFamily: "Montserrat, sans-serif",
+                        }}
+                      >
+                        ➡️
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.primary",
+                          fontWeight: 500,
+                          fontFamily: "Montserrat, sans-serif",
+                          maxWidth: 180,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {formatCustomFieldValue(entry.new_value)}
+                      </Typography>
+                    </Box>
                   ) : (
                     <Box
                       sx={{

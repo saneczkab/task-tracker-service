@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from sqlalchemy import orm
@@ -93,14 +94,24 @@ def create_task_history_entries(
     """Записать изменения в историю задачи."""
     entries = []
     now = datetime.utcnow()
+
+    def _serialize_history_value(value):
+        if value is None:
+            return None
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, ensure_ascii=False, default=str)
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return str(value)
+
     for field_name, (old_value, new_value) in changes.items():
         entry = task.TaskHistory(
             task_id=task_id,
             changed_by_id=changed_by_id,
             changed_at=now,
             field_name=field_name,
-            old_value=str(old_value) if old_value is not None else None,
-            new_value=str(new_value) if new_value is not None else None,
+            old_value=_serialize_history_value(old_value),
+            new_value=_serialize_history_value(new_value),
         )
         db.add(entry)
         entries.append(entry)

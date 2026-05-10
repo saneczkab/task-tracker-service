@@ -48,6 +48,7 @@ import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 import { fetchGoalsApi, updateGoalApi, deleteGoalApi } from "../../api/goal.js";
 import { fetchTasksApi, updateTaskApi, deleteTaskApi } from "../../api/task.js";
 import { fetchTeamTagsApi } from "../../api/tag.js";
+import { fetchTeamCustomFieldsApi } from "../../api/customField.js";
 import { generateRelationColors } from "../../utils/relationColors.js";
 
 const GanttChart = ({
@@ -82,6 +83,7 @@ const GanttChart = ({
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
   const [tags, setTags] = useState([]);
+  const [customFields, setCustomFields] = useState([]);
 
   const [resizing, setResizing] = useState(null);
   const [dragging, setDragging] = useState(null);
@@ -223,6 +225,14 @@ const GanttChart = ({
         setTags(tagsResp.tags || []);
       } else {
         processError(tagsResp);
+      }
+
+      const cfResp = await fetchTeamCustomFieldsApi(teamId, token);
+      if (cfResp.ok) {
+        setCustomFields(cfResp.fields || []);
+      } else {
+        processError(cfResp);
+        setCustomFields([]);
       }
     }
   }, [teamId, token]);
@@ -1738,6 +1748,7 @@ const GanttChart = ({
         statuses={statuses}
         priorities={priorities}
         tags={tags}
+        customFields={customFields}
       />
 
       <Menu

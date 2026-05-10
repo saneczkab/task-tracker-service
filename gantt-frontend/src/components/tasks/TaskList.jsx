@@ -36,6 +36,7 @@ import { fetchTasksApi, deleteTaskApi } from "../../api/task.js";
 import { fetchStatusesApi, fetchPrioritiesApi } from "../../api/meta.js";
 import { fetchTeamTagsApi } from "../../api/tag.js";
 import { fetchUserEmailApi } from "../../api/user.js";
+import { fetchTeamCustomFieldsApi } from "../../api/customField.js";
 import {
   CELL_STYLES,
   HEADER_CELL_STYLES,
@@ -51,6 +52,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [statuses, setStatuses] = useState([]);
   const [priorities, setPriorities] = useState([]);
   const [tags, setTags] = useState([]);
+  const [customFields, setCustomFields] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
@@ -181,6 +183,14 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
         setTags(tagsResponse.tags || []);
       } else {
         processError(tagsResponse.status);
+      }
+
+      const cfResponse = await fetchTeamCustomFieldsApi(teamId, token);
+      if (cfResponse.ok) {
+        setCustomFields(cfResponse.fields || []);
+      } else {
+        processError(cfResponse.status);
+        setCustomFields([]);
       }
     }
 
@@ -521,6 +531,7 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
         statuses={statuses}
         priorities={priorities}
         tags={tags}
+        customFields={customFields}
       />
     </>
   );

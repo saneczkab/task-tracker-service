@@ -1,3 +1,4 @@
+
 from sqlalchemy import orm
 
 from app.core import exception
@@ -238,7 +239,7 @@ def update_task_service(
             }
 
         if old_custom_fields != new_custom_fields:
-            changes["custom_fields"] = (str(old_custom_fields), str(new_custom_fields))
+            changes["custom_fields"] = (old_custom_fields, new_custom_fields)
 
         for field_value in task_update_data.custom_fields:
             custom_field_crud.set_task_custom_field_value(
