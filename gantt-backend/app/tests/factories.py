@@ -111,9 +111,12 @@ def build_team(team_id: int = 42, name: str = "Test team") -> Team:
 
 
 def build_project(
-    project_id: int = 42, name: str = "Test project", team_id: int = 42
+    project_id: int = 42,
+    name: str = "Test project",
+    team_id: int = 42,
+    position: int = 0,
 ) -> Project:
-    return Project(id=project_id, name=name, team_id=team_id)
+    return Project(id=project_id, name=name, team_id=team_id, position=position)
 
 
 def build_stream(
@@ -135,6 +138,7 @@ def build_task(
     start_date: Optional[datetime] = None,
     deadline: Optional[datetime] = None,
     position: int = 1,
+    kanban_position: int = 0,
 ) -> Task:
     return Task(
         id=task_id,
@@ -144,6 +148,7 @@ def build_task(
         status_id=status_id,
         priority_id=priority_id,
         position=position,
+        kanban_position=kanban_position,
         start_date=start_date,
         deadline=deadline,
     )
