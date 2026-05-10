@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from datetime import date, datetime
-from typing import Optional, List
+
+from pydantic import BaseModel
 
 
 class TaskAnalytics(BaseModel):
@@ -25,32 +25,32 @@ class TaskBrief(BaseModel):
     id: int
     name: str
     status_id: int
-    deadline: Optional[datetime]
-    assigned_users: List[str]
+    deadline: datetime | None
+    assigned_users: list[str]
 
 
 class PeriodFilter(BaseModel):
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    period: Optional[str] = None
+    start_date: date | None = None
+    end_date: date | None = None
+    period: str | None = None
 
 
 class AnalyticsFilters(BaseModel):
-    team_ids: Optional[List[int]] = None
-    project_ids: Optional[List[int]] = None
-    stream_ids: Optional[List[int]] = None
-    status_ids: Optional[List[int]] = None
-    priority_ids: Optional[List[int]] = None
-    assigned_user_ids: Optional[List[int]] = None
-    tag_ids: Optional[List[int]] = None
-    assignee_emails: Optional[List[str]] = None
+    team_ids: list[int] | None = None
+    project_ids: list[int] | None = None
+    stream_ids: list[int] | None = None
+    status_ids: list[int] | None = None
+    priority_ids: list[int] | None = None
+    assigned_user_ids: list[int] | None = None
+    tag_ids: list[int] | None = None
+    assignee_emails: list[str] | None = None
 
 
 class AnalyticsDateRanges(BaseModel):
-    start_date_from: Optional[date] = None
-    start_date_to: Optional[date] = None
-    deadline_from: Optional[date] = None
-    deadline_to: Optional[date] = None
+    start_date_from: date | None = None
+    start_date_to: date | None = None
+    deadline_from: date | None = None
+    deadline_to: date | None = None
 
 
 class RequestLimitInfo(BaseModel):
@@ -64,11 +64,11 @@ class TeamAnalyticsResponse(BaseModel):
     team_id: int
     team_name: str
     analytics: TaskAnalytics
-    users_stats: List[UserTaskStats]
-    tasks: List[TaskBrief]
-    users: List[dict]
+    users_stats: list[UserTaskStats]
+    tasks: list[TaskBrief]
+    users: list[dict]
     period: PeriodFilter
-    filters: Optional[AnalyticsFilters] = None
-    date_ranges: Optional[AnalyticsDateRanges] = None
-    ai_summary: Optional[str] = None
+    filters: AnalyticsFilters | None = None
+    date_ranges: AnalyticsDateRanges | None = None
+    ai_summary: str | None = None
     request_limit: RequestLimitInfo

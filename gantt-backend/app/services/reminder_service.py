@@ -25,10 +25,7 @@ def get_task_reminders_service(data_base: orm.Session, task_id: int, user_id: in
 
 
 def create_reminder_service(
-    data_base: orm.Session,
-    task_id: int,
-    user_id: int,
-    reminder_data
+    data_base: orm.Session, task_id: int, user_id: int, reminder_data
 ):
     """Создать напоминание"""
     check_task_permissions(data_base, task_id, user_id)
@@ -37,10 +34,7 @@ def create_reminder_service(
         raise exception.ConflictError("Время напоминания не может быть в прошлом")
 
     reminder = reminder_crud.create_reminder(
-        data_base,
-        task_id=task_id,
-        user_id=user_id,
-        remind_at=reminder_data.remind_at
+        data_base, task_id=task_id, user_id=user_id, remind_at=reminder_data.remind_at
     )
     data_base.commit()
     data_base.refresh(reminder)
@@ -48,10 +42,7 @@ def create_reminder_service(
 
 
 def update_reminder_service(
-    data_base: orm.Session,
-    reminder_id: int,
-    user_id: int,
-    reminder_data
+    data_base: orm.Session, reminder_id: int, user_id: int, reminder_data
 ):
     """Обновить напоминание"""
     reminder = reminder_crud.get_reminder_by_id(data_base, reminder_id)
@@ -77,4 +68,3 @@ def delete_reminder_service(data_base: orm.Session, reminder_id: int, user_id: i
         raise exception.ForbiddenError("Вы не можете удалить это напоминание")
 
     reminder_crud.delete_reminder(data_base, reminder)
-

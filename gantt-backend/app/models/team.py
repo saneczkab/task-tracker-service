@@ -12,13 +12,15 @@ class Team(base.Base):
     user_teams = relationship("UserTeam", back_populates="team")
     projects = relationship("Project", back_populates="team")
     tags = relationship("Tag", back_populates="team", cascade="all, delete-orphan")
-    custom_fields = relationship("CustomField", back_populates="team", cascade="all, delete-orphan")
+    custom_fields = relationship(
+        "CustomField", back_populates="team", cascade="all, delete-orphan"
+    )
 
 
 class UserTeam(base.Base):
     __tablename__ = "UserTeam"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('Users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("Users.id"), nullable=False)
     team_id = Column(Integer, ForeignKey("Teams.id"), nullable=False)
     role_id = Column(Integer, ForeignKey("Roles.id"), nullable=False)
 

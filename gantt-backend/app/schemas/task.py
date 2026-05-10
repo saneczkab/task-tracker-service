@@ -2,8 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.schemas.tag import TagResponse
 from app.schemas.custom_field import TaskCustomFieldValue, TaskCustomFieldValueBase
+from app.schemas.tag import TagResponse
 
 
 class TaskCreate(BaseModel):

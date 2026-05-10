@@ -5,38 +5,37 @@ from app.models import task
 
 def get_reminder_by_id(db: orm.Session, reminder_id: int):
     """Получить напоминание по id"""
-    return db.query(task.TaskReminder).filter(task.TaskReminder.id == reminder_id).first()
+    return (
+        db.query(task.TaskReminder).filter(task.TaskReminder.id == reminder_id).first()
+    )
 
 
 def get_reminders_by_task_and_user(db: orm.Session, task_id: int, user_id: int):
     """Получить напоминания по задаче и пользователю"""
-    return db.query(task.TaskReminder).filter(
-        task.TaskReminder.task_id == task_id,
-        task.TaskReminder.user_id == user_id
-    ).all()
+    return (
+        db.query(task.TaskReminder)
+        .filter(
+            task.TaskReminder.task_id == task_id, task.TaskReminder.user_id == user_id
+        )
+        .all()
+    )
 
 
 def get_reminders_by_user(db: orm.Session, user_id: int):
     """Получить все напоминания пользователя"""
-    return db.query(task.TaskReminder).filter(
-        task.TaskReminder.user_id == user_id
-    ).all()
+    return (
+        db.query(task.TaskReminder).filter(task.TaskReminder.user_id == user_id).all()
+    )
 
 
 def get_pending_reminders(db: orm.Session):
     """Получить все напоминания, которые нужно отправить"""
-    return db.query(task.TaskReminder).filter(
-        task.TaskReminder.sent == False
-    ).all()
+    return db.query(task.TaskReminder).filter(task.TaskReminder.sent == False).all() # noqa
 
 
 def create_reminder(db: orm.Session, task_id: int, user_id: int, remind_at):
     """Создать напоминание"""
-    reminder = task.TaskReminder(
-        task_id=task_id,
-        user_id=user_id,
-        remind_at=remind_at
-    )
+    reminder = task.TaskReminder(task_id=task_id, user_id=user_id, remind_at=remind_at)
     db.add(reminder)
     db.flush()
     return reminder
@@ -63,4 +62,3 @@ def delete_reminder(db: orm.Session, reminder_obj):
     """Удалить напоминание"""
     db.delete(reminder_obj)
     db.commit()
-

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+
 from app.core import exception
 from app.crud import tag as tag_crud
 from app.services import permissions

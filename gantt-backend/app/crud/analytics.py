@@ -1,15 +1,15 @@
+from datetime import datetime
+
 from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session, aliased
-from datetime import datetime
-from typing import Optional
 
-from app.models.task import Task
+from app.models import tag as tag_models
+from app.models.meta import UserTask
 from app.models.project import Project
 from app.models.stream import Stream
-from app.models.user import User
+from app.models.task import Task
 from app.models.team import UserTeam
-from app.models.meta import UserTask
-from app.models import tag as tag_models
+from app.models.user import User
 from app.schemas import analytics as analytics_schemas
 
 
@@ -84,7 +84,7 @@ def _apply_filters(
 
 
 def _apply_date_ranges(
-    query, date_ranges: Optional[analytics_schemas.AnalyticsDateRanges]
+    query, date_ranges: analytics_schemas.AnalyticsDateRanges | None
 ):
     """Применить фильтры по датам"""
     if not date_ranges:
@@ -113,10 +113,10 @@ def get_base_tasks_query(
     db: Session,
     team_id: int,
     period_filter: analytics_schemas.PeriodFilter,
-    date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-    filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-    project_id: Optional[int] = None,
-    stream_id: Optional[int] = None,
+    date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+    filters: analytics_schemas.AnalyticsFilters | None = None,
+    project_id: int | None = None,
+    stream_id: int | None = None,
 ):
     """Базовый запрос задач с фильтрами"""
     team_ids = filters.team_ids if filters and filters.team_ids else None
@@ -177,10 +177,10 @@ def get_users_with_tasks(
     db: Session,
     team_id: int,
     period_filter: analytics_schemas.PeriodFilter,
-    date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-    filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-    project_id: Optional[int] = None,
-    stream_id: Optional[int] = None,
+    date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+    filters: analytics_schemas.AnalyticsFilters | None = None,
+    project_id: int | None = None,
+    stream_id: int | None = None,
 ):
     """Получить пользователей команды с их запросами задач"""
     team_ids = filters.team_ids if filters and filters.team_ids else None
@@ -238,10 +238,10 @@ def get_tasks_list_query(
     db: Session,
     team_id: int,
     period_filter: analytics_schemas.PeriodFilter,
-    date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-    filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-    project_id: Optional[int] = None,
-    stream_id: Optional[int] = None,
+    date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+    filters: analytics_schemas.AnalyticsFilters | None = None,
+    project_id: int | None = None,
+    stream_id: int | None = None,
 ):
     """Получить список задач"""
     query = get_base_tasks_query(

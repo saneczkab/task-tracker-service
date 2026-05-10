@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, orm, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint, orm
 
 from app.models import base
 
@@ -13,7 +13,9 @@ class Tag(base.Base):
     team_id = Column(Integer, ForeignKey("Teams.id"), nullable=False)
 
     team = orm.relationship("Team", back_populates="tags")
-    task_links = orm.relationship("TaskTag", back_populates="tag", cascade="all, delete-orphan")
+    task_links = orm.relationship(
+        "TaskTag", back_populates="tag", cascade="all, delete-orphan"
+    )
 
 
 class TaskTag(base.Base):

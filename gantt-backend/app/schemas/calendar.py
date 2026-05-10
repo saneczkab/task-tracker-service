@@ -1,13 +1,14 @@
-from enum import Enum
+from enum import StrEnum
+
 from pydantic import BaseModel
 
 
-class ExportScope(str, Enum):
+class ExportScope(StrEnum):
     all = "all"
     my = "my"
 
 
-class ExportTarget(str, Enum):
+class ExportTarget(StrEnum):
     all = "all"
     team = "team"
     stream = "stream"

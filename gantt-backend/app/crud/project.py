@@ -5,7 +5,11 @@ from app.models import project
 
 def get_project_by_id(data_base: orm.Session, project_id: int):
     """Получить проект по project_id"""
-    return data_base.query(project.Project).filter(project.Project.id == project_id).first()
+    return (
+        data_base.query(project.Project)
+        .filter(project.Project.id == project_id)
+        .first()
+    )
 
 
 def get_projects_by_team(data_base: orm.Session, team_id: int):
@@ -15,14 +19,14 @@ def get_projects_by_team(data_base: orm.Session, team_id: int):
 
 def create_project(data_base: orm.Session, team_id: int, project_data):
 
-    max_position = data_base.query(project.Project).filter(
-        project.Project.team_id == team_id
-    ).count()
+    max_position = (
+        data_base.query(project.Project)
+        .filter(project.Project.team_id == team_id)
+        .count()
+    )
 
     new_project = project.Project(
-        name=project_data.name,
-        team_id=team_id,
-        position=max_position
+        name=project_data.name, team_id=team_id, position=max_position
     )
     data_base.add(new_project)
     data_base.commit()

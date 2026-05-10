@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 from app.core.db import SessionLocal
 from app.crud import reminder as reminder_crud
 from app.services import push_service
@@ -23,7 +25,7 @@ def start_scheduler():
                 "date",
                 run_date=r.remind_at,
                 args=[r.id],
-                id=str(r.id)
+                id=str(r.id),
             )
 
     db.close()

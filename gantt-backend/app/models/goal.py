@@ -11,9 +11,7 @@ class Goal(base.Base):
     description = Column(String)
     start_date = Column(DateTime, nullable=True)
     deadline = Column(DateTime, nullable=True)
-    stream_id = Column(Integer, ForeignKey('Streams.id'), nullable=False)
+    stream_id = Column(Integer, ForeignKey("Streams.id"), nullable=False)
     position = Column(Integer, nullable=False, default=0)
 
     stream = relationship("Stream", back_populates="goals")
-
-

@@ -1,7 +1,10 @@
-from sqlalchemy import Column, Integer, Date, ForeignKey
-from sqlalchemy.orm import relationship
-from app.models import base
 import datetime
+
+from sqlalchemy import Column, Date, ForeignKey, Integer
+from sqlalchemy.orm import relationship
+
+from app.models import base
+
 
 class RequestLimit(base.Base):
     __tablename__ = "RequestLimit"

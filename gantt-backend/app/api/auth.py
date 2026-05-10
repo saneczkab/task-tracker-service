@@ -1,13 +1,15 @@
 import fastapi
 from sqlalchemy import orm
 
-from app.core import db, exception
+from app.core import db, exception, security
 from app.services import user_service
 
 router = fastapi.APIRouter()
 
 
-def get_current_user(request: fastapi.Request, data_base: orm.Session = fastapi.Depends(db.get_db)):
+def get_current_user(
+    request: fastapi.Request, data_base: orm.Session = fastapi.Depends(db.get_db)
+):
     """Получить текущего пользователя по токену из заголовка"""
     user_id = getattr(request.state, "user_id", None)
 
@@ -28,7 +30,12 @@ def check_email(email: str, data_base: orm.Session = fastapi.Depends(db.get_db))
 
 
 @router.post("/api/register", status_code=201)
-def register(email: str, nickname: str, password: str, data_base: orm.Session = fastapi.Depends(db.get_db)):
+def register(
+    email: str,
+    nickname: str,
+    password: str,
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
     """Зарегистрировать нового пользователя"""
     try:
         return user_service.register_user_service(data_base, email, nickname, password)
@@ -37,9 +44,21 @@ def register(email: str, nickname: str, password: str, data_base: orm.Session = 
 
 
 @router.post("/api/login")
-def login(email: str, password: str, data_base: orm.Session = fastapi.Depends(db.get_db)):
+def login(
+    email: str, password: str, data_base: orm.Session = fastapi.Depends(db.get_db)
+):
     """Авторизовать пользователя и вернуть токен"""
     try:
         return user_service.login_user_service(data_base, email, password)
     except exception.ForbiddenError as e:
+        raise fastapi.HTTPException(status_code=401, detail=str(e))
+
+
+@router.post("/api/refresh")
+def refresh(refresh_token: str):
+    """Обновить access токен с использованием refresh токена"""
+    try:
+        access_token = security.refresh_access_token(refresh_token)
+        return {"access_token": access_token, "token_type": "Bearer"}
+    except ValueError as e:
         raise fastapi.HTTPException(status_code=401, detail=str(e))

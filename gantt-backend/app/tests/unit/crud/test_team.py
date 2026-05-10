@@ -1,203 +1,130 @@
-from unittest.mock import Mock
-
 from app.crud.team import (
-    get_user_team_by_id,
+    add_user_to_team,
+    create_team,
+    delete_member,
+    delete_team,
     get_team_by_id,
-    get_user_team,
     get_team_users,
     get_teams_by_user,
     get_user_by_email,
-    create_team,
-    add_user_to_team,
-    delete_member,
-    delete_team,
+    get_user_team,
+    get_user_team_by_id,
 )
+from app.models import team as team_model
 
 
-def test_get_user_team_by_id_returns_user_team():
-    mock_db = Mock()
-    expected = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected
-
-    result = get_user_team_by_id(mock_db, user_id=42, team_id=42)
-
-    assert result is expected
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_user_team_by_id_returns_user_team(db_session, user_team_obj):
+    result = get_user_team_by_id(db_session, user_id=42, team_id=42)
+    assert result.id == user_team_obj.id
 
 
-def test_get_user_team_by_id_returns_none_when_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_user_team_by_id(mock_db, user_id=42, team_id=42)
-
+def test_get_user_team_by_id_returns_none_when_not_found(db_session):
+    result = get_user_team_by_id(db_session, user_id=42, team_id=42)
     assert result is None
 
 
-def test_get_team_by_id_returns_team():
-    mock_db = Mock()
-    expected = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected
-
-    result = get_team_by_id(mock_db, team_id=42)
-
-    assert result is expected
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_team_by_id_returns_team(db_session, team_obj):
+    result = get_team_by_id(db_session, team_id=42)
+    assert result.id == team_obj.id
 
 
-def test_get_team_by_id_returns_none_when_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_team_by_id(mock_db, team_id=42)
-
+def test_get_team_by_id_returns_none_when_not_found(db_session):
+    result = get_team_by_id(db_session, team_id=42)
     assert result is None
 
 
-def test_get_user_team_returns_user_team():
-    mock_db = Mock()
-    expected = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected
-
-    result = get_user_team(mock_db, team_id=42, user_id=42)
-
-    assert result is expected
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_user_team_returns_user_team(db_session, user_team_obj):
+    result = get_user_team(db_session, team_id=42, user_id=42)
+    assert result.id == user_team_obj.id
 
 
-def test_get_user_team_returns_none_when_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_user_team(mock_db, team_id=42, user_id=42)
-
+def test_get_user_team_returns_none_when_not_found(db_session):
+    result = get_user_team(db_session, team_id=42, user_id=42)
     assert result is None
 
 
-def test_get_team_users_returns_list():
-    mock_db = Mock()
-    expected = [Mock(), Mock()]
-    mock_db.query.return_value.filter.return_value.all.return_value = expected
-
-    result = get_team_users(mock_db, team_id=42)
-
-    assert result == expected
-    mock_db.query.return_value.filter.return_value.all.assert_called_once()
+def test_get_team_users_returns_list(db_session, user_team_obj):
+    result = get_team_users(db_session, team_id=42)
+    assert len(result) == 1
+    assert result[0].id == user_team_obj.id
 
 
-def test_get_team_users_returns_empty_list():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.all.return_value = []
-
-    result = get_team_users(mock_db, team_id=42)
-
+def test_get_team_users_returns_empty_list(db_session):
+    result = get_team_users(db_session, team_id=42)
     assert result == []
 
 
-def test_get_teams_by_user_returns_list():
-    mock_db = Mock()
-    expected = [Mock(), Mock()]
-    mock_db.query.return_value.join.return_value.filter.return_value.all.return_value = expected
-
-    result = get_teams_by_user(mock_db, user_id=42)
-
-    assert result == expected
-    mock_db.query.return_value.join.return_value.filter.return_value.all.assert_called_once()
+def test_get_teams_by_user_returns_list(db_session, user_team_obj):
+    result = get_teams_by_user(db_session, user_id=42)
+    assert len(result) == 1
+    assert result[0].id == 42
 
 
-def test_get_teams_by_user_returns_empty_list():
-    mock_db = Mock()
-    mock_db.query.return_value.join.return_value.filter.return_value.all.return_value = []
-
-    result = get_teams_by_user(mock_db, user_id=42)
-
+def test_get_teams_by_user_returns_empty_list(db_session):
+    result = get_teams_by_user(db_session, user_id=42)
     assert result == []
 
 
-def test_get_user_by_email_returns_user():
-    mock_db = Mock()
-    expected = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected
-
-    result = get_user_by_email(mock_db, email="test@test.com")
-
-    assert result is expected
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_user_by_email_returns_user(db_session, user_obj):
+    result = get_user_by_email(db_session, email=user_obj.email)
+    assert result.id == user_obj.id
 
 
-def test_get_user_by_email_returns_none_when_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_user_by_email(mock_db, email="not-exists@test.com")
-
+def test_get_user_by_email_returns_none_when_not_found(db_session):
+    result = get_user_by_email(db_session, email="not-exists@test.com")
     assert result is None
 
 
-def test_create_team():
-    mock_db = Mock()
-
-    result = create_team(mock_db, name="Test")
-
+def test_create_team(db_session):
+    result = create_team(db_session, name="Test")
     assert result.name == "Test"
-
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
-    added_obj = mock_db.add.call_args[0][0]
-    mock_db.refresh.assert_called_once_with(added_obj)
-    assert result is added_obj
+    assert result.id is not None
 
 
-def test_add_user_to_team():
-    mock_db = Mock()
-    team_id = 42
-    user_id = 42
-    role_id = 1
-
-    result = add_user_to_team(mock_db, team_id, user_id, role_id)
-
-    assert result.team_id == team_id
-    assert result.user_id == user_id
-    assert result.role_id == role_id
-
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
-    added_obj = mock_db.add.call_args[0][0]
-    mock_db.refresh.assert_called_once_with(added_obj)
-    assert result is added_obj
+def test_add_user_to_team(db_session, role_editor, user_obj, team_obj):
+    result = add_user_to_team(db_session, team_obj.id, user_obj.id, role_editor.id)
+    assert result.team_id == team_obj.id
+    assert result.user_id == user_obj.id
+    assert result.role_id == role_editor.id
 
 
-def test_delete_member_calls_delete_and_commit():
-    mock_db = Mock()
-
-    delete_member(mock_db, team_id=42, user_id=42)
-
-    mock_db.query.return_value.filter.return_value.delete.assert_called_once()
-    mock_db.commit.assert_called_once()
+def test_delete_member_calls_delete_and_commit(db_session, user_team_obj):
+    delete_member(db_session, team_id=42, user_id=42)
+    assert get_user_team(db_session, team_id=42, user_id=42) is None
 
 
-def test_delete_member_does_not_refresh():
-    mock_db = Mock()
+def test_delete_member_does_not_break_other_members(
+    db_session, role_editor, user_obj, second_user_obj, team_obj
+):
+    first = add_user_to_team(db_session, team_obj.id, user_obj.id, role_editor.id)
+    second = add_user_to_team(
+        db_session, team_obj.id, second_user_obj.id, role_editor.id
+    )
+    first_id = first.id
+    second_id = second.id
 
-    delete_member(mock_db, team_id=42, user_id=42)
+    delete_member(db_session, team_id=team_obj.id, user_id=user_obj.id)
 
-    mock_db.refresh.assert_not_called()
+    left = (
+        db_session.query(team_model.UserTeam)
+        .filter(team_model.UserTeam.id == second_id)
+        .first()
+    )
+    removed = (
+        db_session.query(team_model.UserTeam)
+        .filter(team_model.UserTeam.id == first_id)
+        .first()
+    )
+    assert left is not None
+    assert removed is None
 
 
-def test_delete_team_calls_delete_and_commit():
-    mock_db = Mock()
-    team_obj = Mock()
-
-    delete_team(mock_db, team_obj)
-
-    mock_db.delete.assert_called_once_with(team_obj)
-    mock_db.commit.assert_called_once()
+def test_delete_team_calls_delete_and_commit(db_session, team_obj):
+    delete_team(db_session, team_obj)
+    assert get_team_by_id(db_session, team_id=42) is None
 
 
-def test_delete_team_does_not_refresh():
-    mock_db = Mock()
-    team_obj = Mock()
-
-    delete_team(mock_db, team_obj)
-
-    mock_db.refresh.assert_not_called()
+def test_delete_team_does_not_refresh(db_session):
+    team = create_team(db_session, name="Tmp")
+    delete_team(db_session, team)
+    assert get_team_by_id(db_session, team.id) is None

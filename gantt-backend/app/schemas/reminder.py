@@ -12,6 +12,7 @@ class ReminderCreate(BaseModel):
             raise ValueError("remind_at должен быть в будущем")
         return remind_at
 
+
 class ReminderUpdate(BaseModel):
     remind_at: datetime | None = None
 
@@ -30,4 +31,3 @@ class ReminderResponse(BaseModel):
     sent: bool
 
     model_config = ConfigDict(from_attributes=True)
-

@@ -15,4 +15,3 @@ class PushSubscriptionResponse(BaseModel):
     auth: str
 
     model_config = ConfigDict(from_attributes=True)
-

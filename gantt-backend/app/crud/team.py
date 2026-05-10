@@ -4,9 +4,12 @@ from app.models import team, user
 
 
 def get_user_team_by_id(data_base: orm.Session, user_id: int, team_id: int):
-    """"Получить user_team по team_id и user_id"""
-    return data_base.query(team.UserTeam).filter(team.UserTeam.team_id == team_id,
-                                                 team.UserTeam.user_id == user_id).first()
+    """ "Получить user_team по team_id и user_id"""
+    return (
+        data_base.query(team.UserTeam)
+        .filter(team.UserTeam.team_id == team_id, team.UserTeam.user_id == user_id)
+        .first()
+    )
 
 
 def get_team_by_id(data_base: orm.Session, team_id: int):
@@ -14,8 +17,11 @@ def get_team_by_id(data_base: orm.Session, team_id: int):
 
 
 def get_user_team(data_base: orm.Session, team_id: int, user_id: int):
-    return data_base.query(team.UserTeam).filter(team.UserTeam.team_id == team_id,
-                                                 team.UserTeam.user_id == user_id).first()
+    return (
+        data_base.query(team.UserTeam)
+        .filter(team.UserTeam.team_id == team_id, team.UserTeam.user_id == user_id)
+        .first()
+    )
 
 
 def get_team_users(data_base: orm.Session, team_id: int):
@@ -46,11 +52,7 @@ def create_team(data_base: orm.Session, name: str):
 
 
 def add_user_to_team(data_base: orm.Session, team_id: int, user_id: int, role_id: int):
-    member = team.UserTeam(
-        team_id=team_id,
-        user_id=user_id,
-        role_id=role_id
-    )
+    member = team.UserTeam(team_id=team_id, user_id=user_id, role_id=role_id)
     data_base.add(member)
     data_base.commit()
     data_base.refresh(member)
@@ -58,8 +60,9 @@ def add_user_to_team(data_base: orm.Session, team_id: int, user_id: int, role_id
 
 
 def delete_member(data_base: orm.Session, team_id: int, user_id: int):
-    data_base.query(team.UserTeam).filter(team.UserTeam.team_id == team_id, team.UserTeam.user_id == user_id).delete(
-        synchronize_session=False)
+    data_base.query(team.UserTeam).filter(
+        team.UserTeam.team_id == team_id, team.UserTeam.user_id == user_id
+    ).delete(synchronize_session=False)
     data_base.commit()
 
 
