@@ -6,7 +6,7 @@ from app.core import db, exception
 from app.schemas import project as project_schemas
 from app.schemas import tag as tag_schemas
 from app.schemas import team as team_schemas
-from app.services import project_service, team_service, task_service, tag_service
+from app.services import project_service, tag_service, task_service, team_service
 
 router = fastapi.APIRouter()
 

@@ -1,9 +1,10 @@
-from enum import Enum
+
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-class UserRole(str, Enum):
+class UserRole(StrEnum):
     READER = "Reader"
     EDITOR = "Editor"
 

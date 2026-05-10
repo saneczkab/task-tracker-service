@@ -1,4 +1,4 @@
-from app.crud.meta import get_team_statuses, get_team_priorities, get_connection_types
+from app.crud.meta import get_connection_types, get_team_priorities, get_team_statuses
 
 
 def test_get_team_statuses_returns_list(db_session, status_obj):

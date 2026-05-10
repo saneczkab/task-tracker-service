@@ -1,8 +1,9 @@
 import io
-import fastapi
 
+import fastapi
 from sqlalchemy import orm
 from starlette import responses
+
 from app.api import auth
 from app.core import db, exception
 from app.schemas import calendar as calendar_schemas

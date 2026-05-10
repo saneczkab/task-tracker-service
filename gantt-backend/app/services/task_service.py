@@ -1,8 +1,9 @@
 from sqlalchemy import orm
 
 from app.core import exception
-from app.crud import task as task_crud, custom_field as custom_field_crud
-from app.models import meta, project, task, team, user, tag, stream, custom_field
+from app.crud import custom_field as custom_field_crud
+from app.crud import task as task_crud
+from app.models import custom_field, meta, project, stream, tag, task, team, user
 from app.services import permissions
 
 

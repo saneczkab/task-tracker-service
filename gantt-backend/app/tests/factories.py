@@ -1,23 +1,22 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
 
-from app.models.user import User
-from app.models.team import Team, UserTeam, Role
-from app.models.project import Project
-from app.models.stream import Stream
-from app.models.task import Task, TaskRelation, TaskReminder, TaskHistory
-from app.models.push import PushSubscription
-from app.models.goal import Goal
-from app.models.meta import Status, Priority, ConnectionType
-from app.models.tag import Tag, TaskTag
+from app.core.security import get_password_hash
 from app.models.custom_field import (
     CustomField,
     CustomFieldType,
     TaskCustomFieldValue,
 )
-from app.core.security import get_password_hash
+from app.models.goal import Goal
+from app.models.meta import ConnectionType, Priority, Status
+from app.models.project import Project
+from app.models.push import PushSubscription
+from app.models.stream import Stream
+from app.models.tag import Tag
+from app.models.task import Task, TaskHistory, TaskRelation, TaskReminder
+from app.models.team import Role, Team, UserTeam
+from app.models.user import User
 
 
 class UserFactory(SQLAlchemyFactory[User]):
@@ -92,7 +91,7 @@ def build_user(
     user_id: int = 42,
     email: str = "test@example.com",
     nickname: str = "test_user",
-    password_hash: Optional[str] = None,
+    password_hash: str | None = None,
 ) -> User:
     if password_hash is None:
         password_hash = get_password_hash("test_password")
@@ -132,11 +131,11 @@ def build_task(
     task_id: int = 42,
     name: str = "Test task",
     stream_id: int = 42,
-    description: Optional[str] = None,
-    status_id: Optional[int] = None,
-    priority_id: Optional[int] = None,
-    start_date: Optional[datetime] = None,
-    deadline: Optional[datetime] = None,
+    description: str | None = None,
+    status_id: int | None = None,
+    priority_id: int | None = None,
+    start_date: datetime | None = None,
+    deadline: datetime | None = None,
     position: int = 1,
     kanban_position: int = 0,
 ) -> Task:
@@ -158,8 +157,8 @@ def build_goal(
     goal_id: int = 42,
     name: str = "Test goal",
     stream_id: int = 42,
-    deadline: Optional[datetime] = None,
-    description: Optional[str] = None,
+    deadline: datetime | None = None,
+    description: str | None = None,
     position: int = 1,
 ) -> Goal:
     if deadline is None:
@@ -222,7 +221,7 @@ def build_reminder(
     reminder_id: int = 42,
     task_id: int = 42,
     user_id: int = 42,
-    remind_at: Optional[datetime] = None,
+    remind_at: datetime | None = None,
     sent: bool = False,
 ) -> TaskReminder:
     if remind_at is None:
@@ -284,9 +283,9 @@ def build_task_custom_field_value(
     value_id: int = 42,
     task_id: int = 42,
     custom_field_id: int = 42,
-    value_string: Optional[str] = None,
-    value_text: Optional[str] = None,
-    value_bool: Optional[bool] = None,
+    value_string: str | None = None,
+    value_text: str | None = None,
+    value_bool: bool | None = None,
 ) -> TaskCustomFieldValue:
     return TaskCustomFieldValue(
         id=value_id,
@@ -307,7 +306,7 @@ def build_task_history(
     field_name: str = "name",
     old_value: str = "",
     new_value: str = "",
-    changed_at: Optional[datetime] = None,
+    changed_at: datetime | None = None,
 ) -> TaskHistory:
     return TaskHistory(
         id=history_id,

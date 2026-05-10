@@ -1,9 +1,9 @@
 from app.crud.project import (
+    create_project,
+    delete_project,
     get_project_by_id,
     get_projects_by_team,
-    create_project,
     update_project,
-    delete_project,
 )
 from app.schemas.project import ProjectCreate, ProjectUpdate
 

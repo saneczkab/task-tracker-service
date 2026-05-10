@@ -1,6 +1,6 @@
 import datetime
 
-from jose import jwt, exceptions
+from jose import exceptions, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings

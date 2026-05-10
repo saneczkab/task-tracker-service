@@ -1,7 +1,9 @@
-import httpx
 import os
 from datetime import datetime
-from app.schemas.analytics import TaskAnalytics, UserTaskStats, TaskBrief
+
+import httpx
+
+from app.schemas.analytics import TaskAnalytics, TaskBrief, UserTaskStats
 
 
 class AIReportService:

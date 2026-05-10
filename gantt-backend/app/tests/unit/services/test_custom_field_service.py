@@ -3,8 +3,8 @@ from unittest.mock import DEFAULT, Mock, patch
 import pytest
 
 from app.core import exception
-from app.models.custom_field import CustomFieldType
 from app.models import custom_field as custom_field_model
+from app.models.custom_field import CustomFieldType
 from app.schemas.custom_field import CustomFieldBase
 from app.services.custom_field_service import (
     create_custom_field_service,

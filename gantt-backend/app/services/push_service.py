@@ -6,11 +6,11 @@ from sqlalchemy import orm
 from app.core import exception
 from app.core.config import settings
 from app.core.db import SessionLocal
+from app.crud import project as project_crud
 from app.crud import push as push_crud
 from app.crud import reminder as reminder_crud
-from app.crud import task as task_crud
 from app.crud import stream as stream_crud
-from app.crud import project as project_crud
+from app.crud import task as task_crud
 from app.crud import team as team_crud
 
 

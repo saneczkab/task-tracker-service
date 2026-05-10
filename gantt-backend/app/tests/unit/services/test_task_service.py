@@ -13,13 +13,13 @@ from app.models import user as user_model
 from app.services.task_service import (
     create_task_relation_service,
     create_task_service,
-    delete_task_service,
     delete_task_custom_field_service,
     delete_task_relation_service,
+    delete_task_service,
     get_all_tasks_service,
-    get_task_history_service,
     get_project_tasks_service,
     get_stream_tasks_service,
+    get_task_history_service,
     update_task_service,
 )
 

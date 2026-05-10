@@ -1,14 +1,15 @@
 import datetime
-import ics
 
+import ics
 from sqlalchemy import orm
+
 from app.crud.task import (
-    get_tasks_by_user_id,
-    get_tasks_by_team_id,
-    get_tasks_by_stream_id,
-    get_tasks_by_team_ids,
     get_tasks_by_project_ids,
+    get_tasks_by_stream_id,
     get_tasks_by_stream_ids,
+    get_tasks_by_team_id,
+    get_tasks_by_team_ids,
+    get_tasks_by_user_id,
 )
 from app.schemas import calendar
 

@@ -4,23 +4,23 @@ import sys
 sys.path.append(os.path.dirname(__file__))
 import fastapi
 
+from app.api.analytics import router as analytics_router
 from app.api.auth import router as auth_router
+from app.api.calendar import router as calendar_router
+from app.api.custom_field import router as custom_field_router
 from app.api.goal import router as goal_router
 from app.api.meta import router as meta_router
 from app.api.project import router as project_router
+from app.api.push import router as push_router
+from app.api.reminder import router as reminder_router
 from app.api.stream import router as stream_router
 from app.api.task import router as task_router
 from app.api.team import router as team_router
 from app.api.user import router as user_router
-from app.api.reminder import router as reminder_router
-from app.api.push import router as push_router
-from app.api.custom_field import router as custom_field_router
-from app.api.calendar import router as calendar_router
-from app.api.analytics import router as analytics_router
 from app.core import middleware
 from app.core.db import engine
-from app.models.base import Base
 from app.core.scheduler import start_scheduler
+from app.models.base import Base
 
 Base.metadata.create_all(bind=engine)
 

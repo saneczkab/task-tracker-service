@@ -1,11 +1,11 @@
+from datetime import datetime
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from datetime import datetime
-from typing import Optional, List
 
 from app.crud import analytics as analytics_crud
-from app.schemas import analytics as analytics_schemas
 from app.models.task import Task
+from app.schemas import analytics as analytics_schemas
 
 
 class AnalyticsService:
@@ -14,10 +14,10 @@ class AnalyticsService:
         data_base: Session,
         team_id: int,
         period_filter: analytics_schemas.PeriodFilter,
-        date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-        filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-        project_id: Optional[int] = None,
-        stream_id: Optional[int] = None,
+        date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+        filters: analytics_schemas.AnalyticsFilters | None = None,
+        project_id: int | None = None,
+        stream_id: int | None = None,
     ) -> analytics_schemas.TaskAnalytics:
         query = analytics_crud.get_base_tasks_query(
             data_base,
@@ -45,11 +45,11 @@ class AnalyticsService:
         data_base: Session,
         team_id: int,
         period_filter: analytics_schemas.PeriodFilter,
-        date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-        filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-        project_id: Optional[int] = None,
-        stream_id: Optional[int] = None,
-    ) -> List[analytics_schemas.UserTaskStats]:
+        date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+        filters: analytics_schemas.AnalyticsFilters | None = None,
+        project_id: int | None = None,
+        stream_id: int | None = None,
+    ) -> list[analytics_schemas.UserTaskStats]:
         STATUS_DONE = 4
 
         users_with_tasks = analytics_crud.get_users_with_tasks(
@@ -98,11 +98,11 @@ class AnalyticsService:
         data_base: Session,
         team_id: int,
         period_filter: analytics_schemas.PeriodFilter,
-        date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-        filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-        project_id: Optional[int] = None,
-        stream_id: Optional[int] = None,
-    ) -> List[analytics_schemas.TaskBrief]:
+        date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+        filters: analytics_schemas.AnalyticsFilters | None = None,
+        project_id: int | None = None,
+        stream_id: int | None = None,
+    ) -> list[analytics_schemas.TaskBrief]:
         tasks = analytics_crud.get_tasks_list_query(
             data_base,
             team_id,

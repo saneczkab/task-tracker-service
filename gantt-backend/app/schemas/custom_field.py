@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,19 +19,19 @@ class CustomField(CustomFieldBase):
 
 class TaskCustomFieldValueBase(BaseModel):
     custom_field_id: int = Field(..., gt=0)
-    value_string: Optional[str] = None
-    value_text: Optional[str] = None
-    value_date: Optional[date] = None
-    value_datetime: Optional[datetime] = None
-    value_bool: Optional[bool] = None
+    value_string: str | None = None
+    value_text: str | None = None
+    value_date: date | None = None
+    value_datetime: datetime | None = None
+    value_bool: bool | None = None
 
 
 class TaskCustomFieldValueUpdate(BaseModel):
-    value_string: Optional[str] = None
-    value_text: Optional[str] = None
-    value_date: Optional[date] = None
-    value_datetime: Optional[datetime] = None
-    value_bool: Optional[bool] = None
+    value_string: str | None = None
+    value_text: str | None = None
+    value_date: date | None = None
+    value_datetime: datetime | None = None
+    value_bool: bool | None = None
 
 
 class TaskCustomFieldValue(TaskCustomFieldValueBase):

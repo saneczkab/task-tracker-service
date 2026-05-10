@@ -1,21 +1,22 @@
+from enum import StrEnum
+
 from sqlalchemy import (
+    Boolean,
     Column,
-    Integer,
-    String,
-    ForeignKey,
-    Enum,
-    Text,
     Date,
     DateTime,
-    Boolean,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.orm import relationship
 
 from app.models import base
-import enum
 
 
-class CustomFieldType(str, enum.Enum):
+class CustomFieldType(StrEnum):
     STRING = "string"
     TEXT = "text"
     DATE = "date"

@@ -5,7 +5,7 @@ from app.api import auth
 from app.core import db, exception
 from app.core.scheduler import scheduler
 from app.schemas import reminder as reminder_schemas
-from app.services import reminder_service, push_service
+from app.services import push_service, reminder_service
 
 router = fastapi.APIRouter(prefix="/api/tasks", tags=["Reminders"])
 

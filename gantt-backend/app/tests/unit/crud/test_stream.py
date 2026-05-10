@@ -1,13 +1,13 @@
 import pytest
 
-from app.core.exception import NotFoundError, ConflictError
+from app.core.exception import ConflictError, NotFoundError
 from app.crud.stream import (
-    get_streams_by_project_id,
+    create_new_stream,
+    delete_stream,
     get_stream_by_id,
     get_stream_by_name_and_proj_id,
-    create_new_stream,
+    get_streams_by_project_id,
     update_stream,
-    delete_stream,
 )
 from app.schemas.stream import StreamCreate, StreamUpdate
 

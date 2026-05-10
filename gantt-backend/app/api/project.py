@@ -3,12 +3,12 @@ from sqlalchemy import orm
 
 from app.api import auth
 from app.core import db, exception
+from app.crud import project as project_crud
 from app.models import user as user_models
 from app.schemas import project as project_schemas
 from app.schemas import stream as stream_schemas
 from app.schemas import task as task_schemas
-from app.services import project_service, stream_service, task_service, permissions
-from app.crud import project as project_crud
+from app.services import permissions, project_service, stream_service, task_service
 
 router = fastapi.APIRouter()
 

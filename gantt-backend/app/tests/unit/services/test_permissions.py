@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 from app.core import exception
-from app.models.role import Role
 from app.models import team as team_model
+from app.models.role import Role
 from app.services.permissions import (
     check_editor_permission,
     check_project_access,

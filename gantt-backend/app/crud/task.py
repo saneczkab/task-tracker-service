@@ -3,11 +3,17 @@ from datetime import datetime
 from sqlalchemy import orm
 
 from app.models import (
+    meta as meta_model,
+)
+from app.models import (
+    project as project_model,
+)
+from app.models import (
+    stream as stream_model,
+)
+from app.models import (
     task,
     team,
-    project as project_model,
-    stream as stream_model,
-    meta as meta_model,
 )
 
 

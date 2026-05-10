@@ -2,11 +2,11 @@ from datetime import datetime
 
 from app.crud.goal import (
     create_goal,
-    get_goal_by_id,
-    get_goals_by_stream,
-    get_goal_by_name_in_stream,
-    update_goal,
     delete_goal,
+    get_goal_by_id,
+    get_goal_by_name_in_stream,
+    get_goals_by_stream,
+    update_goal,
 )
 from app.schemas.goal import GoalCreate, GoalUpdate
 
