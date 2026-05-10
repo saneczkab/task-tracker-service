@@ -23,3 +23,6 @@ ignore = [
     "B008",
     "B904",
 ]
+
+[tool.coverage.run]
+omit = ["app/tests/*"]

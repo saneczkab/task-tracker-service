@@ -1,121 +1,81 @@
 import pytest
-from unittest.mock import Mock, patch
-from sqlalchemy.exc import IntegrityError
 
+from app.core.exception import ConflictError, NotFoundError
 from app.crud.user import (
-    get_user_by_id,
-    get_user_by_email,
-    get_user_by_nickname,
     create_user,
+    get_user_by_email,
+    get_user_by_id,
+    get_user_by_nickname,
 )
-from app.core.exception import NotFoundError, ConflictError
 
 
-def test_get_user_by_id_returns_user():
-    mock_db = Mock()
-    expected = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected
-
-    result = get_user_by_id(mock_db, user_id=42)
-
-    assert result is expected
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_user_by_id_returns_user(db_session, user_obj):
+    result = get_user_by_id(db_session, user_id=user_obj.id)
+    assert result.id == user_obj.id
 
 
-def test_get_user_by_id_raises_not_found_when_missing():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
+def test_get_user_by_id_raises_not_found_when_missing(db_session):
     with pytest.raises(NotFoundError):
-        get_user_by_id(mock_db, user_id=42)
+        get_user_by_id(db_session, user_id=999)
 
 
-def test_get_user_by_email_returns_user():
-    mock_db = Mock()
-    expected = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected
-
-    result = get_user_by_email(mock_db, email="test@test.com")
-
-    assert result is expected
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_user_by_email_returns_user(db_session, user_obj):
+    result = get_user_by_email(db_session, email=user_obj.email)
+    assert result.id == user_obj.id
 
 
-def test_get_user_by_email_returns_none_when_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_user_by_email(mock_db, email="not-exist@test.com")
-
+def test_get_user_by_email_returns_none_when_not_found(db_session):
+    result = get_user_by_email(db_session, email="not-exist@test.com")
     assert result is None
 
 
-def test_get_user_by_nickname_returns_user():
-    mock_db = Mock()
-    expected = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = expected
-
-    result = get_user_by_nickname(mock_db, nickname="test_nick")
-
-    assert result is expected
-    mock_db.query.return_value.filter.return_value.first.assert_called_once()
+def test_get_user_by_nickname_returns_user(db_session, user_obj):
+    result = get_user_by_nickname(db_session, nickname=user_obj.nickname)
+    assert result.id == user_obj.id
 
 
-def test_get_user_by_nickname_returns_none_when_not_found():
-    mock_db = Mock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    result = get_user_by_nickname(mock_db, nickname="not_exist")
-
+def test_get_user_by_nickname_returns_none_when_not_found(db_session):
+    result = get_user_by_nickname(db_session, nickname="not_exist")
     assert result is None
 
 
-def test_create_user():
-    mock_db = Mock()
-
+def test_create_user(db_session):
     result = create_user(
-        mock_db,
-        email="test@test.com",
-        nickname="test",
+        db_session,
+        email="new@test.com",
+        nickname="new_user",
         password_hash="hash",
     )
 
-    assert result.email == "test@test.com"
-    assert result.nickname == "test"
+    assert result.email == "new@test.com"
+    assert result.nickname == "new_user"
     assert result.password_hash == "hash"
-
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
-    added_obj = mock_db.add.call_args[0][0]
-    mock_db.refresh.assert_called_once_with(added_obj)
-    assert result is added_obj
+    assert result.id is not None
 
 
-def test_create_user_raises_conflict_on_integrity_error():
-    mock_db = Mock()
-    mock_db.commit.side_effect = IntegrityError(None, None, None)
-
+def test_create_user_raises_conflict_on_integrity_error(db_session, user_obj):
     with pytest.raises(ConflictError):
         create_user(
-            mock_db,
-            email="test@test.com",
-            nickname="test",
+            db_session,
+            email=user_obj.email,
+            nickname="another_nick",
             password_hash="hash",
         )
 
-    mock_db.rollback.assert_called_once()
 
-
-def test_create_user_does_not_refresh_on_integrity_error():
-    mock_db = Mock()
-    mock_db.commit.side_effect = IntegrityError(None, None, None)
-
+def test_create_user_rollback_keeps_session_usable(db_session, user_obj):
     with pytest.raises(ConflictError):
         create_user(
-            mock_db,
-            email="test@test.com",
-            nickname="test",
+            db_session,
+            email=user_obj.email,
+            nickname="another_nick",
             password_hash="hash",
         )
 
-    mock_db.refresh.assert_not_called()
+    created = create_user(
+        db_session,
+        email="ok@test.com",
+        nickname="ok_nick",
+        password_hash="hash",
+    )
+    assert created.email == "ok@test.com"

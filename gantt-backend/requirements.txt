@@ -13,6 +13,8 @@ psycopg2-binary>=2.9.6
 email-validator
 yandex-gpt-api
 pytest
+pytest-mock
 python-dotenv
 ruff
 httpx
+polyfactory>=2.0.0
