@@ -94,6 +94,7 @@ const ProfileModal = ({ open, onClose, anchorEl }) => {
 
   const handleLogout = () => {
     window.localStorage.removeItem("auth_token");
+    window.localStorage.removeItem("refresh_token");
     window.location.href = "/login";
   };
 

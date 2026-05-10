@@ -1,7 +1,7 @@
 import fastapi
 from sqlalchemy import orm
 
-from app.core import db, exception
+from app.core import db, exception, security
 from app.services import user_service
 
 router = fastapi.APIRouter()
@@ -43,3 +43,14 @@ def login(email: str, password: str, data_base: orm.Session = fastapi.Depends(db
         return user_service.login_user_service(data_base, email, password)
     except exception.ForbiddenError as e:
         raise fastapi.HTTPException(status_code=401, detail=str(e))
+
+
+@router.post("/api/refresh")
+def refresh(refresh_token: str):
+    """Обновить access токен с использованием refresh токена"""
+    try:
+        access_token = security.refresh_access_token(refresh_token)
+        return {"access_token": access_token, "token_type": "Bearer"}
+    except ValueError as e:
+        raise fastapi.HTTPException(status_code=401, detail=str(e))
+

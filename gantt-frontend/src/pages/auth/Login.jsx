@@ -84,6 +84,9 @@ const Login = () => {
 
     const auth = `${tokenType} ${accessToken}`;
     localStorage.setItem("auth_token", auth);
+    if (data?.refresh_token) {
+      localStorage.setItem("refresh_token", data.refresh_token);
+    }
     navigate("/");
   };
 
