@@ -180,6 +180,73 @@ const KanbanBoard = () => {
     );
   };
 
+  const handleTaskReorder = async (
+    draggedId,
+    targetTask,
+    targetStatusId,
+    insertAfter = false,
+  ) => {
+    if (!draggedId || draggedId === targetTask.id) return;
+
+    const draggedTask = tasks.find((t) => t.id === draggedId);
+    if (!draggedTask) return;
+
+    const targetCol = (tasks || [])
+      .filter(
+        (t) =>
+          (t.status_id ?? null) === (targetStatusId ?? null) &&
+          t.id !== draggedId,
+      )
+      .sort((a, b) => (a.kanban_position ?? 0) - (b.kanban_position ?? 0));
+
+    const targetIdx = targetCol.findIndex((t) => t.id === targetTask.id);
+    if (targetIdx === -1) return;
+
+    const insertIdx = insertAfter ? targetIdx + 1 : targetIdx;
+
+    const reordered = [...targetCol];
+    reordered.splice(insertIdx, 0, draggedTask);
+
+    const updates = reordered.map((t, idx) => ({
+      id: t.id,
+      kanban_position: idx + 1,
+      status_id: targetStatusId ?? null,
+    }));
+
+    for (const u of updates) {
+      const cur = tasks.find((t) => t.id === u.id);
+      if (!cur) continue;
+
+      const payload = {};
+      if ((cur.kanban_position ?? 0) !== u.kanban_position) {
+        payload.kanban_position = u.kanban_position;
+      }
+      if ((cur.status_id ?? null) !== u.status_id) {
+        payload.status_id = u.status_id;
+      }
+
+      if (Object.keys(payload).length === 0) continue;
+
+      const response = await updateTaskApi(u.id, payload, token);
+      if (!response.ok) {
+        processError(response.status);
+        return;
+      }
+    }
+
+    setTasks((prev) =>
+      (prev || []).map((t) => {
+        const u = updates.find((x) => x.id === t.id);
+        if (!u) return t;
+        return {
+          ...t,
+          kanban_position: u.kanban_position,
+          status_id: u.status_id,
+        };
+      }),
+    );
+  };
+
   if (loading) {
     return (
       <div>
@@ -234,6 +301,7 @@ const KanbanBoard = () => {
                     onAddTask={handleAddTask}
                     onTaskDelete={handleTaskDelete}
                     onTaskHistory={handleTaskHistory}
+                    onTaskReorder={handleTaskReorder}
                   />
                 </div>
               ))}

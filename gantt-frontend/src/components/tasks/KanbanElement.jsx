@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Box, Paper, Typography, IconButton } from "@mui/material";
 import TaskCard from "./TaskCard.jsx";
 import { Add as AddIcon } from "@mui/icons-material";
@@ -13,16 +13,53 @@ const KanbanElement = ({
   onAddTask,
   onTaskDelete,
   onTaskHistory,
+  onTaskReorder,
 }) => {
   const columnTasks = useMemo(() => {
     const target = statusId ?? null;
-    return (tasks || []).filter((t) => (t?.status_id ?? null) === target);
+    return (tasks || [])
+      .filter((t) => (t?.status_id ?? null) === target)
+      .sort((a, b) => (a?.kanban_position ?? 0) - (b?.kanban_position ?? 0));
   }, [tasks, statusId]);
+
+  const [dragOverTaskId, setDragOverTaskId] = useState(null);
 
   // TODO: хранить цвета в бд
   const bgColor = useMemo(() => {
     return getStatusColors(title).bg;
   }, [title]);
+
+  const handleCardDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleCardDragEnter = (e, taskId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverTaskId(taskId);
+  };
+
+  const handleCardDrop = (e, targetTask) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverTaskId(null);
+    const draggedId = Number(e.dataTransfer.getData("text/plain"));
+    if (!draggedId || draggedId === targetTask.id) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const insertAfter = e.clientY > rect.top + rect.height / 2;
+    if (onTaskReorder) {
+      onTaskReorder(draggedId, targetTask, statusId, insertAfter);
+    }
+  };
+
+  const handleCardDragLeave = (e, taskId) => {
+    if (dragOverTaskId === taskId) {
+      const related = e.relatedTarget;
+      if (related && e.currentTarget.contains(related)) return;
+      setDragOverTaskId(null);
+    }
+  };
 
   return (
     <Paper
@@ -68,14 +105,27 @@ const KanbanElement = ({
       <Box sx={{ display: "grid", gap: 1, pr: 0.5 }}>
         {columnTasks.length > 0 ? (
           columnTasks.map((task) => (
-            <TaskCard
+            <Box
               key={task.id}
-              task={task}
-              priorityMap={priorityMap}
-              onEdit={onTaskEdit}
-              onDelete={onTaskDelete}
-              onHistory={onTaskHistory}
-            />
+              onDragOver={handleCardDragOver}
+              onDragEnter={(e) => handleCardDragEnter(e, task.id)}
+              onDragLeave={(e) => handleCardDragLeave(e, task.id)}
+              onDrop={(e) => handleCardDrop(e, task)}
+              sx={{
+                borderRadius: 2,
+                outline:
+                  dragOverTaskId === task.id ? "2px solid #3A7AFE" : "none",
+                transition: "outline 0.1s ease",
+              }}
+            >
+              <TaskCard
+                task={task}
+                priorityMap={priorityMap}
+                onEdit={onTaskEdit}
+                onDelete={onTaskDelete}
+                onHistory={onTaskHistory}
+              />
+            </Box>
           ))
         ) : (
           <Typography
