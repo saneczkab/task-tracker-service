@@ -64,7 +64,7 @@ def update_team_service(
             if not user:
                 raise exception.NotFoundError(f"Пользователь {email} не найден")
 
-            team_crud.delete_user_from_team(data_base, team_id, user.id)
+            team_crud.delete_member(data_base, team_id, user.id)
 
     data_base.commit()
     data_base.refresh(team_obj)
@@ -78,35 +78,4 @@ def delete_team_service(db: orm.Session, team_id: int, user_id: int):
 
     permissions.check_team_access(db, team_id, user_id, need_lead=True)
 
-    projects = db.query(project.Project).filter_by(team_id=team_id).all()
-    project_ids = [p.id for p in projects]
-
-    if project_ids:
-        streams = (
-            db.query(stream.Stream)
-            .filter(stream.Stream.project_id.in_(project_ids))
-            .all()
-        )
-        stream_ids = [s.id for s in streams]
-
-        if stream_ids:
-            db.query(task.Task).filter(task.Task.stream_id.in_(stream_ids)).delete(
-                synchronize_session=False
-            )
-            db.query(goal.Goal).filter(goal.Goal.stream_id.in_(stream_ids)).delete(
-                synchronize_session=False
-            )
-
-        db.query(stream.Stream).filter(
-            stream.Stream.project_id.in_(project_ids)
-        ).delete(synchronize_session=False)
-        db.query(project.Project).filter(project.Project.id.in_(project_ids)).delete(
-            synchronize_session=False
-        )
-
-    db.query(team.UserTeam).filter(team.UserTeam.team_id == team_id).delete(
-        synchronize_session=False
-    )
-
-    db.delete(team_obj)
-    db.commit()
+    team_crud.delete_team_with_dependencies(db, team_id)

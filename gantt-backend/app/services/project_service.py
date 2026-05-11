@@ -2,7 +2,6 @@ from sqlalchemy import orm
 
 from app.core import exception
 from app.crud import project as project_crud
-from app.models import goal, stream, task
 from app.services import permissions
 
 
@@ -34,20 +33,4 @@ def delete_project_service(data_base: orm.Session, proj_id: int, user_id: int):
     if not project_obj:
         raise exception.NotFoundError("Проект не найден")
 
-    streams = (
-        data_base.query(stream.Stream).filter(stream.Stream.project_id == proj_id).all()
-    )
-    stream_ids = [s.id for s in streams]
-
-    if stream_ids:
-        data_base.query(task.Task).filter(task.Task.stream_id.in_(stream_ids)).delete(
-            synchronize_session=False
-        )
-        data_base.query(goal.Goal).filter(goal.Goal.stream_id.in_(stream_ids)).delete(
-            synchronize_session=False
-        )
-        data_base.query(stream.Stream).filter(
-            stream.Stream.project_id == proj_id
-        ).delete(synchronize_session=False)
-
-    project_crud.delete_project(data_base, project_obj)
+    project_crud.delete_project_with_dependencies(data_base, proj_id)
