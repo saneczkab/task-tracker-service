@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Tooltip,
   IconButton,
@@ -102,6 +102,7 @@ const Sidebar = ({
   );
   const processError = useProcessError();
   const { confirm } = useConfirmDelete();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
@@ -204,8 +205,8 @@ const Sidebar = ({
     setIsCreateStreamLoading(false);
   };
 
-  const deleteStream = async (projectId, streamId) => {
-    const response = await deleteStreamApi(streamId, token);
+  const deleteStream = async (projectId, streamIdToDelete) => {
+    const response = await deleteStreamApi(streamIdToDelete, token);
 
     if (!response.ok) {
       processError(response.status);
@@ -215,24 +216,44 @@ const Sidebar = ({
     setUiProjects((prev) =>
       prev.map((proj) =>
         proj.id === projectId
-          ? { ...proj, streams: proj.streams.filter((s) => s.id !== streamId) }
+          ? {
+              ...proj,
+              streams: proj.streams.filter((s) => s.id !== streamIdToDelete),
+            }
           : proj,
       ),
     );
+
+    const viewingThisStream =
+      streamId != null &&
+      projId != null &&
+      Number(streamId) === streamIdToDelete &&
+      Number(projId) === projectId;
+    if (viewingThisStream) {
+      navigate(`/team/${teamId}/tasks`);
+    }
   };
 
-  const deleteProject = async (projId) => {
-    const response = await deleteProjectApi(projId, token);
+  const deleteProject = async (projectIdToDelete) => {
+    const response = await deleteProjectApi(projectIdToDelete, token);
 
     if (!response.ok) {
       processError(response.status);
       return;
     }
 
-    setUiProjects((prev) => prev.filter((proj) => proj.id !== projId));
-    if (newStreamFor === projId) {
+    setUiProjects((prev) =>
+      prev.filter((proj) => proj.id !== projectIdToDelete),
+    );
+    if (newStreamFor === projectIdToDelete) {
       setNewStreamFor(null);
       setNewStreamName("");
+    }
+
+    const viewingThisProject =
+      projId != null && Number(projId) === projectIdToDelete;
+    if (viewingThisProject) {
+      navigate(`/team/${teamId}/tasks`);
     }
   };
 
