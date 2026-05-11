@@ -26,7 +26,6 @@ def _chainable_query_mock(first=None, all_=None, order_by_first=None):
 
 @pytest.fixture
 def make_query_router():
-
     def _router(mapping):
         buckets = {}
         for model, value in mapping.items():

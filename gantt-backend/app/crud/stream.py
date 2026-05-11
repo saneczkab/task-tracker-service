@@ -1,10 +1,13 @@
 from sqlalchemy import orm
 
 from app.core import exception
+from app.models import custom_field as cf_model
 from app.models import goal, stream, task
+from app.models import meta as meta_model
+from app.models import tag as tag_model
+from app.models.task import TaskRelation, TaskReminder
 from app.schemas import stream as stream_schemas
-from app.models import custom_field as cf_model, meta as meta_model, tag as tag_model
-from app.models.task import TaskReminder, TaskRelation
+
 
 def get_streams_by_project_id(data_base: orm.Session, proj_id: int):
     """ "Получить все стримы по project_id отсортированные по position"""
@@ -81,19 +84,19 @@ def update_stream(
 
 def delete_stream(data_base: orm.Session, stream_id: int):
     """Удалить стрим со всеми задачами и их зависимостями"""
-    all_tasks = data_base.query(task.Task).filter(
-        task.Task.stream_id == stream_id
-    ).all()
+    all_tasks = (
+        data_base.query(task.Task).filter(task.Task.stream_id == stream_id).all()
+    )
     task_ids = [t.id for t in all_tasks]
 
     if task_ids:
-        data_base.query(TaskReminder).filter(
-            TaskReminder.task_id.in_(task_ids)
-        ).delete(synchronize_session=False)
+        data_base.query(TaskReminder).filter(TaskReminder.task_id.in_(task_ids)).delete(
+            synchronize_session=False
+        )
 
         data_base.query(TaskRelation).filter(
-            (TaskRelation.task_id_1.in_(task_ids)) |
-            (TaskRelation.task_id_2.in_(task_ids))
+            (TaskRelation.task_id_1.in_(task_ids))
+            | (TaskRelation.task_id_2.in_(task_ids))
         ).delete(synchronize_session=False)
 
         data_base.query(cf_model.TaskCustomFieldValue).filter(

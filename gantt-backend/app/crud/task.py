@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import orm
 
+from app.models import custom_field as cf_model
 from app.models import (
     meta as meta_model,
 )
@@ -12,11 +13,11 @@ from app.models import (
 from app.models import (
     stream as stream_model,
 )
+from app.models import tag as tag_model
 from app.models import (
     task,
     team,
 )
-from app.models import custom_field as cf_model, tag as tag_model
 
 
 def get_task_by_id(db: orm.Session, task_id: int):
@@ -83,12 +84,13 @@ def delete_task_with_dependencies(db: orm.Session, task_id: int):
         synchronize_session=False
     )
 
-    db.query(task.TaskReminder).filter(
-        task.TaskReminder.task_id == task_id
-    ).delete(synchronize_session=False)
+    db.query(task.TaskReminder).filter(task.TaskReminder.task_id == task_id).delete(
+        synchronize_session=False
+    )
 
     db.query(task.TaskRelation).filter(
-        (task.TaskRelation.task_id_1 == task_id) | (task.TaskRelation.task_id_2 == task_id)
+        (task.TaskRelation.task_id_1 == task_id)
+        | (task.TaskRelation.task_id_2 == task_id)
     ).delete(synchronize_session=False)
 
     db.query(cf_model.TaskCustomFieldValue).filter(

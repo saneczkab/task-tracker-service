@@ -2,7 +2,7 @@ from sqlalchemy import orm
 
 from app.core import exception
 from app.crud import team as team_crud
-from app.models import goal, project, role, stream, task, team
+from app.models import role
 from app.services import permissions
 
 
