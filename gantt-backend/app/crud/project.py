@@ -74,6 +74,10 @@ def delete_project_with_dependencies(data_base: orm.Session, project_id: int):
         task_ids = [t.id for t in all_tasks]
 
         if task_ids:
+            data_base.query(task_model.TaskHistory).filter(
+                task_model.TaskHistory.task_id.in_(task_ids)
+            ).delete(synchronize_session=False)
+
             data_base.query(TaskReminder).filter(
                 TaskReminder.task_id.in_(task_ids)
             ).delete(synchronize_session=False)
