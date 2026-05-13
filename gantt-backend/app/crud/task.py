@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import orm
 
+from app.models import custom_field as cf_model
 from app.models import (
     meta as meta_model,
 )
@@ -12,6 +13,7 @@ from app.models import (
 from app.models import (
     stream as stream_model,
 )
+from app.models import tag as tag_model
 from app.models import (
     task,
     team,
@@ -74,6 +76,35 @@ def update_task(db: orm.Session, task_obj, task_update_data):
 def delete_task(db: orm.Session, task_obj):
     db.delete(task_obj)
     db.commit()
+
+
+def delete_task_with_dependencies(db: orm.Session, task_id: int):
+    """Удалить задачу со всеми зависимостями (UserTask, TaskReminder, TaskRelation, CustomFieldValue, TaskTag)"""
+    db.query(meta_model.UserTask).filter(meta_model.UserTask.task_id == task_id).delete(
+        synchronize_session=False
+    )
+
+    db.query(task.TaskReminder).filter(task.TaskReminder.task_id == task_id).delete(
+        synchronize_session=False
+    )
+
+    db.query(task.TaskRelation).filter(
+        (task.TaskRelation.task_id_1 == task_id)
+        | (task.TaskRelation.task_id_2 == task_id)
+    ).delete(synchronize_session=False)
+
+    db.query(cf_model.TaskCustomFieldValue).filter(
+        cf_model.TaskCustomFieldValue.task_id == task_id
+    ).delete(synchronize_session=False)
+
+    db.query(tag_model.TaskTag).filter(tag_model.TaskTag.task_id == task_id).delete(
+        synchronize_session=False
+    )
+
+    task_obj = get_task_by_id(db, task_id)
+    if task_obj:
+        db.delete(task_obj)
+        db.commit()
 
 
 def create_task_relation(

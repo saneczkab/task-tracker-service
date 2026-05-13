@@ -261,13 +261,8 @@ def delete_task_service(data_base: orm.Session, task_id: int, user_id: int):
     task_obj, _, _, _ = permissions.check_task_access(
         data_base, task_id, user_id, need_lead=True
     )
-    old_user_task = (
-        data_base.query(meta.UserTask).filter(meta.UserTask.task_id == task_id).first()
-    )
-    if old_user_task:
-        data_base.delete(old_user_task)
 
-    task_crud.delete_task(data_base, task_obj)
+    task_crud.delete_task_with_dependencies(data_base, task_id)
 
 
 def delete_task_relation_service(db: orm.Session, relation_id: int, user_id: int):
