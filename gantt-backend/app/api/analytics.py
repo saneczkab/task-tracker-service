@@ -5,11 +5,11 @@ from sqlalchemy import orm
 
 from app.api import auth
 from app.core import db
-from app.models.team import UserTeam
 from app.schemas import analytics as analytics_schemas
 from app.services.ai_report_service import AIReportService
 from app.services.analytics_service import AnalyticsService
 from app.services.request_limit_service import RequestLimitService
+from app.crud import analytics as analytics_crud
 
 router = fastapi.APIRouter()
 
@@ -42,9 +42,6 @@ def get_team_analytics(
     data_base: orm.Session = fastapi.Depends(db.get_db),
     current_user: dict = fastapi.Depends(auth.get_current_user),
 ):
-    from app.models.team import Team
-    from app.models.user import User
-
     period_filter = analytics_schemas.PeriodFilter(
         start_date=start_date, end_date=end_date, period=period
     )
@@ -85,7 +82,7 @@ def get_team_analytics(
     if filters and filters.team_ids and len(filters.team_ids) == 1:
         resolved_team_id = filters.team_ids[0]
 
-    team = data_base.query(Team).filter(Team.id == resolved_team_id).first()
+    team = analytics_crud.get_team_by_id(data_base, resolved_team_id)
     if not team:
         raise fastapi.HTTPException(status_code=404, detail="Team not found")
 
@@ -109,16 +106,7 @@ def get_team_analytics(
         data_base, team_id, period_filter, date_ranges, filters, project_id, stream_id
     )
 
-    users = (
-        data_base.query(User)
-        .join(UserTeam, UserTeam.user_id == User.id)
-        .filter(
-            UserTeam.team_id.in_(
-                filters.team_ids if filters and filters.team_ids else [team_id]
-            )
-        )
-        .all()
-    )
+    users = analytics_crud.get_team_users(data_base, team_id, filters)
 
     user_id = current_user.id
 
