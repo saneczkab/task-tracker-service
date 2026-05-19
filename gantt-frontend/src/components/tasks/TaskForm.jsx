@@ -344,7 +344,7 @@ const TaskForm = ({
       clearTimeout(searchDebounceTimer);
     }
 
-    if (!query || query.length < 2) {
+    if (!query?.length) {
       setSearchResults([]);
       setSearchLoading(false);
       return;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Tooltip,
   IconButton,
@@ -19,14 +19,11 @@ import {
 import {
   Close as CloseIcon,
   Save as SaveIcon,
-  Edit as EditIcon,
   ExpandMore,
   ExpandLess,
-  Search as SearchIcon,
   Add as AddIcon,
   MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
-import TeamEdit from "./TeamEdit.jsx";
 import ProfileModal from "./ProfileModal.jsx";
 
 import {
@@ -55,7 +52,6 @@ const Sidebar = ({
   onGanttStreamsReorder,
   sidebarStreams,
 }) => {
-  const [isTeamEditOpen, setIsTeamEditOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [teamName, setTeamName] = useState("Команда");
@@ -106,6 +102,7 @@ const Sidebar = ({
   );
   const processError = useProcessError();
   const { confirm } = useConfirmDelete();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
@@ -208,8 +205,8 @@ const Sidebar = ({
     setIsCreateStreamLoading(false);
   };
 
-  const deleteStream = async (projectId, streamId) => {
-    const response = await deleteStreamApi(streamId, token);
+  const deleteStream = async (projectId, streamIdToDelete) => {
+    const response = await deleteStreamApi(streamIdToDelete, token);
 
     if (!response.ok) {
       processError(response.status);
@@ -219,24 +216,44 @@ const Sidebar = ({
     setUiProjects((prev) =>
       prev.map((proj) =>
         proj.id === projectId
-          ? { ...proj, streams: proj.streams.filter((s) => s.id !== streamId) }
+          ? {
+              ...proj,
+              streams: proj.streams.filter((s) => s.id !== streamIdToDelete),
+            }
           : proj,
       ),
     );
+
+    const viewingThisStream =
+      streamId != null &&
+      projId != null &&
+      Number(streamId) === streamIdToDelete &&
+      Number(projId) === projectId;
+    if (viewingThisStream) {
+      navigate(`/team/${teamId}/tasks`);
+    }
   };
 
-  const deleteProject = async (projId) => {
-    const response = await deleteProjectApi(projId, token);
+  const deleteProject = async (projectIdToDelete) => {
+    const response = await deleteProjectApi(projectIdToDelete, token);
 
     if (!response.ok) {
       processError(response.status);
       return;
     }
 
-    setUiProjects((prev) => prev.filter((proj) => proj.id !== projId));
-    if (newStreamFor === projId) {
+    setUiProjects((prev) =>
+      prev.filter((proj) => proj.id !== projectIdToDelete),
+    );
+    if (newStreamFor === projectIdToDelete) {
       setNewStreamFor(null);
       setNewStreamName("");
+    }
+
+    const viewingThisProject =
+      projId != null && Number(projId) === projectIdToDelete;
+    if (viewingThisProject) {
+      navigate(`/team/${teamId}/tasks`);
     }
   };
 
@@ -559,104 +576,11 @@ const Sidebar = ({
           </div>
           <span className="font-bold text-xl text-gray-800">{teamName}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <Tooltip title="Поиск">
-            <IconButton
-              size="small"
-              sx={{
-                "&:hover": { backgroundColor: "rgba(0,0,0,0.08)" },
-              }}
-            >
-              <SearchIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Редактировать">
-            <IconButton
-              size="small"
-              sx={{
-                "&:hover": { backgroundColor: "rgba(0,0,0,0.08)" },
-              }}
-              onClick={() => {
-                setIsTeamEditOpen(true);
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </div>
+        <div />
       </div>
-
-      <TeamEdit
-        open={isTeamEditOpen}
-        onClose={() => setIsTeamEditOpen(false)}
-      />
 
       <div className="mt">
         <List disablePadding>
-          <ListItem disablePadding sx={{ my: 0.2 }}>
-            <Box
-              sx={{
-                px: 1,
-                py: 1,
-                borderRadius: "10px",
-                mx: 1,
-                border: "1px solid rgba(0, 0, 0, 0.2)",
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                width: "calc(100% - 16px)",
-                minHeight: "30px",
-                "&:hover": {
-                  backgroundColor: "rgba(0, 0, 0, 0.05)",
-                },
-              }}
-            >
-              <SearchIcon
-                sx={{
-                  fontSize: 25,
-                  marginLeft: "8px",
-                  marginRight: "-4px",
-                  color: "rgba(0, 0, 0, 0.5)",
-                }}
-              />
-
-              <Box
-                sx={{
-                  fontFamily: "Montserrat, sans-serif",
-                  fontWeight: 600,
-                  fontSize: "1.1rem",
-                  color: "rgba(0, 0, 0, 0.45)",
-                  flex: 1,
-                  px: 0.1,
-                }}
-              >
-                Проект...
-              </Box>
-            </Box>
-          </ListItem>
-
-          <ListItem disablePadding>
-            <ListItemButton
-              component={Link}
-              to={`/team/${teamId}/immediateTasks`}
-              sx={{
-                px: 5.9,
-                py: 0.5,
-                borderRadius: "10px",
-                mx: 1,
-                "&:hover": {
-                  backgroundColor: "rgba(217, 217, 217, 0.8)",
-                },
-                "& .MuiListItemText-primary": {
-                  fontFamily: "Montserrat, sans-serif",
-                  fontWeight: 400,
-                  fontSize: "1.1rem",
-                },
-              }}
-            >
-              <ListItemText primary="Ближайшие задачи" />
-            </ListItemButton>
-          </ListItem>
           <ListItem disablePadding>
             <ListItemButton
               component={Link}
