@@ -174,30 +174,23 @@ def test_update_task_service_success_without_changes(
     assert result is task_obj
 
 
-@patch("app.services.task_service.task_crud.delete_task")
+@patch("app.services.task_service.task_crud.delete_task_with_dependencies")
 @patch("app.services.task_service.permissions.check_task_access")
 def test_delete_task_service_success(
     mock_check_task_access,
-    mock_delete_task,
+    mock_delete_task_with_dependencies,
     mock_db,
     ids,
-    make_query_router,
-    make_query,
 ):
     task_obj = Mock(id=ids.task_id)
-    old_user_task = Mock()
     mock_check_task_access.return_value = (task_obj, Mock(), Mock(), Mock())
-
-    q_user_task = make_query(first=old_user_task)
-    mock_db.query.side_effect = make_query_router({meta_model.UserTask: q_user_task})
 
     delete_task_service(mock_db, ids.task_id, ids.user_id)
 
     mock_check_task_access.assert_called_once_with(
         mock_db, ids.task_id, ids.user_id, need_lead=True
     )
-    mock_db.delete.assert_called_once_with(old_user_task)
-    mock_delete_task.assert_called_once_with(mock_db, task_obj)
+    mock_delete_task_with_dependencies.assert_called_once_with(mock_db, ids.task_id)
 
 
 @patch.multiple(

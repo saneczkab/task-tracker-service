@@ -3,11 +3,6 @@ from unittest.mock import DEFAULT, Mock, patch
 import pytest
 
 from app.core import exception
-from app.models import goal as goal_model
-from app.models import project as project_model
-from app.models import stream as stream_model
-from app.models import task as task_model
-from app.models import team as team_model
 from app.models.role import Role
 from app.services.team_service import (
     create_team_service,
@@ -95,7 +90,7 @@ def test_create_team_service_success(mock_db, ids, **mocks):
     get_user_by_email=DEFAULT,
     get_user_team=DEFAULT,
     add_user_to_team=DEFAULT,
-    delete_user_from_team=DEFAULT,
+    delete_member=DEFAULT,
     create=True,
 )
 def test_update_team_service_success_add_and_delete_users(
@@ -132,7 +127,7 @@ def test_update_team_service_success_add_and_delete_users(
         added_user.id,
         Role.READER,
     )
-    mocks["delete_user_from_team"].assert_called_once_with(
+    mocks["delete_member"].assert_called_once_with(
         mock_db,
         ids.team_id,
         removed_user.id,
@@ -224,84 +219,46 @@ def test_update_team_service_team_not_found(
     mock_check_team_access.assert_not_called()
 
 
+@patch("app.services.team_service.team_crud.delete_team_with_dependencies")
 @patch("app.services.team_service.permissions.check_team_access")
 @patch("app.services.team_service.team_crud.get_team_by_id")
 def test_delete_team_service_success_without_projects(
     mock_get_team_by_id,
     mock_check_team_access,
+    mock_delete_team_with_dependencies,
     mock_db,
     ids,
-    make_query_router,
-    make_query,
 ):
     team_obj = Mock(id=ids.team_id)
     mock_get_team_by_id.return_value = team_obj
-
-    q_projects = make_query(all_=[])
-    q_userteam_delete = make_query()
-
-    mock_db.query.side_effect = make_query_router(
-        {
-            project_model.Project: q_projects,
-            team_model.UserTeam: q_userteam_delete,
-        }
-    )
 
     delete_team_service(mock_db, ids.team_id, ids.user_id)
 
     mock_check_team_access.assert_called_once_with(
         mock_db, ids.team_id, ids.user_id, need_lead=True
     )
-    mock_db.delete.assert_called_once_with(team_obj)
-    mock_db.commit.assert_called_once()
+    mock_delete_team_with_dependencies.assert_called_once_with(mock_db, ids.team_id)
 
 
+@patch("app.services.team_service.team_crud.delete_team_with_dependencies")
 @patch("app.services.team_service.permissions.check_team_access")
 @patch("app.services.team_service.team_crud.get_team_by_id")
 def test_delete_team_service_cascade_delete(
     mock_get_team_by_id,
     mock_check_team_access,
+    mock_delete_team_with_dependencies,
     mock_db,
     ids,
-    make_query_router,
-    make_query,
 ):
     team_obj = Mock(id=ids.team_id)
-    project_obj = Mock(id=ids.project_id)
-    stream_obj = Mock(id=ids.stream_id)
-
     mock_get_team_by_id.return_value = team_obj
-
-    q_projects = make_query(all_=[project_obj])
-    q_streams_all = make_query(all_=[stream_obj])
-    q_task_delete = make_query()
-    q_goal_delete = make_query()
-    q_stream_delete = make_query()
-    q_project_delete = make_query()
-    q_userteam_delete = make_query()
-
-    mock_db.query.side_effect = make_query_router(
-        {
-            project_model.Project: [q_projects, q_project_delete],
-            stream_model.Stream: [q_streams_all, q_stream_delete],
-            task_model.Task: q_task_delete,
-            goal_model.Goal: q_goal_delete,
-            team_model.UserTeam: q_userteam_delete,
-        }
-    )
 
     delete_team_service(mock_db, ids.team_id, ids.user_id)
 
     mock_check_team_access.assert_called_once_with(
         mock_db, ids.team_id, ids.user_id, need_lead=True
     )
-    q_task_delete.delete.assert_called_once_with(synchronize_session=False)
-    q_goal_delete.delete.assert_called_once_with(synchronize_session=False)
-    q_stream_delete.delete.assert_called_once_with(synchronize_session=False)
-    q_project_delete.delete.assert_called_once_with(synchronize_session=False)
-    q_userteam_delete.delete.assert_called_once_with(synchronize_session=False)
-    mock_db.delete.assert_called_once_with(team_obj)
-    mock_db.commit.assert_called_once()
+    mock_delete_team_with_dependencies.assert_called_once_with(mock_db, ids.team_id)
 
 
 @patch("app.services.team_service.permissions.check_team_access")
@@ -309,7 +266,7 @@ def test_delete_team_service_cascade_delete(
     "app.services.team_service.team_crud",
     get_team_by_id=DEFAULT,
     get_user_by_email=DEFAULT,
-    delete_user_from_team=DEFAULT,
+    delete_member=DEFAULT,
     create=True,
 )
 def test_update_team_service_delete_user_not_found(
@@ -329,7 +286,7 @@ def test_update_team_service_delete_user_not_found(
     with pytest.raises(exception.NotFoundError):
         update_team_service(mock_db, ids.team_id, ids.user_id, update_data)
 
-    mocks["delete_user_from_team"].assert_not_called()
+    mocks["delete_member"].assert_not_called()
 
 
 @patch("app.services.team_service.team_crud.get_team_by_id")
