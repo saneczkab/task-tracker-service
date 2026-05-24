@@ -38,6 +38,7 @@ import {
   createTaskRelationApi,
   deleteTaskRelationApi,
 } from "../../api/task.js";
+import { fetchTeamMembersApi } from "../../api/team.js";
 import { fetchConnectionTypesApi } from "../../api/meta.js";
 import {
   fetchTeamTagsApi,
@@ -72,6 +73,9 @@ const TaskForm = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeEmail, setAssigneeEmail] = useState("");
+  const [assigneeError, setAssigneeError] = useState("");
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamMembersLoading, setTeamMembersLoading] = useState(false);
   const [statusId, setStatusId] = useState("");
   const [priorityId, setPriorityId] = useState("");
   const [position, setPosition] = useState(null);
@@ -122,6 +126,7 @@ const TaskForm = ({
     setName(task?.name || "");
     setDescription(task?.description || "");
     setAssigneeEmail(task?.assignee_email || "");
+    setAssigneeError("");
     setStatusId(task?.status_id ?? "");
     setPriorityId(task?.priority_id ?? "");
     setPosition(task?.position ?? null);
@@ -151,6 +156,23 @@ const TaskForm = ({
     };
   }, [open, task]);
 
+  const filteredTeamMembers = useMemo(() => {
+    if (!teamMembers.length) {
+      return [];
+    }
+
+    const query = assigneeEmail.trim().toLowerCase();
+    if (!query) {
+      return teamMembers;
+    }
+
+    return teamMembers.filter(
+      (user) =>
+        user.email.toLowerCase().includes(query) ||
+        user.nickname.toLowerCase().includes(query),
+    );
+  }, [teamMembers, assigneeEmail]);
+
   useEffect(() => {
     if (open) {
       loadMeta();
@@ -179,6 +201,16 @@ const TaskForm = ({
     }
 
     if (teamId) {
+      setTeamMembersLoading(true);
+      const membersResponse = await fetchTeamMembersApi(teamId, token);
+      if (membersResponse.ok) {
+        setTeamMembers(membersResponse.users);
+      } else {
+        setTeamMembers([]);
+        processError(membersResponse.status);
+      }
+      setTeamMembersLoading(false);
+
       const tagsResponse = await fetchTeamTagsApi(teamId, token);
       if (tagsResponse.ok) {
         setTeamTags(tagsResponse.tags);
@@ -210,6 +242,7 @@ const TaskForm = ({
         processError(customFieldsResponse.status);
       }
     } else {
+      setTeamMembers([]);
       setCustomFields([]);
       setCustomFieldValues({});
       setInitialCustomFieldValues({});
@@ -451,9 +484,10 @@ const TaskForm = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setAssigneeError("");
 
     const payload = {
-      name: name.trim(),
+      name: isEdit ? name.trim() : name.trim() || "Новое название",
       description: description?.trim() || null,
       status_id: Number(statusId) || null,
       priority_id: Number(priorityId) || null,
@@ -474,6 +508,17 @@ const TaskForm = ({
       : await createTaskApi(payload, streamId, token);
 
     if (!response.ok) {
+      const errorDetail = String(response.details?.detail || "");
+      if (
+        response.status === 404 &&
+        payload.assignee_email &&
+        errorDetail.includes("Пользователь не найден")
+      ) {
+        setAssigneeError(
+          "Пользователя не существует или он не состоит в команде",
+        );
+        return;
+      }
       processError(response.status);
       return;
     }
@@ -507,7 +552,6 @@ const TaskForm = ({
               size="small"
               fullWidth
               placeholder="Введите название"
-              required
             />
           </FormRow>
 
@@ -534,16 +578,78 @@ const TaskForm = ({
             />
           </Box>
 
-          <FormRow label="Исполнитель (email)">
-            <TextField
-              value={assigneeEmail}
-              onChange={(e) => setAssigneeEmail(e.target.value)}
-              type="email"
-              variant="outlined"
-              size="small"
-              fullWidth
-              placeholder="user@example.com"
-            />
+          <FormRow label="Исполнитель">
+            {teamId ? (
+              <Autocomplete
+                freeSolo
+                size="small"
+                fullWidth
+                openOnFocus
+                options={filteredTeamMembers}
+                getOptionLabel={(option) =>
+                  typeof option === "string" ? option : option.email
+                }
+                filterOptions={(options) => options}
+                inputValue={assigneeEmail}
+                onInputChange={(_, newValue) => {
+                  setAssigneeEmail(newValue);
+                  setAssigneeError("");
+                }}
+                onChange={(_, newValue) => {
+                  if (newValue && typeof newValue !== "string") {
+                    setAssigneeEmail(newValue.email);
+                  }
+                  setAssigneeError("");
+                }}
+                loading={teamMembersLoading}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    <Box>
+                      <Typography variant="body2">{option.nickname}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {option.email}
+                      </Typography>
+                    </Box>
+                  </li>
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Email или никнейм"
+                    error={Boolean(assigneeError)}
+                    helperText={assigneeError}
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {teamMembersLoading ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      },
+                    }}
+                  />
+                )}
+                noOptionsText="Пользователи не найдены"
+              />
+            ) : (
+              <TextField
+                value={assigneeEmail}
+                onChange={(e) => {
+                  setAssigneeEmail(e.target.value);
+                  setAssigneeError("");
+                }}
+                variant="outlined"
+                size="small"
+                fullWidth
+                placeholder="user@example.com"
+                error={Boolean(assigneeError)}
+                helperText={assigneeError}
+              />
+            )}
           </FormRow>
 
           <FormRow label="Статус">

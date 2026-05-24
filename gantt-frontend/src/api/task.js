@@ -11,7 +11,11 @@ export async function createTaskApi(task, streamId, token) {
     );
     return { ok: true, task: response.data };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return {
+      ok: false,
+      status: e.response?.status,
+      details: e.response?.data,
+    };
   }
 }
 
@@ -33,7 +37,11 @@ export async function updateTaskApi(taskId, task, token) {
     });
     return { ok: true, task: response.data };
   } catch (e) {
-    return { ok: false, status: e.response.status };
+    return {
+      ok: false,
+      status: e.response?.status,
+      details: e.response?.data,
+    };
   }
 }
 

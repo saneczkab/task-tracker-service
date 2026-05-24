@@ -5,7 +5,6 @@ import pytest
 from app.core import exception
 from app.models import meta as meta_model
 from app.models import project as project_model
-from app.models import stream as stream_model
 from app.models import tag as tag_model
 from app.models import task as task_model
 from app.models import team as team_model
@@ -100,9 +99,20 @@ def test_create_task_service_success_with_assignee(
     assignee_user = mock_second_user
 
     mock_create_task.return_value = new_task
+    mock_check_stream_access.return_value = (
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
+    )
 
     q_user = make_query(first=assignee_user)
-    mock_db.query.side_effect = make_query_router({user_model.User: q_user})
+    q_user_team = make_query(first=Mock())
+    mock_db.query.side_effect = make_query_router(
+        {
+            user_model.User: q_user,
+            team_model.UserTeam: q_user_team,
+        }
+    )
 
     result = create_task_service(mock_db, ids.stream_id, ids.user_id, task_data)
 
@@ -119,7 +129,7 @@ def test_create_task_service_success_with_assignee(
 @patch("app.services.task_service.task_crud.create_task")
 @patch("app.services.task_service.permissions.check_stream_access")
 def test_create_task_service_assignee_not_found(
-    _mock_check_stream_access,
+    mock_check_stream_access,
     mock_create_task,
     mock_db,
     ids,
@@ -131,11 +141,51 @@ def test_create_task_service_assignee_not_found(
         position=1, assignee_email="missing@test.com", tag_ids=None, custom_fields=None
     )
     mock_create_task.return_value = mock_task
+    mock_check_stream_access.return_value = (
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
+    )
 
     q_user = make_query(first=None)
     mock_db.query.side_effect = make_query_router({user_model.User: q_user})
 
     with pytest.raises(exception.NotFoundError):
+        create_task_service(mock_db, ids.stream_id, ids.user_id, task_data)
+
+
+@patch("app.services.task_service.task_crud.create_task")
+@patch("app.services.task_service.permissions.check_stream_access")
+def test_create_task_service_assignee_not_in_team(
+    mock_check_stream_access,
+    mock_create_task,
+    mock_db,
+    ids,
+    make_query_router,
+    make_query,
+    mock_task,
+    mock_second_user,
+):
+    task_data = Mock(
+        position=1, assignee_email="outsider@test.com", tag_ids=None, custom_fields=None
+    )
+    mock_create_task.return_value = mock_task
+    mock_check_stream_access.return_value = (
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
+    )
+
+    q_user = make_query(first=mock_second_user)
+    q_user_team = make_query(first=None)
+    mock_db.query.side_effect = make_query_router(
+        {
+            user_model.User: q_user,
+            team_model.UserTeam: q_user_team,
+        }
+    )
+
+    with pytest.raises(exception.NotFoundError, match="Пользователь не найден"):
         create_task_service(mock_db, ids.stream_id, ids.user_id, task_data)
 
 
@@ -153,8 +203,8 @@ def test_update_task_service_success_without_changes(
 ):
     task_obj = Mock(id=ids.task_id, assigned_users=[], tags=[], custom_field_values=[])
     stream_obj = Mock()
-    project_obj = Mock()
-    team_obj = Mock()
+    project_obj = Mock(team_id=ids.team_id)
+    user_team = Mock()
     task_update_data = Mock(
         assignee_email=None,
         tag_ids=None,
@@ -162,7 +212,7 @@ def test_update_task_service_success_without_changes(
         model_fields_set=set(),
     )
     task_update_data.model_dump.return_value = {}
-    mock_check_task_access.return_value = (task_obj, stream_obj, project_obj, team_obj)
+    mock_check_task_access.return_value = (task_obj, stream_obj, project_obj, user_team)
 
     result = update_task_service(mock_db, ids.task_id, ids.user_id, task_update_data)
 
@@ -335,6 +385,11 @@ def test_create_task_service_auto_position_and_custom_fields(
     q_last_pos = make_query(order_by_first=last_pos)
     mock_db.query.side_effect = make_query_router({task_model.Task: q_last_pos})
     mock_create_task.return_value = new_task
+    mock_check_stream_access.return_value = (
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
+    )
 
     result = create_task_service(mock_db, ids.stream_id, ids.user_id, task_data)
 
@@ -362,8 +417,7 @@ def test_create_task_service_stream_not_found(
 ):
     task_data = Mock(position=1, assignee_email=None, tag_ids=[1], custom_fields=None)
 
-    q_stream = make_query(first=None)
-    mock_db.query.side_effect = make_query_router({stream_model.Stream: q_stream})
+    mock_check_stream_access.side_effect = exception.NotFoundError("Стрим не найден")
     mock_create_task.return_value = mock_task
 
     with pytest.raises(exception.NotFoundError, match="Стрим не найден"):
@@ -372,6 +426,7 @@ def test_create_task_service_stream_not_found(
     mock_check_stream_access.assert_called_once_with(
         mock_db, ids.stream_id, ids.user_id, need_lead=True
     )
+    mock_create_task.assert_not_called()
 
 
 @patch("app.services.task_service.task_crud.create_task")
@@ -389,16 +444,16 @@ def test_create_task_service_tag_not_found(
         position=1, assignee_email=None, tag_ids=[ids.connection_id], custom_fields=None
     )
     new_task = mock_task
-    stream_obj = Mock()
-    stream_obj.project = Mock(team_id=ids.team_id)
 
-    q_stream = make_query(first=stream_obj)
     q_tag = make_query(first=None)
 
-    mock_db.query.side_effect = make_query_router(
-        {stream_model.Stream: q_stream, tag_model.Tag: q_tag}
-    )
+    mock_db.query.side_effect = make_query_router({tag_model.Tag: q_tag})
     mock_create_task.return_value = new_task
+    mock_check_stream_access.return_value = (
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
+    )
 
     with pytest.raises(
         exception.NotFoundError, match=f"Тег с id {ids.connection_id} не найден"
@@ -421,17 +476,17 @@ def test_create_task_service_tag_forbidden(
         position=1, assignee_email=None, tag_ids=[ids.connection_id], custom_fields=None
     )
     new_task = mock_task
-    stream_obj = Mock()
-    stream_obj.project = Mock(team_id=ids.team_id)
     tag_obj = Mock(team_id=ids.team_id + 1)
 
-    q_stream = make_query(first=stream_obj)
     q_tag = make_query(first=tag_obj)
 
-    mock_db.query.side_effect = make_query_router(
-        {stream_model.Stream: q_stream, tag_model.Tag: q_tag}
-    )
+    mock_db.query.side_effect = make_query_router({tag_model.Tag: q_tag})
     mock_create_task.return_value = new_task
+    mock_check_stream_access.return_value = (
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
+    )
 
     with pytest.raises(
         exception.ForbiddenError, match="Тег принадлежит другой команде"
@@ -473,8 +528,8 @@ def test_update_task_service_success_with_changes(
         custom_field_values=[Mock(custom_field_id=10, value="old")],
     )
     stream_obj = Mock()
-    project_obj = Mock()
-    team_obj = mock_team
+    project_obj = Mock(team_id=ids.team_id)
+    user_team = Mock()
     assignee_user = mock_second_user
     old_user_task = Mock()
     tag_obj = Mock(team_id=ids.team_id)
@@ -498,6 +553,7 @@ def test_update_task_service_success_with_changes(
     }
 
     q_user = make_query(first=assignee_user)
+    q_user_team = make_query(first=Mock())
     q_old_user_task = make_query(first=old_user_task)
     q_tag_delete = make_query()
     q_tag_lookup = make_query(first=tag_obj)
@@ -505,12 +561,13 @@ def test_update_task_service_success_with_changes(
     mock_db.query.side_effect = make_query_router(
         {
             user_model.User: q_user,
+            team_model.UserTeam: q_user_team,
             meta_model.UserTask: q_old_user_task,
             tag_model.TaskTag: q_tag_delete,
             tag_model.Tag: q_tag_lookup,
         }
     )
-    mock_check_task_access.return_value = (task_obj, stream_obj, project_obj, team_obj)
+    mock_check_task_access.return_value = (task_obj, stream_obj, project_obj, user_team)
 
     result = update_task_service(mock_db, ids.task_id, ids.user_id, task_update_data)
 
@@ -554,8 +611,45 @@ def test_update_task_service_assignee_not_found(
     mock_check_task_access.return_value = (
         task_obj,
         Mock(),
+        Mock(team_id=ids.team_id),
         Mock(),
-        Mock(id=ids.team_id),
+    )
+
+    with pytest.raises(exception.NotFoundError, match="Пользователь не найден"):
+        update_task_service(mock_db, ids.task_id, ids.user_id, task_update_data)
+
+
+@patch("app.services.task_service.permissions.check_task_access")
+def test_update_task_service_assignee_not_in_team(
+    mock_check_task_access,
+    mock_db,
+    ids,
+    make_query_router,
+    make_query,
+    mock_second_user,
+):
+    task_obj = Mock(assigned_users=[], tags=[], custom_field_values=[])
+    task_update_data = Mock(
+        assignee_email="outsider@test.com",
+        tag_ids=None,
+        custom_fields=None,
+        model_fields_set={"assignee_email"},
+    )
+    task_update_data.model_dump.return_value = {"assignee_email": "outsider@test.com"}
+
+    q_user = make_query(first=mock_second_user)
+    q_user_team = make_query(first=None)
+    mock_db.query.side_effect = make_query_router(
+        {
+            user_model.User: q_user,
+            team_model.UserTeam: q_user_team,
+        }
+    )
+    mock_check_task_access.return_value = (
+        task_obj,
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
     )
 
     with pytest.raises(exception.NotFoundError, match="Пользователь не найден"):
@@ -578,7 +672,7 @@ def test_update_task_service_tag_not_found(
         tags=[Mock(tag_id=1)],
         custom_field_values=[],
     )
-    team_obj = Mock(id=ids.team_id)
+    project_obj = Mock(team_id=ids.team_id)
     task_update_data = Mock(
         assignee_email=None,
         tag_ids=[2],
@@ -593,7 +687,7 @@ def test_update_task_service_tag_not_found(
     mock_db.query.side_effect = make_query_router(
         {tag_model.TaskTag: q_tag_delete, tag_model.Tag: q_tag_lookup}
     )
-    mock_check_task_access.return_value = (task_obj, Mock(), Mock(), team_obj)
+    mock_check_task_access.return_value = (task_obj, Mock(), project_obj, Mock())
 
     with pytest.raises(exception.NotFoundError, match="Тег с id 2 не найден"):
         update_task_service(mock_db, ids.task_id, ids.user_id, task_update_data)
@@ -615,7 +709,7 @@ def test_update_task_service_tag_forbidden(
         tags=[Mock(tag_id=1)],
         custom_field_values=[],
     )
-    team_obj = Mock(id=ids.team_id)
+    project_obj = Mock(team_id=ids.team_id)
     tag_obj = Mock(team_id=ids.team_id + 1)
     task_update_data = Mock(
         assignee_email=None,
@@ -631,7 +725,7 @@ def test_update_task_service_tag_forbidden(
     mock_db.query.side_effect = make_query_router(
         {tag_model.TaskTag: q_tag_delete, tag_model.Tag: q_tag_lookup}
     )
-    mock_check_task_access.return_value = (task_obj, Mock(), Mock(), team_obj)
+    mock_check_task_access.return_value = (task_obj, Mock(), project_obj, Mock())
 
     with pytest.raises(
         exception.ForbiddenError, match="Тег принадлежит другой команде"

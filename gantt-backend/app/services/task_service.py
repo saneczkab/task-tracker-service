@@ -3,8 +3,31 @@ from sqlalchemy import orm
 from app.core import exception
 from app.crud import custom_field as custom_field_crud
 from app.crud import task as task_crud
-from app.models import custom_field, meta, project, stream, tag, task, team, user
+from app.models import custom_field, meta, project, tag, task, team, user
 from app.services import permissions
+
+
+def _get_assignee_for_team(
+    data_base: orm.Session, assignee_email: str, team_id: int
+) -> user.User:
+    assignee_user = (
+        data_base.query(user.User).filter(user.User.email == assignee_email).first()
+    )
+    if not assignee_user:
+        raise exception.NotFoundError("Пользователь не найден")
+
+    user_in_team = (
+        data_base.query(team.UserTeam)
+        .filter(
+            team.UserTeam.team_id == team_id,
+            team.UserTeam.user_id == assignee_user.id,
+        )
+        .first()
+    )
+    if not user_in_team:
+        raise exception.NotFoundError("Пользователь не найден")
+
+    return assignee_user
 
 
 def get_all_tasks_service(data_base: orm.Session, user_id: int):
@@ -79,7 +102,10 @@ def get_stream_tasks_service(data_base: orm.Session, stream_id: int, user_id: in
 def create_task_service(
     data_base: orm.Session, stream_id: int, user_id: int, task_data
 ):
-    permissions.check_stream_access(data_base, stream_id, user_id, need_lead=True)
+    stream_obj, project_obj, _ = permissions.check_stream_access(
+        data_base, stream_id, user_id, need_lead=True
+    )
+    team_id = project_obj.team_id
 
     if task_data.position is None:
         last_pos = (
@@ -104,26 +130,12 @@ def create_task_service(
     new_task = task_crud.create_task(data_base, stream_id, task_data)
 
     if task_data.assignee_email:
-        assignee_user = (
-            data_base.query(user.User)
-            .filter(user.User.email == task_data.assignee_email)
-            .first()
+        assignee_user = _get_assignee_for_team(
+            data_base, task_data.assignee_email, team_id
         )
-        if not assignee_user:
-            raise exception.NotFoundError("Пользователь не найден")
-
         data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=new_task.id))
 
     if task_data.tag_ids:
-        stream_obj = (
-            data_base.query(stream.Stream).filter(stream.Stream.id == stream_id).first()
-        )
-
-        if not stream_obj:
-            raise exception.NotFoundError("Стрим не найден")
-
-        team_id = stream_obj.project.team_id
-
         for tag_id in task_data.tag_ids:
             tag_obj = data_base.query(tag.Tag).filter(tag.Tag.id == tag_id).first()
 
@@ -149,9 +161,10 @@ def create_task_service(
 def update_task_service(
     data_base: orm.Session, task_id: int, user_id: int, task_update_data
 ):
-    task_obj, stream_obj, project_obj, team_obj = permissions.check_task_access(
+    task_obj, stream_obj, project_obj, user_team = permissions.check_task_access(
         data_base, task_id, user_id, need_lead=True
     )
+    team_id = project_obj.team_id
 
     tracked_fields = [
         "name",
@@ -179,13 +192,9 @@ def update_task_service(
             changes["assignee_email"] = (old_assignee, task_update_data.assignee_email)
 
     if task_update_data.assignee_email:
-        assignee_user = (
-            data_base.query(user.User)
-            .filter(user.User.email == task_update_data.assignee_email)
-            .first()
+        assignee_user = _get_assignee_for_team(
+            data_base, task_update_data.assignee_email, team_id
         )
-        if not assignee_user:
-            raise exception.NotFoundError("Пользователь не найден")
 
         old_user_task = (
             data_base.query(meta.UserTask)
@@ -211,7 +220,7 @@ def update_task_service(
             if not tag_obj:
                 raise exception.NotFoundError(f"Тег с id {tag_id} не найден")
 
-            if tag_obj.team_id != team_obj.id:
+            if tag_obj.team_id != team_id:
                 raise exception.ForbiddenError("Тег принадлежит другой команде")
 
             data_base.add(tag.TaskTag(task_id=task_id, tag_id=tag_id))
