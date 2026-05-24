@@ -34,6 +34,7 @@ import {
   deleteTeamApi,
   deleteUserFromTeamApi,
 } from "../../api/team.js";
+import { fetchUserEmailApi } from "../../api/user.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 
@@ -55,6 +56,7 @@ const TeamEdit = ({ open, onClose }) => {
   const [removingUserByTeam, setRemovingUserByTeam] = useState({});
   const [addUserByTeam, setAddUserByTeam] = useState({});
   const [addTeam, setAddTeam] = useState({ open: false, loading: false });
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -130,6 +132,11 @@ const TeamEdit = ({ open, onClose }) => {
   useEffect(() => {
     if (open) {
       fetchTeams();
+      fetchUserEmailApi(token).then((response) => {
+        if (response.ok) {
+          setCurrentUserEmail(response.email || "");
+        }
+      });
     }
   }, [open]);
 
@@ -205,6 +212,26 @@ const TeamEdit = ({ open, onClose }) => {
 
     if (!response.ok) {
       processError(response.status);
+      setRemovingUserByTeam((prev) => ({
+        ...prev,
+        [teamId]: null,
+      }));
+      return;
+    }
+
+    if (
+      currentUserEmail &&
+      userEmail.toLowerCase() === currentUserEmail.toLowerCase()
+    ) {
+      setRemovingUserByTeam((prev) => ({
+        ...prev,
+        [teamId]: null,
+      }));
+      onClose?.();
+      if (location.pathname.startsWith(`/team/${teamId}`)) {
+        navigate("/", { replace: true });
+      }
+      await fetchTeams();
       return;
     }
 

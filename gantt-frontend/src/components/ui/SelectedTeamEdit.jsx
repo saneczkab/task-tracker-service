@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogTitle,
@@ -29,9 +30,12 @@ import {
   updateTeamNameApi,
   deleteUserFromTeamApi,
 } from "../../api/team.js";
+import { fetchUserEmailApi } from "../../api/user.js";
 import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 
 const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -45,6 +49,7 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
   const [addingUser, setAddingUser] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
@@ -55,6 +60,11 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
   useEffect(() => {
     if (open && teamId) {
       loadTeamMembers();
+      fetchUserEmailApi(token).then((response) => {
+        if (response.ok) {
+          setCurrentUserEmail(response.email || "");
+        }
+      });
     }
   }, [open, teamId]);
 
@@ -108,6 +118,15 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
     setEditedName(teamName);
   };
 
+  const handleSelfRemoved = () => {
+    setRemovingUserId(null);
+    onTeamUpdated?.();
+    onClose?.();
+    if (location.pathname.startsWith(`/team/${teamId}`)) {
+      navigate("/", { replace: true });
+    }
+  };
+
   const removeUserFromTeam = async (userEmail) => {
     setError("");
     setRemovingUserId(selectedUser.id);
@@ -121,6 +140,14 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
         : `Ошибка ${response.status}`;
       setError(errorMsg);
       setRemovingUserId(null);
+      return;
+    }
+
+    if (
+      currentUserEmail &&
+      userEmail.toLowerCase() === currentUserEmail.toLowerCase()
+    ) {
+      handleSelfRemoved();
       return;
     }
 
