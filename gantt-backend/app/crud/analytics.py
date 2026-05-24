@@ -1,13 +1,14 @@
-from sqlalchemy.orm import Session
 from datetime import datetime
-from typing import Optional
-from app.models.task import Task
+
+from sqlalchemy.orm import Session
+
+from app.models import tag as tag_models
+from app.models.meta import UserTask
 from app.models.project import Project
 from app.models.stream import Stream
-from app.models.user import User
+from app.models.task import Task
 from app.models.team import Team, UserTeam
-from app.models.meta import UserTask
-from app.models import tag as tag_models
+from app.models.user import User
 from app.schemas import analytics as analytics_schemas
 
 
@@ -27,7 +28,9 @@ def _apply_filters(
         if has_stream:
             query = query.join(Project, Stream.project_id == Project.id)
         else:
-            query = query.join(Stream, Task.stream_id == Stream.id).join(Project, Stream.project_id == Project.id)
+            query = query.join(Stream, Task.stream_id == Stream.id).join(
+                Project, Stream.project_id == Project.id
+            )
 
     if filters.project_ids:
         query = query.filter(Project.id.in_(filters.project_ids))
@@ -42,25 +45,32 @@ def _apply_filters(
         query = query.filter(Task.priority_id.in_(filters.priority_ids))
 
     if filters.assigned_user_ids:
-        query = query.join(UserTask, Task.id == UserTask.task_id).filter(
-            UserTask.user_id.in_(filters.assigned_user_ids)
-        ).distinct()
+        query = (
+            query.join(UserTask, Task.id == UserTask.task_id)
+            .filter(UserTask.user_id.in_(filters.assigned_user_ids))
+            .distinct()
+        )
 
     if filters.assignee_emails:
-        query = query.join(UserTask, Task.id == UserTask.task_id).join(
-            User, UserTask.user_id == User.id
-        ).filter(User.email.in_(filters.assignee_emails)).distinct()
+        query = (
+            query.join(UserTask, Task.id == UserTask.task_id)
+            .join(User, UserTask.user_id == User.id)
+            .filter(User.email.in_(filters.assignee_emails))
+            .distinct()
+        )
 
     if filters.tag_ids:
-        query = query.join(tag_models.TaskTag, Task.id == tag_models.TaskTag.task_id).filter(
-            tag_models.TaskTag.tag_id.in_(filters.tag_ids)
-        ).distinct()
+        query = (
+            query.join(tag_models.TaskTag, Task.id == tag_models.TaskTag.task_id)
+            .filter(tag_models.TaskTag.tag_id.in_(filters.tag_ids))
+            .distinct()
+        )
 
     return query
 
 
 def _apply_date_ranges(
-    query, date_ranges: Optional[analytics_schemas.AnalyticsDateRanges]
+    query, date_ranges: analytics_schemas.AnalyticsDateRanges | None
 ):
     """Применить фильтры по датам"""
     if not date_ranges:
@@ -89,15 +99,19 @@ def get_base_tasks_query(
     db: Session,
     team_id: int,
     period_filter: analytics_schemas.PeriodFilter,
-    date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-    filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-    project_id: Optional[int] = None,
-    stream_id: Optional[int] = None,
+    date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+    filters: analytics_schemas.AnalyticsFilters | None = None,
+    project_id: int | None = None,
+    stream_id: int | None = None,
 ):
     """Базовый запрос задач с фильтрами"""
     team_ids = filters.team_ids if filters and filters.team_ids else None
 
-    query = db.query(Task).join(Stream, Task.stream_id == Stream.id).join(Project, Stream.project_id == Project.id)
+    query = (
+        db.query(Task)
+        .join(Stream, Task.stream_id == Stream.id)
+        .join(Project, Stream.project_id == Project.id)
+    )
 
     if team_ids:
         query = query.filter(Project.team_id.in_(team_ids))
@@ -149,10 +163,10 @@ def get_users_with_tasks(
     db: Session,
     team_id: int,
     period_filter: analytics_schemas.PeriodFilter,
-    date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-    filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-    project_id: Optional[int] = None,
-    stream_id: Optional[int] = None,
+    date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+    filters: analytics_schemas.AnalyticsFilters | None = None,
+    project_id: int | None = None,
+    stream_id: int | None = None,
 ):
     """Получить пользователей команды с их запросами задач"""
     team_ids = filters.team_ids if filters and filters.team_ids else None
@@ -210,13 +224,15 @@ def get_tasks_list_query(
     db: Session,
     team_id: int,
     period_filter: analytics_schemas.PeriodFilter,
-    date_ranges: Optional[analytics_schemas.AnalyticsDateRanges] = None,
-    filters: Optional[analytics_schemas.AnalyticsFilters] = None,
-    project_id: Optional[int] = None,
-    stream_id: Optional[int] = None,
+    date_ranges: analytics_schemas.AnalyticsDateRanges | None = None,
+    filters: analytics_schemas.AnalyticsFilters | None = None,
+    project_id: int | None = None,
+    stream_id: int | None = None,
 ):
     """Получить список задач"""
-    query = get_base_tasks_query(db, team_id, period_filter, date_ranges, filters, project_id, stream_id)
+    query = get_base_tasks_query(
+        db, team_id, period_filter, date_ranges, filters, project_id, stream_id
+    )
     return query.all()
 
 
@@ -228,7 +244,7 @@ def get_team_by_id(db: Session, team_id: int) -> Team | None:
 def get_team_users(
     db: Session,
     team_id: int,
-    filters: Optional[analytics_schemas.AnalyticsFilters] = None
+    filters: analytics_schemas.AnalyticsFilters | None = None,
 ) -> list[User]:
     """Получить пользователей команды (с учётом фильтра по team_ids)"""
     team_ids = filters.team_ids if filters and filters.team_ids else [team_id]

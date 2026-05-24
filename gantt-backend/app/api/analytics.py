@@ -5,11 +5,11 @@ from sqlalchemy import orm
 
 from app.api import auth
 from app.core import db
+from app.crud import analytics as analytics_crud
 from app.schemas import analytics as analytics_schemas
 from app.services.ai_report_service import AIReportService
 from app.services.analytics_service import AnalyticsService
 from app.services.request_limit_service import RequestLimitService
-from app.crud import analytics as analytics_crud
 
 router = fastapi.APIRouter()
 
