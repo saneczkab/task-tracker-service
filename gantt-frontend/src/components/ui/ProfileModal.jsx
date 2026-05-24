@@ -360,6 +360,7 @@ const ProfileModal = ({ open, onClose, anchorEl }) => {
             setSelectedTeam(null);
           }}
           teamId={selectedTeam.id}
+          initialTeamName={selectedTeam.name}
           onTeamUpdated={loadUserData}
         />
       )}

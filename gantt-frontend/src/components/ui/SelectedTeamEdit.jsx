@@ -27,13 +27,21 @@ import {
 import {
   addUserToTeamApi,
   fetchTeamMembersApi,
+  fetchTeamNameApi,
   updateTeamNameApi,
   deleteUserFromTeamApi,
 } from "../../api/team.js";
 import { fetchUserEmailApi } from "../../api/user.js";
 import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
+import { getAddTeamMemberErrorMessage } from "../../utils/teamErrors.js";
 
-const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
+const SelectedTeamEdit = ({
+  open,
+  onClose,
+  teamId,
+  initialTeamName = "",
+  onTeamUpdated,
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +54,7 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
   const [removingUserId, setRemovingUserId] = useState(null);
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState("");
+  const [addUserError, setAddUserError] = useState("");
   const [addingUser, setAddingUser] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -59,6 +68,7 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
 
   useEffect(() => {
     if (open && teamId) {
+      setTeamName(initialTeamName || "");
       loadTeamMembers();
       fetchUserEmailApi(token).then((response) => {
         if (response.ok) {
@@ -66,7 +76,7 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
         }
       });
     }
-  }, [open, teamId]);
+  }, [open, teamId, initialTeamName]);
 
   const loadTeamMembers = async () => {
     setIsLoading(true);
@@ -84,9 +94,12 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
     }
 
     setMembers(response.users);
-    if (response.users.length > 0) {
-      setTeamName(response.users[0].teamName || "Команда");
+
+    const nameResponse = await fetchTeamNameApi(teamId, token);
+    if (nameResponse.ok && nameResponse.name) {
+      setTeamName(nameResponse.name);
     }
+
     setIsLoading(false);
   };
 
@@ -160,21 +173,22 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
     if (!email) return;
 
     setError("");
+    setAddUserError("");
     setAddingUser(true);
 
     const response = await addUserToTeamApi(teamId, email, token);
 
     if (!response.ok) {
-      const errorMsg = response.details
-        ? `Ошибка ${response.status}: ${JSON.stringify(response.details)}`
-        : `Ошибка ${response.status}`;
-      setError(errorMsg);
+      setAddUserError(
+        getAddTeamMemberErrorMessage(response.status, response.details),
+      );
       setAddingUser(false);
       return;
     }
 
     await loadTeamMembers();
     setNewUserEmail("");
+    setAddUserError("");
     setAddUserOpen(false);
     setAddingUser(false);
   };
@@ -271,12 +285,13 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
                     Продолжить
                   </Button>
                 }
+                sx={{ mb: 2 }}
               >
                 {error}
               </Alert>
             )}
 
-            {!isLoading && !error && (
+            {!isLoading && (
               <>
                 <Box
                   sx={{
@@ -335,36 +350,50 @@ const SelectedTeamEdit = ({ open, onClose, teamId, onTeamUpdated }) => {
 
                 <Box sx={{ mt: 2 }}>
                   {addUserOpen ? (
-                    <Box display="flex" gap={1} alignItems="center">
-                      <TextField
-                        size="small"
-                        placeholder="Email пользователя"
-                        value={newUserEmail}
-                        onChange={(e) => setNewUserEmail(e.target.value)}
-                        fullWidth
-                        sx={{ fontFamily: "Montserrat, sans-serif" }}
-                      />
-                      <IconButton
-                        onClick={() => {
-                          setAddUserOpen(false);
-                          setNewUserEmail("");
-                        }}
-                      >
-                        <CloseIcon />
-                      </IconButton>
-                      <IconButton onClick={addUserToTeam} disabled={addingUser}>
-                        {addingUser ? (
-                          <CircularProgress size={20} />
-                        ) : (
-                          <SaveIcon />
-                        )}
-                      </IconButton>
+                    <Box display="flex" flexDirection="column" gap={1}>
+                      <Box display="flex" gap={1} alignItems="flex-start">
+                        <TextField
+                          size="small"
+                          placeholder="Email пользователя"
+                          value={newUserEmail}
+                          onChange={(e) => {
+                            setNewUserEmail(e.target.value);
+                            setAddUserError("");
+                          }}
+                          error={Boolean(addUserError)}
+                          helperText={addUserError}
+                          fullWidth
+                          sx={{ fontFamily: "Montserrat, sans-serif" }}
+                        />
+                        <IconButton
+                          onClick={() => {
+                            setAddUserOpen(false);
+                            setNewUserEmail("");
+                            setAddUserError("");
+                          }}
+                        >
+                          <CloseIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={addUserToTeam}
+                          disabled={addingUser}
+                        >
+                          {addingUser ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <SaveIcon />
+                          )}
+                        </IconButton>
+                      </Box>
                     </Box>
                   ) : (
                     <Button
                       fullWidth
                       startIcon={<AddIcon />}
-                      onClick={() => setAddUserOpen(true)}
+                      onClick={() => {
+                        setAddUserError("");
+                        setAddUserOpen(true);
+                      }}
                       sx={{
                         backgroundColor: "#E0E0E0",
                         color: "#000",

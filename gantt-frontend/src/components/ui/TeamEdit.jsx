@@ -35,6 +35,7 @@ import {
   deleteUserFromTeamApi,
 } from "../../api/team.js";
 import { fetchUserEmailApi } from "../../api/user.js";
+import { getAddTeamMemberErrorMessage } from "../../utils/teamErrors.js";
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
 
@@ -247,14 +248,14 @@ const TeamEdit = ({ open, onClose }) => {
     setError("");
     setAddUserByTeam((prev) => ({
       ...prev,
-      [teamId]: { open: true, email: "", loading: false },
+      [teamId]: { open: true, email: "", loading: false, error: "" },
     }));
   };
 
   const cancelAddUser = (teamId) => {
     setAddUserByTeam((prev) => ({
       ...prev,
-      [teamId]: { open: false, email: "", loading: false },
+      [teamId]: { open: false, email: "", loading: false, error: "" },
     }));
   };
 
@@ -263,16 +264,22 @@ const TeamEdit = ({ open, onClose }) => {
     setError("");
     setAddUserByTeam((prev) => ({
       ...prev,
-      [teamId]: { ...(prev[teamId] || {}), loading: true },
+      [teamId]: { ...(prev[teamId] || {}), loading: true, error: "" },
     }));
 
     const response = await addUserToTeamApi(teamId, email, token);
 
     if (!response.ok) {
-      setError(`Ошибка ${response.status}`);
       setAddUserByTeam((prev) => ({
         ...prev,
-        [teamId]: { ...(prev[teamId] || {}), loading: false },
+        [teamId]: {
+          ...(prev[teamId] || {}),
+          loading: false,
+          error: getAddTeamMemberErrorMessage(
+            response.status,
+            response.details,
+          ),
+        },
       }));
       return;
     }
@@ -495,12 +502,15 @@ const TeamEdit = ({ open, onClose }) => {
                                 lable="Email пользователя"
                                 value={addUserByTeam[team.id].email || ""}
                                 sx={{ flex: 1 }}
+                                error={Boolean(addUserByTeam[team.id]?.error)}
+                                helperText={addUserByTeam[team.id]?.error}
                                 onChange={(e) =>
                                   setAddUserByTeam((prev) => ({
                                     ...prev,
                                     [team.id]: {
                                       ...(prev[team.id] || {}),
                                       email: e.target.value,
+                                      error: "",
                                     },
                                   }))
                                 }
