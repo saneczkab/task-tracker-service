@@ -26,6 +26,7 @@ const AllTasks = () => {
   const [statistics, setStatistics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState("");
+  const [requestLimit, setRequestLimit] = useState(null);
 
   const [sortField, setSortField] = useState("deadline");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -285,6 +286,7 @@ const AllTasks = () => {
   useEffect(() => {
     if (!effectiveTeamId || !token) {
       setStatistics(null);
+      setRequestLimit(null);
       return;
     }
 
@@ -306,6 +308,7 @@ const AllTasks = () => {
 
       if (response.ok) {
         setStatistics(response.statistics);
+        setRequestLimit(response.requestLimit ?? null);
       } else {
         setStatistics(null);
         setAnalyticsError("Не удалось загрузить статистику");
@@ -362,6 +365,8 @@ const AllTasks = () => {
                   teamId={effectiveTeamId || teamId}
                   analyticsFilters={analyticsFilters}
                   token={token}
+                  requestLimit={requestLimit}
+                  onRequestLimitChange={setRequestLimit}
                 />
               </div>
             </div>
