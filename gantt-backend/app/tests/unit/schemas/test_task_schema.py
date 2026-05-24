@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -104,5 +104,20 @@ def test_task_update_deadline_equal_to_start_date():
 def test_task_update_deadline_before_start_date():
     start = datetime.now() + timedelta(days=2)
     deadline = start - timedelta(minutes=1)
+    with pytest.raises(ValidationError):
+        TaskUpdate(start_date=start, deadline=deadline)
+
+
+def test_task_update_mixed_naive_and_aware_datetimes():
+    start = datetime(2026, 5, 24, 10, 0, 0)
+    deadline = datetime(2026, 5, 25, 10, 0, 0, tzinfo=UTC)
+    result = TaskUpdate(start_date=start, deadline=deadline)
+    assert result.start_date == start
+    assert result.deadline == datetime(2026, 5, 25, 10, 0, 0)
+
+
+def test_task_update_mixed_naive_and_aware_deadline_before_start():
+    start = datetime(2026, 5, 25, 10, 0, 0)
+    deadline = datetime(2026, 5, 24, 10, 0, 0, tzinfo=UTC)
     with pytest.raises(ValidationError):
         TaskUpdate(start_date=start, deadline=deadline)

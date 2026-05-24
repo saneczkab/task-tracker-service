@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.validators import normalize_datetime, validate_deadline_after_start
+
 
 class GoalCreate(BaseModel):
     name: str = Field(..., min_length=1)
@@ -10,11 +12,15 @@ class GoalCreate(BaseModel):
     deadline: datetime | None = None
     position: int | None = Field(None, ge=0)
 
+    @field_validator("start_date", "deadline", mode="after")
+    @classmethod
+    def normalize_date_fields(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime(value)
+
     @field_validator("deadline")
+    @classmethod
     def validate_deadline(cls, deadline, info):
-        start_date = info.data.get("start_date")
-        if start_date and deadline and deadline <= start_date:
-            raise ValueError("deadline должен быть больше start_date")
+        validate_deadline_after_start(deadline, info.data.get("start_date"))
         return deadline
 
 
@@ -25,11 +31,15 @@ class GoalUpdate(BaseModel):
     deadline: datetime | None = None
     position: int | None = Field(None, ge=0)
 
+    @field_validator("start_date", "deadline", mode="after")
+    @classmethod
+    def normalize_date_fields(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime(value)
+
     @field_validator("deadline")
+    @classmethod
     def validate_deadline(cls, deadline, info):
-        start_date = info.data.get("start_date")
-        if start_date and deadline and deadline <= start_date:
-            raise ValueError("deadline должен быть больше start_date")
+        validate_deadline_after_start(deadline, info.data.get("start_date"))
         return deadline
 
 

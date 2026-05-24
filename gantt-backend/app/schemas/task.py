@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.custom_field import TaskCustomFieldValue, TaskCustomFieldValueBase
 from app.schemas.tag import TagResponse
+from app.schemas.validators import normalize_datetime, validate_deadline_after_start
 
 
 class TaskCreate(BaseModel):
@@ -19,11 +20,15 @@ class TaskCreate(BaseModel):
     tag_ids: list[int] | None = None
     custom_fields: list[TaskCustomFieldValueBase] | None = None
 
+    @field_validator("start_date", "deadline", mode="after")
+    @classmethod
+    def normalize_date_fields(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime(value)
+
     @field_validator("deadline")
+    @classmethod
     def validate_deadline(cls, deadline, info):
-        start_date = info.data.get("start_date")
-        if start_date and deadline and deadline <= start_date:
-            raise ValueError("deadline должен быть больше start_date")
+        validate_deadline_after_start(deadline, info.data.get("start_date"))
         return deadline
 
 
@@ -40,11 +45,15 @@ class TaskUpdate(BaseModel):
     tag_ids: list[int] | None = None
     custom_fields: list[TaskCustomFieldValueBase] | None = None
 
+    @field_validator("start_date", "deadline", mode="after")
+    @classmethod
+    def normalize_date_fields(cls, value: datetime | None) -> datetime | None:
+        return normalize_datetime(value)
+
     @field_validator("deadline")
+    @classmethod
     def validate_deadline(cls, deadline, info):
-        start_date = info.data.get("start_date")
-        if start_date and deadline and deadline <= start_date:
-            raise ValueError("deadline должен быть больше start_date")
+        validate_deadline_after_start(deadline, info.data.get("start_date"))
         return deadline
 
 
