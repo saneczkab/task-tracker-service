@@ -125,7 +125,7 @@ def test_update_team_service_success_add_and_delete_users(
         mock_db,
         ids.team_id,
         added_user.id,
-        Role.READER,
+        Role.EDITOR,
     )
     mocks["delete_member"].assert_called_once_with(
         mock_db,

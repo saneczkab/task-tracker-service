@@ -21,7 +21,9 @@ def test_create_tag_service_success(
 
     result = create_tag_service(mock_db, ids.team_id, ids.user_id, tag_data)
 
-    mock_check_team_access.assert_called_once_with(mock_db, ids.team_id, ids.user_id)
+    mock_check_team_access.assert_called_once_with(
+        mock_db, ids.team_id, ids.user_id, need_lead=True
+    )
     mock_create_tag.assert_called_once_with(
         mock_db, ids.team_id, tag_data.name, tag_data.color
     )
@@ -56,7 +58,7 @@ def test_delete_tag_service_success(
 
     mock_get_tag_by_id.assert_called_once_with(mock_db, tag_obj.id)
     mock_check_team_access.assert_called_once_with(
-        mock_db, tag_obj.team_id, ids.user_id
+        mock_db, tag_obj.team_id, ids.user_id, need_lead=True
     )
     mock_delete_tag.assert_called_once_with(mock_db, tag_obj)
 

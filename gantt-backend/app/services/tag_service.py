@@ -7,7 +7,7 @@ from app.services import permissions
 
 def create_tag_service(data_base: Session, team_id: int, user_id: int, tag_data):
     """Создать новый тег"""
-    permissions.check_team_access(data_base, team_id, user_id)
+    permissions.check_team_access(data_base, team_id, user_id, need_lead=True)
 
     return tag_crud.create_tag(data_base, team_id, tag_data.name, tag_data.color)
 
@@ -26,6 +26,6 @@ def delete_tag_service(data_base: Session, tag_id: int, user_id: int):
     if not tag_obj:
         raise exception.NotFoundError("Тег не найден")
 
-    permissions.check_team_access(data_base, tag_obj.team_id, user_id)
+    permissions.check_team_access(data_base, tag_obj.team_id, user_id, need_lead=True)
 
     tag_crud.delete_tag(data_base, tag_obj)

@@ -115,7 +115,9 @@ def test_get_custom_fields_by_team_service_success(
 
     result = get_custom_fields_by_team_service(mock_db, team_obj.id, 999)
 
-    mock_check_team_access.assert_called_once_with(mock_db, team_obj.id, 999)
+    mock_check_team_access.assert_called_once_with(
+        mock_db, team_obj.id, 999, need_lead=True
+    )
     mock_get_custom_fields_by_team.assert_called_once_with(
         db=mock_db, team_id=team_obj.id
     )

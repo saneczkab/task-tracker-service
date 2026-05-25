@@ -29,7 +29,7 @@ def create_custom_field_service(
 def get_custom_fields_by_team_service(
     data_base: orm.Session, team_id: int, user_id: int
 ):
-    permissions.check_team_access(data_base, team_id, user_id)
+    permissions.check_team_access(data_base, team_id, user_id, need_lead=True)
     return custom_field_crud.get_custom_fields_by_team(db=data_base, team_id=team_id)
 
 

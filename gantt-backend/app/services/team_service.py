@@ -55,7 +55,7 @@ def update_team_service(
 
             if not team_crud.get_user_team(data_base, team_id, user.id):
                 team_crud.add_user_to_team(
-                    data_base, team_id, user.id, role.Role.READER
+                    data_base, team_id, user.id, role.Role.EDITOR
                 )
 
     if update_data.deleteUsers:
