@@ -42,7 +42,11 @@ def update_team_service(
     if not team_obj:
         raise exception.NotFoundError("Команда не найдена")
 
-    permissions.check_team_access(data_base, team_id, user_id, need_lead=True)
+    _, user_team = permissions.check_team_access(data_base, team_id, user_id)
+
+    needs_editor = update_data.name is not None or bool(update_data.deleteUsers)
+    if needs_editor and user_team.role_id != role.Role.EDITOR:
+        raise exception.ForbiddenError("У вас нет прав на выполнение этого действия")
 
     if update_data.name:
         team_obj.name = update_data.name
