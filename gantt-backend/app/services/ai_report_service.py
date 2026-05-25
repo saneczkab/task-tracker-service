@@ -7,11 +7,8 @@ from app.schemas.analytics import TaskAnalytics, TaskBrief, UserTaskStats
 
 
 class AIReportService:
-    @staticmethod
-    def _yandex_config() -> tuple[str, str]:
-        folder_id = (os.getenv("YANDEX_FOLDER_ID") or "").strip()
-        api_key = (os.getenv("YANDEX_API_KEY") or "").strip()
-        return folder_id, api_key
+    YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID", "")
+    YANDEX_API_KEY = os.getenv("YANDEX_API_KEY", "")
 
     @staticmethod
     def generate_summary(
@@ -22,13 +19,6 @@ class AIReportService:
         period: str = None,
     ) -> str:
         """Генерация аналитического резюме с персональными данными"""
-
-        folder_id, api_key = AIReportService._yandex_config()
-        if not folder_id or not api_key:
-            print(
-                "YandexGPT не настроен: задайте непустые YANDEX_FOLDER_ID и YANDEX_API_KEY"
-            )
-            return AIReportService._fallback_summary(analytics, team_name, period)
 
         period_text = {
             "week": "за последнюю неделю",
@@ -77,7 +67,7 @@ class AIReportService:
         """
 
         body = {
-            "modelUri": f"gpt://{folder_id}/yandexgpt-lite",
+            "modelUri": f"gpt://{AIReportService.YANDEX_FOLDER_ID}/yandexgpt-lite",
             "completionOptions": {
                 "stream": False,
                 "temperature": 0.5,
@@ -94,7 +84,7 @@ class AIReportService:
 
         url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
         headers = {
-            "Authorization": f"Api-Key {api_key}",
+            "Authorization": f"Api-Key {AIReportService.YANDEX_API_KEY}",
             "Content-Type": "application/json",
         }
 

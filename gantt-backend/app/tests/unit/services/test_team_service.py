@@ -104,21 +104,22 @@ def test_update_team_service_success_add_and_delete_users(
 ):
     team_obj = mock_team
     team_obj.name = "Old"
-    update_data = Mock()
-    update_data.name = "New"
-    update_data.newUsers = ["new@test.com"]
-    update_data.deleteUsers = ["old@test.com"]
+    update_data = Mock(
+        name="New",
+        newUsers=["new@test.com"],
+        deleteUsers=["old@test.com"],
+    )
     added_user = mock_second_user
     removed_user = mock_user
     mocks["get_team_by_id"].return_value = team_obj
     mocks["get_user_by_email"].side_effect = [added_user, removed_user]
     mocks["get_user_team"].return_value = None
 
-    mock_check_team_access.return_value = (team_obj, Mock(role_id=Role.EDITOR))
-
     result = update_team_service(mock_db, ids.team_id, ids.user_id, update_data)
 
-    mock_check_team_access.assert_called_once_with(mock_db, ids.team_id, ids.user_id)
+    mock_check_team_access.assert_called_once_with(
+        mock_db, ids.team_id, ids.user_id, need_lead=True
+    )
     assert team_obj.name == update_data.name
     mocks["add_user_to_team"].assert_called_once_with(
         mock_db,
@@ -158,21 +159,19 @@ def test_update_team_service_existing_member_not_added(
 ):
     team_obj = mock_team
     team_obj.name = "Old"
-    update_data = Mock()
-    update_data.name = None
-    update_data.newUsers = ["existing@test.com"]
-    update_data.deleteUsers = None
+    update_data = Mock(name=None, newUsers=["existing@test.com"], deleteUsers=None)
     existing_user = mock_second_user
     existing_member = Mock(id=999)
 
     mocks["get_team_by_id"].return_value = team_obj
     mocks["get_user_by_email"].return_value = existing_user
     mocks["get_user_team"].return_value = existing_member
-    mock_check_team_access.return_value = (team_obj, Mock(role_id=Role.READER))
 
     result = update_team_service(mock_db, ids.team_id, ids.user_id, update_data)
 
-    mock_check_team_access.assert_called_once_with(mock_db, ids.team_id, ids.user_id)
+    mock_check_team_access.assert_called_once_with(
+        mock_db, ids.team_id, ids.user_id, need_lead=True
+    )
     mocks["add_user_to_team"].assert_not_called()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(team_obj)
@@ -186,7 +185,7 @@ def test_update_team_service_existing_member_not_added(
     get_user_by_email=DEFAULT,
 )
 def test_update_team_service_user_not_found(
-    mock_check_team_access,
+    _mock_check_team_access,
     mock_db,
     ids,
     **mocks,
@@ -198,7 +197,6 @@ def test_update_team_service_user_not_found(
     update_data.deleteUsers = None
     mocks["get_team_by_id"].return_value = team_obj
     mocks["get_user_by_email"].return_value = None
-    mock_check_team_access.return_value = (team_obj, Mock(role_id=Role.READER))
 
     with pytest.raises(exception.NotFoundError):
         update_team_service(mock_db, ids.team_id, ids.user_id, update_data)
@@ -272,7 +270,7 @@ def test_delete_team_service_cascade_delete(
     create=True,
 )
 def test_update_team_service_delete_user_not_found(
-    mock_check_team_access,
+    _mock_check_team_access,
     mock_db,
     ids,
     **mocks,
@@ -284,7 +282,6 @@ def test_update_team_service_delete_user_not_found(
     update_data.deleteUsers = ["missing@test.com"]
     mocks["get_team_by_id"].return_value = team_obj
     mocks["get_user_by_email"].return_value = None
-    mock_check_team_access.return_value = (team_obj, Mock(role_id=Role.EDITOR))
 
     with pytest.raises(exception.NotFoundError):
         update_team_service(mock_db, ids.team_id, ids.user_id, update_data)
