@@ -9,7 +9,7 @@ from app.models.request_limit import RequestLimit
 class RequestLimitService:
     """Ограничитель запросов к ИИ"""
 
-    DAILY_LIMIT = 1
+    DAILY_LIMIT = 2
 
     @staticmethod
     def get_usage(db: Session, user_id: int) -> dict:
