@@ -13,6 +13,7 @@ import {
 } from "@mui/icons-material";
 import GoalForm from "../tasks/GoalForm.jsx";
 import TaskForm from "../tasks/TaskForm.jsx";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { useProcessError } from "../../hooks/useProcessError.js";
 import { useConfirmDelete } from "../../context/ConfirmDeleteDialogContext.jsx";
@@ -36,6 +37,8 @@ const GanttSidebar = forwardRef(
   ) => {
     const processError = useProcessError();
     const { confirm } = useConfirmDelete();
+    const navigate = useNavigate();
+    const location = useLocation();
     const token = useMemo(
       () => window.localStorage.getItem("auth_token") || "",
       [],
@@ -137,10 +140,9 @@ const GanttSidebar = forwardRef(
         setCurrentStreamId(menuRow.streamId);
         setGoalFormOpen(true);
       } else if (menuRow.type === "task") {
-        setSelectedTask(menuRow.item);
-        setCurrentStreamId(menuRow.streamId);
-        await loadMeta();
-        setTaskFormOpen(true);
+        navigate(`/team/${teamId}/task/${menuRow.item.id}`, {
+          state: { from: location.pathname },
+        });
       }
 
       setMenuAnchorEl(null);
@@ -195,15 +197,10 @@ const GanttSidebar = forwardRef(
     };
 
     const handleTaskSaved = async (saved) => {
-      const action = selectedTask?.id ? "update" : "create";
-
       setTaskFormOpen(false);
       setSelectedTask(null);
-      onDataChanged?.({
-        type: "task",
-        action,
-        streamId: currentStreamId,
-        item: saved,
+      navigate(`/team/${teamId}/task/${saved.id}`, {
+        state: { from: location.pathname },
       });
     };
 
@@ -732,7 +729,17 @@ const GanttSidebar = forwardRef(
                         >
                           <AddIcon fontSize="inherit" />
                         </IconButton>
-                        <span style={{ marginLeft: 24 }}>{task.item.name}</span>
+                        <span
+                          style={{ marginLeft: 24, cursor: "pointer" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/team/${teamId}/task/${task.item.id}`, {
+                              state: { from: location.pathname },
+                            });
+                          }}
+                        >
+                          {task.item.name}
+                        </span>
                         <IconButton
                           size="small"
                           onClick={(e) => {

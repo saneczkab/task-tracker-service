@@ -10,12 +10,16 @@ import {
 } from "@mui/material";
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 import { getContrastColor } from "../../utils/taskUtils.js";
-import {
-  toLocaleDateWithTimeHM,
-  formatDatetime,
-} from "../../utils/datetime.js";
+import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
 
-const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
+const TaskCard = ({
+  task,
+  priorityMap,
+  onOpen,
+  onEdit,
+  onDelete,
+  onHistory,
+}) => {
   const {
     name,
     assignee_email,
@@ -61,6 +65,7 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
     <Paper
       draggable
       onDragStart={handleDragStart}
+      onClick={() => onOpen?.(task)}
       sx={{
         p: 1.5,
         borderRadius: 2,
@@ -80,7 +85,10 @@ const TaskCard = ({ task, priorityMap, onEdit, onDelete, onHistory }) => {
           alignItems: "flex-start",
         }}
       >
-        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 600, cursor: "pointer" }}
+        >
           {name}
         </Typography>
 

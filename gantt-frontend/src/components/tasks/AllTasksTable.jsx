@@ -19,8 +19,12 @@ import {
   SORTABLE_HEADER_CELL_STYLES,
 } from "./tableStyles.js";
 import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const AllTasksTable = ({ tasks, sortField, sortOrder, handleSort }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const renderSortIcon = (field) => {
     if (sortField !== field) {
       return null;
@@ -88,7 +92,15 @@ const AllTasksTable = ({ tasks, sortField, sortOrder, handleSort }) => {
 
         <TableBody>
           {tasks.map((task) => (
-            <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
+            <TableRow
+              key={task.id}
+              sx={{ ...TASKS_TABLE_BODY_STYLES, cursor: "pointer" }}
+              onClick={() =>
+                navigate(`/team/${task.team_id}/task/${task.id}`, {
+                  state: { from: location.pathname },
+                })
+              }
+            >
               <TableCell sx={CELL_STYLES}>{task.team_name || "-"}</TableCell>
               <TableCell sx={CELL_STYLES}>{task.project_name || "-"}</TableCell>
               <TableCell sx={CELL_STYLES}>{task.stream_name || "-"}</TableCell>

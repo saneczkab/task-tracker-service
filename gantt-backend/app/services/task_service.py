@@ -71,6 +71,23 @@ def get_all_tasks_service(data_base: orm.Session, user_id: int):
     return tasks
 
 
+def get_task_service(data_base: orm.Session, task_id: int, user_id: int):
+    task_obj, stream_obj, project_obj, _ = permissions.check_task_access(
+        data_base, task_id, user_id
+    )
+
+    task_obj.assignee_email = (
+        task_obj.assigned_users[0].user.email if task_obj.assigned_users else None
+    )
+    task_obj.team_id = project_obj.team_id
+    task_obj.team_name = project_obj.team.name if project_obj.team else None
+    task_obj.project_id = project_obj.id
+    task_obj.project_name = project_obj.name
+    task_obj.stream_name = stream_obj.name
+
+    return task_obj
+
+
 def get_project_tasks_service(data_base: orm.Session, project_id: int, user_id: int):
     project_obj = (
         data_base.query(project.Project)
@@ -184,17 +201,19 @@ def update_task_service(
             if old_val != new_val:
                 changes[field] = (old_val, new_val)
 
-    if task_update_data.assignee_email is not None:
+    if "assignee_email" in task_update_data.model_fields_set:
         old_assignee = (
             task_obj.assigned_users[0].user.email if task_obj.assigned_users else None
         )
         if old_assignee != task_update_data.assignee_email:
             changes["assignee_email"] = (old_assignee, task_update_data.assignee_email)
 
-    if task_update_data.assignee_email:
-        assignee_user = _get_assignee_for_team(
-            data_base, task_update_data.assignee_email, team_id
-        )
+    if "assignee_email" in task_update_data.model_fields_set:
+        assignee_user = None
+        if task_update_data.assignee_email:
+            assignee_user = _get_assignee_for_team(
+                data_base, task_update_data.assignee_email, team_id
+            )
 
         old_user_task = (
             data_base.query(meta.UserTask)
@@ -204,7 +223,8 @@ def update_task_service(
         if old_user_task:
             data_base.delete(old_user_task)
 
-        data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=task_id))
+        if assignee_user:
+            data_base.add(meta.UserTask(user_id=assignee_user.id, task_id=task_id))
 
     if task_update_data.tag_ids is not None:
         old_tag_ids = [t.tag_id for t in task_obj.tags]

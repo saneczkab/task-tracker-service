@@ -8,6 +8,7 @@ import StreamPage from "./pages/stream/StreamPage.jsx";
 import KanbanBoard from "./components/tasks/KanbanBoard.jsx";
 import GanttChartPage from "./pages/stream/GanttChartPage.jsx";
 import AllTasks from "./pages/tasks/AllTasks.jsx";
+import TaskPage from "./pages/tasks/TaskPage.jsx";
 import ErrorLayout from "./pages/error/ErrorLayout.jsx";
 import React from "react";
 
@@ -44,6 +45,7 @@ function App() {
             element={<GanttChartPage />}
           />
           <Route path="/team/:teamId/tasks" element={<AllTasks />} />
+          <Route path="/team/:teamId/task/:taskId" element={<TaskPage />} />
 
           <Route
             path="/error/403"

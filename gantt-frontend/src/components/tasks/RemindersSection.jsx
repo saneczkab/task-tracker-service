@@ -136,7 +136,7 @@ const RemindersSection = ({ taskId, token, deadline }) => {
   const displayError = localError || pushError;
 
   return (
-    <Box sx={{ px: 1.5, py: 1 }}>
+    <Box className="task-reminders-section" sx={{ px: 1.5, py: 1 }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
         <NotificationIcon fontSize="small" color="action" />
         <Typography

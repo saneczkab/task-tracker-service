@@ -1,8 +1,9 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 
-const FormRow = ({ label, children }) => (
+const FormRow = ({ label, children, className = "" }) => (
   <Box
+    className={`task-form-row ${className}`.trim()}
     sx={{
       display: "grid",
       gridTemplateColumns: { xs: "1fr", sm: "220px 1fr" },

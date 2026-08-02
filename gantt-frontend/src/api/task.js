@@ -67,6 +67,29 @@ export async function fetchAllUserTasksApi(token) {
   }
 }
 
+export function updateTaskKeepaliveApi(taskId, task, token) {
+  return fetch(`/api/task/${taskId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(task),
+    keepalive: true,
+  });
+}
+
+export async function fetchTaskApi(taskId, token) {
+  try {
+    const response = await axios.get(`/api/task/${taskId}`, {
+      headers: { Authorization: token },
+    });
+    return { ok: true, task: response.data };
+  } catch (e) {
+    return { ok: false, status: e.response?.status };
+  }
+}
+
 export async function getProjectTasksApi(projectId, token) {
   try {
     const response = await axios.get(`/api/project/${projectId}/tasks`, {

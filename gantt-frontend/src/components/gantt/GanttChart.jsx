@@ -36,8 +36,8 @@ import {
 } from "./ganttConstants.js";
 import GanttSidebar from "./GanttSidebar.jsx";
 import GoalForm from "../tasks/GoalForm.jsx";
-import TaskForm from "../tasks/TaskForm.jsx";
 import TaskHistory from "../tasks/TaskHistory.jsx";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -73,8 +73,6 @@ const GanttChart = ({
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [goalStreamId, setGoalStreamId] = useState(null);
 
-  const [taskFormOpen, setTaskFormOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
   const [taskStreamId, setTaskStreamId] = useState(null);
 
   const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
@@ -92,6 +90,8 @@ const GanttChart = ({
 
   const processError = useProcessError();
   const { confirm } = useConfirmDelete();
+  const navigate = useNavigate();
+  const location = useLocation();
   const token = useMemo(
     () => window.localStorage.getItem("auth_token") || "",
     [],
@@ -349,7 +349,9 @@ const GanttChart = ({
     const rafId = requestAnimationFrame(() => {
       try {
         centerOnTimestamp(nowTs);
-      } catch {}
+      } catch {
+        return;
+      }
     });
     return () => cancelAnimationFrame(rafId);
   }, [timeline, nowTs, centerOnTimestamp]);
@@ -508,10 +510,10 @@ const GanttChart = ({
     setGoalFormOpen(true);
   };
 
-  const openTaskEdit = (task, streamId) => {
-    setSelectedTask(task);
-    setTaskStreamId(streamId);
-    setTaskFormOpen(true);
+  const openTaskEdit = (task) => {
+    navigate(`/team/${teamId}/task/${task.id}`, {
+      state: { from: location.pathname },
+    });
   };
 
   const handleContextMenuGoal = (e, goal, streamId) => {
@@ -1727,18 +1729,6 @@ const GanttChart = ({
         streamId={goalStreamId}
         goal={selectedGoal}
         onSaved={handleGoalSaved}
-      />
-
-      <TaskForm
-        open={taskFormOpen}
-        onClose={() => setTaskFormOpen(false)}
-        streamId={taskStreamId}
-        task={selectedTask}
-        statuses={statuses}
-        priorities={priorities}
-        projectId={projId}
-        teamId={teamId}
-        onSaved={handleTaskSaved}
       />
 
       <TaskHistory

@@ -19,8 +19,37 @@ from app.services.task_service import (
     get_project_tasks_service,
     get_stream_tasks_service,
     get_task_history_service,
+    get_task_service,
     update_task_service,
 )
+
+
+@patch("app.services.task_service.permissions.check_task_access")
+def test_get_task_service_success(mock_check_task_access, mock_db, ids):
+    task_obj = Mock(assigned_users=[Mock(user=Mock(email="assignee@test.com"))])
+    stream_obj = Mock()
+    stream_obj.name = "Stream"
+    project_obj = Mock()
+    project_obj.id = ids.project_id
+    project_obj.name = "Project"
+    project_obj.team_id = ids.team_id
+    project_obj.team = Mock()
+    project_obj.team.name = "Team"
+    mock_check_task_access.return_value = (
+        task_obj,
+        stream_obj,
+        project_obj,
+        Mock(),
+    )
+
+    result = get_task_service(mock_db, ids.task_id, ids.user_id)
+
+    mock_check_task_access.assert_called_once_with(mock_db, ids.task_id, ids.user_id)
+    assert result is task_obj
+    assert result.assignee_email == "assignee@test.com"
+    assert result.team_id == ids.team_id
+    assert result.project_id == ids.project_id
+    assert result.stream_name == "Stream"
 
 
 @patch("app.services.task_service.task_crud.get_tasks_by_project")
@@ -591,6 +620,49 @@ def test_update_task_service_success_with_changes(
     assert mock_db.add.call_count == 2
     mock_db.commit.assert_called_once()
     assert result is task_obj
+
+
+@patch.multiple(
+    "app.services.task_service.task_crud",
+    create_task_history_entries=DEFAULT,
+    update_task=DEFAULT,
+)
+@patch("app.services.task_service.permissions.check_task_access")
+def test_update_task_service_clears_assignee(
+    mock_check_task_access, mock_db, ids, make_query_router, make_query, **mocks
+):
+    old_user_task = Mock()
+    task_obj = Mock(
+        assigned_users=[Mock(user=Mock(email="old@test.com"))],
+        tags=[],
+        custom_field_values=[],
+    )
+    task_update_data = Mock(
+        assignee_email=None,
+        tag_ids=None,
+        custom_fields=None,
+        model_fields_set={"assignee_email"},
+    )
+    task_update_data.model_dump.return_value = {"assignee_email": None}
+    q_old_user_task = make_query(first=old_user_task)
+    mock_db.query.side_effect = make_query_router(
+        {meta_model.UserTask: q_old_user_task}
+    )
+    mock_check_task_access.return_value = (
+        task_obj,
+        Mock(),
+        Mock(team_id=ids.team_id),
+        Mock(),
+    )
+
+    update_task_service(mock_db, ids.task_id, ids.user_id, task_update_data)
+
+    mock_db.delete.assert_called_once_with(old_user_task)
+    mock_db.add.assert_not_called()
+    mocks["update_task"].assert_called_once_with(
+        mock_db, task_obj, {"assignee_email": None}
+    )
+    mocks["create_task_history_entries"].assert_called_once()
 
 
 @patch("app.services.task_service.permissions.check_task_access")

@@ -22,6 +22,24 @@ def get_all_tasks(
     return task_service.get_all_tasks_service(data_base, current_user.id)
 
 
+@router.get(
+    "/api/task/{task_id}",
+    response_model=task_schemas.TaskResponseFull,
+    status_code=fastapi.status.HTTP_200_OK,
+)
+def get_task(
+    task_id: int,
+    current_user=fastapi.Depends(auth.get_current_user),
+    data_base: orm.Session = fastapi.Depends(db.get_db),
+):
+    try:
+        return task_service.get_task_service(data_base, task_id, current_user.id)
+    except exception.NotFoundError as e:
+        raise fastapi.HTTPException(404, str(e))
+    except exception.ForbiddenError as e:
+        raise fastapi.HTTPException(403, str(e))
+
+
 @router.patch("/api/task/{task_id}", response_model=task_schemas.TaskResponse)
 def update_task(
     task_id: int,
