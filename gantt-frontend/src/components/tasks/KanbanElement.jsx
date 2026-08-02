@@ -10,6 +10,7 @@ const KanbanElement = ({
   tasks = [],
   priorityMap,
   onTaskEdit,
+  onTaskOpen,
   onAddTask,
   onTaskDelete,
   onTaskHistory,
@@ -121,6 +122,7 @@ const KanbanElement = ({
               <TaskCard
                 task={task}
                 priorityMap={priorityMap}
+                onOpen={onTaskOpen}
                 onEdit={onTaskEdit}
                 onDelete={onTaskDelete}
                 onHistory={onTaskHistory}

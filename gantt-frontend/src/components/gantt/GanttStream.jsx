@@ -16,7 +16,6 @@ import { DAY_MS } from "./timelineUtils.js";
 
 const GanttStream = ({
   streamId,
-  streamName,
   goals,
   tasks,
   timeline,

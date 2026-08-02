@@ -46,6 +46,7 @@ import {
   CREATE_BUTTON_STYLES,
 } from "./tableStyles.js";
 import { toLocaleDateWithTimeHM } from "../../utils/datetime.js";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [tasks, setTasks] = useState([]);
@@ -59,7 +60,6 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   const [menuTaskId, setMenuTaskId] = useState(null);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyTask, setHistoryTask] = useState(null);
@@ -88,6 +88,8 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   );
   const processError = useProcessError();
   const { confirm } = useConfirmDelete();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const openMenu = (event, id) => {
     setMenuAnchorEl(event.currentTarget);
@@ -95,15 +97,20 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
   };
 
   const handleCreate = () => {
-    setSelectedTask(null);
     setFormOpen(true);
   };
 
   const handleEdit = () => {
-    const t = (tasks || []).find((x) => x.id === menuTaskId);
-    setSelectedTask(t || null);
-    setFormOpen(true);
+    navigate(`/team/${teamId}/task/${menuTaskId}`, {
+      state: { from: location.pathname },
+    });
     closeMenu();
+  };
+
+  const openTaskPage = (taskId) => {
+    navigate(`/team/${teamId}/task/${taskId}`, {
+      state: { from: location.pathname },
+    });
   };
 
   const handleShowHistory = () => {
@@ -379,7 +386,11 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
 
               <TableBody>
                 {(sortedTasks || []).map((task) => (
-                  <TableRow key={task.id} sx={TASKS_TABLE_BODY_STYLES}>
+                  <TableRow
+                    key={task.id}
+                    sx={{ ...TASKS_TABLE_BODY_STYLES, cursor: "pointer" }}
+                    onClick={() => openTaskPage(task.id)}
+                  >
                     <TableCell sx={CELL_STYLES}>
                       <Box>
                         <span
@@ -455,7 +466,10 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
 
                       <IconButton
                         size="small"
-                        onClick={(e) => openMenu(e, task.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMenu(e, task.id);
+                        }}
                         className="task-actions"
                         sx={{
                           position: "absolute",
@@ -513,14 +527,16 @@ const TaskList = ({ streamId, projectId = null, teamId = null }) => {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         streamId={streamId}
-        task={selectedTask}
+        task={null}
         statuses={statuses}
         priorities={priorities}
         projectId={projectId}
         teamId={teamId}
-        onSaved={() => {
+        onSaved={(createdTask) => {
           setFormOpen(false);
-          loadAll();
+          navigate(`/team/${teamId}/task/${createdTask.id}`, {
+            state: { from: location.pathname },
+          });
         }}
       />
 

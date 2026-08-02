@@ -130,7 +130,10 @@ const TaskCustomFieldsSection = ({
   };
 
   return (
-    <Box sx={{ px: 1.5, py: 1, fontFamily: '"Montserrat", sans-serif' }}>
+    <Box
+      className="task-custom-fields-section"
+      sx={{ px: 1.5, py: 1, fontFamily: '"Montserrat", sans-serif' }}
+    >
       <Box sx={{ display: "grid", gap: 1 }}>
         {activeFields.map((field) => {
           const value = values[field.id] ?? "";

@@ -5,6 +5,46 @@ from app.core import exception
 
 
 @patch("app.services.user_service.get_current_user_service")
+@patch("app.services.task_service.get_task_service")
+def test_get_task_success(
+    mock_service, mock_user, current_user, task, auth_headers, client
+):
+    mock_user.return_value = current_user
+    mock_service.return_value = task
+
+    response = client.get(f"/api/task/{task.id}", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["id"] == task.id
+
+
+@patch("app.services.user_service.get_current_user_service")
+@patch("app.services.task_service.get_task_service")
+def test_get_task_not_found(
+    mock_service, mock_user, current_user, task, auth_headers, client
+):
+    mock_user.return_value = current_user
+    mock_service.side_effect = exception.NotFoundError()
+
+    response = client.get(f"/api/task/{task.id}", headers=auth_headers)
+
+    assert response.status_code == 404
+
+
+@patch("app.services.user_service.get_current_user_service")
+@patch("app.services.task_service.get_task_service")
+def test_get_task_forbidden(
+    mock_service, mock_user, current_user, task, auth_headers, client
+):
+    mock_user.return_value = current_user
+    mock_service.side_effect = exception.ForbiddenError()
+
+    response = client.get(f"/api/task/{task.id}", headers=auth_headers)
+
+    assert response.status_code == 403
+
+
+@patch("app.services.user_service.get_current_user_service")
 @patch("app.services.task_service.update_task_service")
 def test_update_task_success(
     mock_service, mock_user, current_user, task, auth_headers, client

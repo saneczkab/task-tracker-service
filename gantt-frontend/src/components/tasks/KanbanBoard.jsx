@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import KanbanElement from "./KanbanElement.jsx";
 import TaskForm from "./TaskForm.jsx";
@@ -37,6 +37,8 @@ const KanbanBoard = () => {
   );
   const processError = useProcessError();
   const { confirm } = useConfirmDelete();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const priorityMap = useMemo(() => {
     const map = {};
@@ -52,23 +54,17 @@ const KanbanBoard = () => {
   };
 
   const handleEditTask = (task) => {
-    setSelectedTask(task);
-    setFormOpen(true);
+    navigate(`/team/${teamId}/task/${task.id}`, {
+      state: { from: location.pathname },
+    });
   };
 
   const handleTaskSaved = (saved) => {
     setFormOpen(false);
-    setTasks((prev) => {
-      const idx = prev.findIndex((t) => t.id === saved.id);
-      if (idx === -1) {
-        return [...prev, saved];
-      }
-
-      const copy = [...prev];
-      copy[idx] = saved;
-      return copy;
-    });
     setSelectedTask(null);
+    navigate(`/team/${teamId}/task/${saved.id}`, {
+      state: { from: location.pathname },
+    });
   };
 
   const handleTaskDelete = async (task) => {
@@ -318,6 +314,7 @@ const KanbanBoard = () => {
                     statusId={status.id}
                     tasks={tasks}
                     priorityMap={priorityMap}
+                    onTaskOpen={handleEditTask}
                     onTaskEdit={handleEditTask}
                     onAddTask={handleAddTask}
                     onTaskDelete={handleTaskDelete}
